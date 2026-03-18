@@ -43,8 +43,12 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 		t.Fatalf("write config: %v", err)
 	}
 
-	// Create a test image
-	if err := os.WriteFile(filepath.Join(dir, "cache/images/page-01.png"), []byte("fake-image"), 0644); err != nil {
+	// Create a test image in a per-input subdir
+	imagesDir := filepath.Join(dir, "cache/images/testinput")
+	if err := os.MkdirAll(imagesDir, 0755); err != nil {
+		t.Fatalf("mkdir images: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake-image"), 0644); err != nil {
 		t.Fatalf("write image: %v", err)
 	}
 
@@ -55,7 +59,7 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Input:    "./input",
+		Inputs:   []string{imagesDir},
 		CacheDir: "./cache",
 		DPI:      300,
 		Extract: config.ExtractConfig{
@@ -96,8 +100,8 @@ func TestExtractPipeline(t *testing.T) {
 		t.Fatalf("Extract() error: %v", err)
 	}
 
-	// Verify output file was created
-	outputPath := filepath.Join(ws.ExtractedDir(), "page_001.json")
+	// Verify output file was created in per-input subdir
+	outputPath := filepath.Join(ws.ExtractedDir(), "testinput", "page_001.json")
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
@@ -114,11 +118,11 @@ func TestExtractPipeline(t *testing.T) {
 		t.Errorf("expected 1 entry, got %d", len(page.Entries))
 	}
 
-	// Verify progress was updated
+	// Verify progress was updated with compound phase name
 	state := tracker.State()
-	phase := state.Phases[progress.PhaseExtract]
+	phase := state.Phases["extract:testinput"]
 	if phase == nil {
-		t.Fatal("expected extract phase in progress")
+		t.Fatal("expected extract:testinput phase in progress")
 	}
 	if !containsInt(phase.Completed, 1) {
 		t.Error("expected page 1 in completed list")
@@ -128,8 +132,8 @@ func TestExtractPipeline(t *testing.T) {
 func TestExtractPipelineSkipsCompleted(t *testing.T) {
 	ws, cfg, tracker := setupTestWorkspace(t)
 
-	// Mark page as already completed
-	tracker.MarkCompleted(progress.PhaseExtract, 1)
+	// Mark page as already completed using compound phase name
+	tracker.MarkCompleted("extract:testinput", 1)
 	if err := tracker.Save(); err != nil {
 		t.Fatalf("save tracker: %v", err)
 	}
@@ -146,7 +150,7 @@ func TestExtractPipelineSkipsCompleted(t *testing.T) {
 	}
 
 	// Output file should NOT exist since we skipped it
-	outputPath := filepath.Join(ws.ExtractedDir(), "page_001.json")
+	outputPath := filepath.Join(ws.ExtractedDir(), "testinput", "page_001.json")
 	if _, err := os.Stat(outputPath); err == nil {
 		t.Error("expected no output file for already completed page")
 	}
@@ -156,12 +160,13 @@ func TestExtractPipelineNoImages(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create empty images dir
-	if err := os.MkdirAll(filepath.Join(dir, "cache/images"), 0755); err != nil {
+	emptyDir := filepath.Join(dir, "cache/images/empty")
+	if err := os.MkdirAll(emptyDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
 
 	ws := &workspace.Workspace{Root: dir}
-	cfg := &config.Config{Input: "./input"}
+	cfg := &config.Config{Inputs: []string{emptyDir}}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
 	err := Extract(context.Background(), ExtractOptions{
@@ -170,8 +175,15 @@ func TestExtractPipelineNoImages(t *testing.T) {
 		Provider:  &mockProvider{response: "{}"},
 		Tracker:   tracker,
 	})
-	if err == nil {
-		t.Fatal("expected error for no images")
+	// Extract logs per-input errors but doesn't fail the overall run
+	if err != nil {
+		t.Fatalf("Extract() unexpected error: %v", err)
+	}
+
+	// No output files should exist
+	outputPath := filepath.Join(ws.ExtractedDir(), "empty", "page_001.json")
+	if _, err := os.Stat(outputPath); err == nil {
+		t.Error("expected no output files for empty input")
 	}
 }
 

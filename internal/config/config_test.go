@@ -197,10 +197,10 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestInputIsPDF(t *testing.T) {
+func TestIsPDF(t *testing.T) {
 	tests := []struct {
-		input string
-		want  bool
+		path string
+		want bool
 	}{
 		{"./input/book.pdf", true},
 		{"./input", false},
@@ -208,9 +208,53 @@ func TestInputIsPDF(t *testing.T) {
 		{"", false},
 	}
 	for _, tt := range tests {
-		cfg := &Config{Input: tt.input}
-		if got := cfg.InputIsPDF(); got != tt.want {
-			t.Errorf("InputIsPDF(%q) = %v, want %v", tt.input, got, tt.want)
+		if got := IsPDF(tt.path); got != tt.want {
+			t.Errorf("IsPDF(%q) = %v, want %v", tt.path, got, tt.want)
 		}
+	}
+}
+
+func TestInputsMigration(t *testing.T) {
+	// When only Input (singular) is set, Inputs should be populated
+	dir := t.TempDir()
+	yaml := `input: ./input/book.pdf`
+	configPath := filepath.Join(dir, "mutercim.yaml")
+	os.WriteFile(configPath, []byte(yaml), 0644)
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.Inputs) != 1 || cfg.Inputs[0] != "./input/book.pdf" {
+		t.Errorf("Inputs = %v, want [./input/book.pdf]", cfg.Inputs)
+	}
+}
+
+func TestInputsList(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `
+inputs:
+  - ./input/vol1.pdf
+  - ./input/vol2.pdf
+pages: "1-5"
+`
+	configPath := filepath.Join(dir, "mutercim.yaml")
+	os.WriteFile(configPath, []byte(yaml), 0644)
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.Inputs) != 2 {
+		t.Fatalf("len(Inputs) = %d, want 2", len(cfg.Inputs))
+	}
+	if cfg.Inputs[0] != "./input/vol1.pdf" {
+		t.Errorf("Inputs[0] = %q, want %q", cfg.Inputs[0], "./input/vol1.pdf")
+	}
+	if cfg.Inputs[1] != "./input/vol2.pdf" {
+		t.Errorf("Inputs[1] = %q, want %q", cfg.Inputs[1], "./input/vol2.pdf")
+	}
+	if cfg.Pages != "1-5" {
+		t.Errorf("Pages = %q, want %q", cfg.Pages, "1-5")
 	}
 }

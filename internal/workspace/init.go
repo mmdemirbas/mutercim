@@ -92,8 +92,15 @@ func generateConfig(opts InitOptions) string {
   source_lang: %s
   target_lang: %s
 
-# Paths (relative to workspace root)
-input: ./input
+# Input files or directories (relative to workspace root)
+# Single PDF:   inputs: [./input/book.pdf]
+# Multiple:     inputs: [./input/vol1.pdf, ./input/vol2.pdf]
+# Image dir:    inputs: [./input]
+inputs: [./input]
+
+# Page range to process: "1-50", "1,5,10-20", "all"
+# pages: all
+
 output: ./output
 cache_dir: ./cache
 dpi: 300

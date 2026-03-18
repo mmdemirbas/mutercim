@@ -27,7 +27,7 @@ into Turkish, preserving layout, structure, and domain-specific terminology.`,
 
 	// Common flags
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "path to config file (default: ./mutercim.yaml)")
-	rootCmd.PersistentFlags().StringVarP(&pages, "pages", "p", "all", "page range: \"1-50\", \"1,5,10-20\", \"all\"")
+	rootCmd.PersistentFlags().StringVarP(&pages, "pages", "p", "", "page range: \"1-50\", \"1,5,10-20\", \"all\" (default: from config or all)")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "log verbosity: debug, info, warn, error")
 	rootCmd.PersistentFlags().StringVar(&logFile, "log-file", "", "also write logs to this file")
 

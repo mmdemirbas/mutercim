@@ -12,7 +12,9 @@ import (
 // Config represents the full workspace configuration.
 type Config struct {
 	Book      model.Book      `yaml:"book" mapstructure:"book" json:"book"`
-	Input     string          `yaml:"input" mapstructure:"input" json:"input"`
+	Input     string          `yaml:"input" mapstructure:"input" json:"input,omitempty"`    // single input (backward compat)
+	Inputs    []string        `yaml:"inputs" mapstructure:"inputs" json:"inputs,omitempty"` // multiple inputs
+	Pages     string          `yaml:"pages" mapstructure:"pages" json:"pages,omitempty"`
 	Output    string          `yaml:"output" mapstructure:"output" json:"output"`
 	CacheDir  string          `yaml:"cache_dir" mapstructure:"cache_dir" json:"cache_dir"`
 	DPI       int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
@@ -134,8 +136,12 @@ func applyDefaults(cfg *Config) {
 	if cfg.Book.TargetLang == "" {
 		cfg.Book.TargetLang = "tr"
 	}
-	if cfg.Input == "" {
-		cfg.Input = "./input"
+	// Migrate singular input to inputs list
+	if len(cfg.Inputs) == 0 && cfg.Input != "" {
+		cfg.Inputs = []string{cfg.Input}
+	}
+	if len(cfg.Inputs) == 0 {
+		cfg.Inputs = []string{"./input"}
 	}
 	if cfg.Output == "" {
 		cfg.Output = "./output"
@@ -184,10 +190,18 @@ func applyDefaults(cfg *Config) {
 	}
 }
 
-// InputIsPDF returns true if the input path points to a PDF file.
+// IsPDF returns true if the given path points to a PDF file.
+func IsPDF(path string) bool {
+	return filepath.Ext(path) == ".pdf"
+}
+
+// InputIsPDF returns true if the first input path points to a PDF file.
+// Deprecated: use IsPDF with individual paths from Inputs instead.
 func (c *Config) InputIsPDF() bool {
-	ext := filepath.Ext(c.Input)
-	return ext == ".pdf"
+	if len(c.Inputs) > 0 {
+		return IsPDF(c.Inputs[0])
+	}
+	return IsPDF(c.Input)
 }
 
 // ResolvePath resolves a relative path against the workspace root.
@@ -228,10 +242,17 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Check input directory/file exists
-	if c.Input != "" {
-		if _, err := os.Stat(c.Input); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("input path: %w", err)
+	// Check input paths exist
+	for _, inp := range c.Inputs {
+		if _, err := os.Stat(inp); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("input path %q: %w", inp, err)
+		}
+	}
+
+	// Validate pages if set
+	if c.Pages != "" {
+		if _, err := model.ParsePageRanges(c.Pages); err != nil {
+			return fmt.Errorf("pages: %w", err)
 		}
 	}
 

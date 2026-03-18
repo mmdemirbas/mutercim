@@ -15,3 +15,9 @@
 
 - **What**: `resolveAPIKey` and `createProvider` helper functions in `internal/cli/extract.go` instead of using `provider/registry.go`
 - **Why**: Phase 3 only implements Gemini. A simple switch in the CLI is sufficient. The registry pattern from Phase 2 is available for later phases when all providers are wired up.
+
+- **What**: Added `Inputs []string` and `Pages string` fields to Config (SPEC has `Input string` only)
+- **Why**: Support multiple input PDF files and config-based page ranges so the user can define everything in `mutercim.yaml` without CLI flags. Old `input:` (singular) still works via migration in `applyDefaults`.
+
+- **What**: Extraction pipeline uses per-input subdirectories (`cache/images/<stem>/`, `cache/extracted/<stem>/`) and compound progress phase names (`"extract:<stem>"`)
+- **Why**: Multiple inputs would have conflicting page numbers (both PDFs have page 1). Per-input namespacing avoids conflicts in both file output and progress tracking.

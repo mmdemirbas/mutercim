@@ -60,10 +60,14 @@ func newExtractCmd() *cobra.Command {
 				cfg.DPI = dpi
 			}
 
-			// Preflight: check pdftoppm if input is PDF
-			if cfg.InputIsPDF() {
-				if err := input.CheckPdftoppm(); err != nil {
-					return err
+			// Preflight: check pdftoppm if any input is PDF
+			for _, inp := range cfg.Inputs {
+				resolved := cfg.ResolvePath(ws.Root, inp)
+				if config.IsPDF(resolved) {
+					if err := input.CheckPdftoppm(); err != nil {
+						return err
+					}
+					break
 				}
 			}
 
@@ -90,10 +94,15 @@ func newExtractCmd() *cobra.Command {
 				return err
 			}
 
-			// Parse page range
+			// Determine page range: CLI flag > config > all
+			pageSpec := cfg.Pages // from config
+			if pages != "" {
+				pageSpec = pages // CLI flag overrides
+			}
+
 			var pagesToProcess []int
-			if pages != "all" && pages != "" {
-				ranges, err := model.ParsePageRanges(pages)
+			if pageSpec != "" && pageSpec != "all" {
+				ranges, err := model.ParsePageRanges(pageSpec)
 				if err != nil {
 					return fmt.Errorf("parse pages: %w", err)
 				}
