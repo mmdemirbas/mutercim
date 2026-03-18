@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
@@ -47,18 +48,17 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	fmt.Println()
-	phases := []progress.PhaseName{
-		progress.PhaseExtract, progress.PhaseEnrich,
-		progress.PhaseTranslate, progress.PhaseCompile,
+	// Collect and sort all phase names
+	phaseNames := make([]string, 0, len(state.Phases))
+	for name := range state.Phases {
+		phaseNames = append(phaseNames, string(name))
 	}
+	sort.Strings(phaseNames)
 
-	for _, phase := range phases {
-		ps, ok := state.Phases[phase]
-		if !ok {
-			continue
-		}
-		fmt.Printf("%s:\n", phase)
+	fmt.Println()
+	for _, name := range phaseNames {
+		ps := state.Phases[progress.PhaseName(name)]
+		fmt.Printf("%s:\n", name)
 		fmt.Printf("  completed: %d\n", len(ps.Completed))
 		if len(ps.Failed) > 0 {
 			fmt.Printf("  failed:    %d %v\n", len(ps.Failed), ps.Failed)
