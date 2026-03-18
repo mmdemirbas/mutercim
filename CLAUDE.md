@@ -2,12 +2,12 @@
 
 ## Source of Truth
 
-SPEC.md is the authoritative architecture document. Read it before implementing anything. Follow its
-package structure, interface definitions, data structures, and naming exactly. Do not invent
+docs/SPEC.md is the authoritative architecture document. Read it before implementing anything. Follow
+its package structure, interface definitions, data structures, and naming exactly. Do not invent
 alternative patterns.
 
-GO_CONVENTIONS.md contains code-level Go conventions (error handling, testing patterns, entry point
-structure). Follow these for implementation style. If SPEC.md and GO_CONVENTIONS.md conflict,
+docs/GO-CONVENTIONS.md contains code-level Go conventions (error handling, testing patterns, entry
+point structure). Follow these for implementation style. If SPEC.md and GO-CONVENTIONS.md conflict,
 SPEC.md wins.
 
 ## Build Discipline
@@ -23,7 +23,7 @@ Do NOT proceed to the next task if any of these fail. Fix the issue first.
 ## Deviation Tracking
 
 If you make a design choice that differs from SPEC.md (different function signature, renamed
-package, added/removed a field, changed a data flow), append a short entry to DEVIATIONS.md
+package, added/removed a field, changed a data flow), append a short entry to docs/DEVIATIONS.md
 explaining what changed and why. Format:
 
 ```

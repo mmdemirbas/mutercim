@@ -1,3 +1,2 @@
-- Move docs to a folder
 - Add README
 - Add 'task dist'
