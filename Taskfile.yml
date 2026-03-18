@@ -21,9 +21,21 @@ tasks:
       - go build -o build/mutercim ./cmd/mutercim
 
   install:
-    desc: Install mutercim to GOPATH/bin
+    desc: Install mutercim and set up shell completion
     cmds:
       - go install ./cmd/mutercim
+      - mkdir -p ~/.zsh/completions
+      - mutercim completion zsh > ~/.zsh/completions/_mutercim
+      - echo "Done. Add this to your .zshrc if not already present:"
+      - echo '  fpath=(~/.zsh/completions $fpath)'
+      - echo '  autoload -Uz compinit && compinit'
+      - echo "Then restart your shell or run 'source ~/.zshrc'"
+
+  uninstall:
+    desc: Remove mutercim binary and shell completion
+    cmds:
+      - rm -f $(go env GOPATH)/bin/mutercim
+      - rm -f ~/.zsh/completions/_mutercim
 
   test:
     desc: Run all tests
