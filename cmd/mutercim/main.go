@@ -1,6 +1,6 @@
 package main
 
-import "github.com/muhammed/mutercim/internal/cli"
+import "github.com/mmdemirbas/mutercim/internal/cli"
 
 func main() {
 	cli.Execute()

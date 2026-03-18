@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/muhammed/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/spf13/viper"
 )
 

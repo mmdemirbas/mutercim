@@ -687,7 +687,7 @@ entries:
 This is the source tree for the `mutercim` binary itself — NOT a workspace.
 
 ```
-mutercim/                            # Go project root (github.com/muhammed/mutercim)
+mutercim/                            # Go project root (github.com/mmdemirbas/mutercim)
 ├── cmd/mutercim/
 │   └── main.go                      # Entry point, cobra root command
 ├── internal/
@@ -1268,7 +1268,7 @@ docker-xelatex:
 Workspace initialization is handled by `mutercim init`, not the Makefile. Quick start:
 
 ```bash
-go install github.com/muhammed/mutercim/cmd/mutercim@latest
+go install github.com/mmdemirbas/mutercim/cmd/mutercim@latest
 mkdir my-book && cd my-book
 mutercim init
 # Copy your PDF into input/

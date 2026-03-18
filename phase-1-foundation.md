@@ -3,7 +3,7 @@ Do not deviate from the spec's package structure or interface definitions.
 
 Read SPEC.md thoroughly. Implement in this order:
 
-1. go.mod, go.sum (module: github.com/muhammed/mutercim)
+1. go.mod, go.sum (module: github.com/mmdemirbas/mutercim)
 2. internal/model/ — all data structures (page.go, book.go, entry.go, section.go)
 3. internal/config/ — config loading with section support (config.go, sections.go)
 4. internal/workspace/ — workspace discovery, init scaffolding, path resolution

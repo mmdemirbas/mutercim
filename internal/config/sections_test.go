@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	"github.com/muhammed/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 func TestSectionLookup(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/muhammed/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/spf13/cobra"
 )
 

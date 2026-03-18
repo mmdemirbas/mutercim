@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/muhammed/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 // SectionLookup provides efficient page-to-section mapping.

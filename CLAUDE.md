@@ -2,9 +2,13 @@
 
 ## Source of Truth
 
-SPEC.md is the authoritative architecture document. Read it before implementing anything. Follow its package structure, interface definitions, data structures, and naming exactly. Do not invent alternative patterns.
+SPEC.md is the authoritative architecture document. Read it before implementing anything. Follow its
+package structure, interface definitions, data structures, and naming exactly. Do not invent
+alternative patterns.
 
-GO_CONVENTIONS.md contains code-level Go conventions (error handling, testing patterns, entry point structure). Follow these for implementation style. If SPEC.md and GO_CONVENTIONS.md conflict, SPEC.md wins.
+GO_CONVENTIONS.md contains code-level Go conventions (error handling, testing patterns, entry point
+structure). Follow these for implementation style. If SPEC.md and GO_CONVENTIONS.md conflict,
+SPEC.md wins.
 
 ## Build Discipline
 
@@ -18,7 +22,9 @@ Do NOT proceed to the next task if any of these fail. Fix the issue first.
 
 ## Deviation Tracking
 
-If you make a design choice that differs from SPEC.md (different function signature, renamed package, added/removed a field, changed a data flow), append a short entry to DEVIATIONS.md explaining what changed and why. Format:
+If you make a design choice that differs from SPEC.md (different function signature, renamed
+package, added/removed a field, changed a data flow), append a short entry to DEVIATIONS.md
+explaining what changed and why. Format:
 
 ```
 ## Phase N — <date or description>
@@ -41,27 +47,39 @@ Create DEVIATIONS.md if it doesn't exist.
 
 ## Testing
 
-- Write table-driven tests for any parsing logic (page ranges, config merging, JSON extraction, section lookup)
+- Write table-driven tests for any parsing logic (page ranges, config merging, JSON extraction,
+  section lookup)
 - Write at least one test per public function in `apiclient/`, `config/`, `knowledge/`, `progress/`
-- Tests for provider implementations can use a local HTTP test server (`httptest.NewServer`) — do not make real API calls in tests
+- Tests for provider implementations can use a local HTTP test server (`httptest.NewServer`) — do
+  not make real API calls in tests
 - Name test files `*_test.go` in the same package (not `_test` package)
 
 ## File Writes
 
-- All state files (progress.json, cache JSONs, staged knowledge YAMLs) must use atomic write: write to `.tmp` then `os.Rename`
-- Per-page output files (markdown, translated JSON) should be written immediately after processing each page, not batched
+- All state files (progress.json, cache JSONs, staged knowledge YAMLs) must use atomic write: write
+  to `.tmp` then `os.Rename`
+- Per-page output files (markdown, translated JSON) should be written immediately after processing
+  each page, not batched
 
 ## Error Handling
 
 - Never silently swallow errors. Either return them, log them, or both.
-- Pipeline phases (extract, enrich, translate, compile) must not abort on single-page failures. Log the error, save partial/raw data, record the failure in progress.json, continue to next page.
-- System dependency checks (pdftoppm, docker, pandoc) happen at command startup via preflight, not lazily on first use.
+- Pipeline phases (extract, enrich, translate, compile) must not abort on single-page failures. Log
+  the error, save partial/raw data, record the failure in progress.json, continue to next page.
+- System dependency checks (pdftoppm, docker, pandoc) happen at command startup via preflight, not
+  lazily on first use.
 
 ## What NOT To Do
 
 - Do not add dependencies not listed in SPEC.md without asking
 - Do not create files outside the package structure defined in SPEC.md
-- Do not use `interface{}` or `any` for typed data — use the concrete model types from `internal/model/`
+- Do not use `interface{}` or `any` for typed data — use the concrete model types from
+  `internal/model/`
 - Do not use `panic` or `os.Exit` outside of `main.go`
 - Do not write Python scripts, shell scripts, or Makefiles that duplicate Go logic
-- Do not embed large string literals for prompts inline in function bodies — use `prompts.go` files as specified
+- Do not embed large string literals for prompts inline in function bodies — use `prompts.go` files
+  as specified
+
+## After Completion of Each Phase
+
+- Add summary of the changes to the end of the relevant phase file.

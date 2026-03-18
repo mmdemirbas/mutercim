@@ -1,4 +1,4 @@
-module github.com/muhammed/mutercim
+module github.com/mmdemirbas/mutercim
 
 go 1.26.1
 

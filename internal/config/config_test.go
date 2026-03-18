@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/muhammed/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 func TestLoadDefaults(t *testing.T) {

@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/muhammed/mutercim/internal/workspace"
+	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
 
