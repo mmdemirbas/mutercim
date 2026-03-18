@@ -1,0 +1,22 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the mutercim binary
+    cmds:
+      - go build -o bin/mutercim ./cmd/mutercim
+
+  install:
+    desc: Install mutercim to GOPATH/bin
+    cmds:
+      - go install ./cmd/mutercim
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  docker-xelatex:
+    desc: Build the XeLaTeX Docker image
+    cmds:
+      - docker build -t mutercim/xelatex docker/xelatex/

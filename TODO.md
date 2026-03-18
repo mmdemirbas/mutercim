@@ -1,3 +1,2 @@
-- Replace Makefile with Taskfile.yml
 - Move docs to a folder
 - Add README
