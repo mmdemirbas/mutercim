@@ -29,3 +29,26 @@ Before declaring this phase complete, execute these commands and verify they pas
 6. Show me the output of all three commands above
 7. Run extraction on the sample page image and print the resulting JSON to stdout
 8. Verify the JSON contains: page_number, section_type, entries with hadith numbers, footnotes with source_codes
+
+## Summary
+
+### Files Created
+
+- `internal/input/loader.go` — `ListImages()` (scans directory for page images, parses page numbers from filenames), `LoadImage()`, `PageImage` struct
+- `internal/input/pdf.go` — `ConvertPDFToImages()` (shells out to pdftoppm), `CheckPdftoppm()` preflight check
+- `internal/extraction/prompts.go` — Extraction system prompt from SPEC, `SectionHint()` for section-aware prompt context, `BuildUserPrompt()`
+- `internal/extraction/extractor.go` — `Extractor` struct using `Provider` interface, `ExtractPage()` (calls provider, parses JSON, builds `ExtractedPage`)
+- `internal/pipeline/extract.go` — Phase 1 orchestrator: PDF conversion, image listing, section lookup, per-page extraction with progress tracking, atomic JSON output
+- `internal/cli/extract.go` — `extract` subcommand with flags (`--extract-provider`, `--extract-model`, `--concurrency`, `--dpi`), API key resolution, provider creation
+
+### Test Files
+
+- `internal/input/loader_test.go` — image listing (various naming patterns, empty/nonexistent dirs, JPEG support), page number parsing, image loading
+- `internal/extraction/extractor_test.go` — full extraction with Arabic text, null page number fallback, markdown code block response, provider error handling
+- `internal/extraction/prompts_test.go` — user prompt generation per section type, section hint coverage
+- `internal/pipeline/extract_test.go` — end-to-end pipeline (mock provider → JSON output + progress update), skip-completed logic, no-images error, atomic save verification
+
+### Deviations
+
+- Preflight check in `input/pdf.go` instead of `workspace/preflight.go` (co-location with pdftoppm code)
+- Provider creation via switch in CLI instead of registry (sufficient for single-provider phase)
