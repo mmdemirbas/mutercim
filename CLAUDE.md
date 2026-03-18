@@ -4,6 +4,8 @@
 
 SPEC.md is the authoritative architecture document. Read it before implementing anything. Follow its package structure, interface definitions, data structures, and naming exactly. Do not invent alternative patterns.
 
+GO_CONVENTIONS.md contains code-level Go conventions (error handling, testing patterns, entry point structure). Follow these for implementation style. If SPEC.md and GO_CONVENTIONS.md conflict, SPEC.md wins.
+
 ## Build Discipline
 
 After implementing any phase or making any significant change:
