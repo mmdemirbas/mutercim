@@ -2,13 +2,13 @@
 
 ## Source of Truth
 
-docs/SPEC.md is the authoritative architecture document. Read it before implementing anything. Follow
-its package structure, interface definitions, data structures, and naming exactly. Do not invent
-alternative patterns.
+The codebase is the primary source of truth.
+docs/DECISIONS.md overrides docs/SPEC.md on any conflict.
+docs/SPEC.md is the original blueprint — do NOT spend time updating it.
+When making structural changes, update docs/DECISIONS.md (one line) not docs/SPEC.md.
 
 docs/GO-CONVENTIONS.md contains code-level Go conventions (error handling, testing patterns, entry
-point structure). Follow these for implementation style. If SPEC.md and GO-CONVENTIONS.md conflict,
-SPEC.md wins.
+point structure). Follow these for implementation style.
 
 ## Build Discipline
 
@@ -63,7 +63,8 @@ Create DEVIATIONS.md if it doesn't exist.
 
 ## File Writes
 
-- All state files (progress.json, midstate JSONs, staged knowledge YAMLs) must use atomic write: write
+- All state files (progress.json, midstate JSONs, staged knowledge YAMLs) must use atomic write:
+  write
   to `.tmp` then `os.Rename`
 - Per-page output files (markdown, translated JSON) should be written immediately after processing
   each page, not batched
