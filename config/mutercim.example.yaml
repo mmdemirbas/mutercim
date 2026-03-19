@@ -1,0 +1,131 @@
+# yaml-language-server: $schema=./mutercim.schema.json
+#
+# mutercim — full configuration reference
+#
+# All keys shown below with their default values and allowed options.
+# Copy this file to your workspace root as "mutercim.yaml" and customize.
+
+# ─── Book metadata ───────────────────────────────────────────────────────────
+
+book:
+  title: ""                          # Book title (shown in dashboard and output)
+  author: ""                         # Book author
+  source_langs: [ar]                 # Source language codes
+  target_langs: [tr]                 # Target language codes
+  # source_lang: ar                  # DEPRECATED — use source_langs
+  # target_lang: tr                  # DEPRECATED — use target_langs
+
+# ─── Inputs ──────────────────────────────────────────────────────────────────
+#
+# Input files to process. Each entry is either a plain path string
+# or an object with path + optional per-input page range.
+#
+# Simple form:
+#   inputs: [./input/vol1.pdf, ./input/vol2.pdf]
+#
+# Structured form:
+#   inputs:
+#     - path: ./input/vol1.pdf
+#       pages: "1-50"
+#     - path: ./input/vol2.pdf
+#       pages: "10-20,30-40"
+#
+# Mixed form:
+#   inputs:
+#     - ./input/vol1.pdf
+#     - path: ./input/vol2.pdf
+#       pages: "1-50"
+
+inputs:
+  - path: ./input                    # Path relative to workspace root
+
+# Global page range — fallback for inputs without their own pages.
+# Formats: "1-50", "1,5,10-20", "all" (or omit for all pages)
+# pages: all
+
+# input: ./input                     # DEPRECATED — use inputs
+
+# ─── Directories ─────────────────────────────────────────────────────────────
+
+output: ./output                     # Final output directory
+midstate_dir: ./midstate             # Intermediate state (images, JSONs, progress)
+
+# ─── PDF conversion ──────────────────────────────────────────────────────────
+
+dpi: 300                             # DPI for PDF-to-image conversion (min: 72)
+
+# ─── Sections ────────────────────────────────────────────────────────────────
+#
+# Define the book's internal layout structure.
+# Pages not covered by any section default to type: auto.
+# If no sections are defined, the entire book is type: auto.
+#
+# Section types:
+#   skip              — Don't process these pages
+#   prose             — Continuous paragraphs (introductions, prefaces)
+#   scholarly_entries  — Numbered entries + footnotes with source codes
+#   reference_table   — Key-value reference data (auto-staged to knowledge)
+#   toc               — Table of contents
+#   index             — Alphabetical index
+#   auto              — AI detects layout (default)
+
+sections: []
+# sections:
+#   - name: Front matter
+#     pages: "1-10"
+#     type: skip
+#     translate: false
+#   - name: Introduction
+#     pages: "11-20"
+#     type: prose
+#     translate: true                # default: true
+#   - name: Main content
+#     pages: "21-600"
+#     type: scholarly_entries
+#     translate: true
+#   - name: Abbreviations
+#     pages: "601-605"
+#     type: reference_table
+#     translate: false
+#   - name: Index
+#     pages: "606-612"
+#     type: index
+#     translate: false
+
+# ─── Read phase (OCR/vision) ─────────────────────────────────────────────────
+
+read:
+  provider: gemini                   # gemini | claude | openai | ollama | surya
+  model: gemini-2.0-flash           # Model name for reading page images
+  concurrency: 1                     # Reserved for future parallel processing (min: 1)
+
+# ─── Translation phase ───────────────────────────────────────────────────────
+
+translate:
+  provider: gemini                   # gemini | claude | openai | ollama
+  model: gemini-2.0-flash           # Model name for translation
+  context_window: 2                  # Previous pages included for context (min: 0)
+
+# ─── Write/compilation phase ─────────────────────────────────────────────────
+
+write:
+  formats: [md, latex]               # Output formats: md | latex | docx
+  expand_sources: true               # Expand source abbreviations in output
+  latex_docker_image: mutercim/xelatex:latest  # Docker image for PDF compilation
+  skip_pdf: false                    # Skip PDF compilation from LaTeX
+
+# ─── Knowledge base ──────────────────────────────────────────────────────────
+
+knowledge:
+  dir: ./knowledge                   # Knowledge YAML files directory
+
+# ─── Retry settings ──────────────────────────────────────────────────────────
+
+retry:
+  max_attempts: 3                    # Maximum retry attempts (min: 0)
+  backoff_seconds: 2                 # Base backoff in seconds, exponential: 2s, 4s, 8s (min: 1)
+
+# ─── Rate limiting ───────────────────────────────────────────────────────────
+
+rate_limit:
+  requests_per_minute: 14            # Max API requests per minute (min: 1)

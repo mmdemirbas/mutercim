@@ -1,8 +1,10 @@
+# yaml-language-server: $schema=../config/mutercim.schema.json
+
 book:
   title: "Test Book"
   author: "Unknown Author"
-  source_langs: [ar]
-  target_langs: [tr]
+  source_langs: [ ar ]
+  target_langs: [ tr ]
 
 # Input files (relative to workspace root)
 # Simple form: inputs: [./input/book.pdf]
@@ -43,8 +45,8 @@ read:
 translate:
   provider: gemini
   model: gemini-2.5-flash-lite
-#  provider: ollama
-#  model: qwen3:14b
+  #  provider: ollama
+  #  model: qwen3:14b
   context_window: 2
 
 write:

@@ -1,0 +1,298 @@
+{
+  "$id": "https://github.com/mmdemirbas/mutercim/config/mutercim.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Configuration file for mutercim — Islamic scholarly book translation tool.",
+  "properties": {
+    "book": {
+      "additionalProperties": false,
+      "description": "Book metadata.",
+      "properties": {
+        "author": {
+          "description": "Book author.",
+          "type": "string"
+        },
+        "source_lang": {
+          "deprecated": true,
+          "description": "Deprecated: use source_langs instead.",
+          "type": "string"
+        },
+        "source_langs": {
+          "default": [
+            "ar"
+          ],
+          "description": "Source language codes (e.g. [\"ar\"]).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "target_lang": {
+          "deprecated": true,
+          "description": "Deprecated: use target_langs instead.",
+          "type": "string"
+        },
+        "target_langs": {
+          "default": [
+            "tr"
+          ],
+          "description": "Target language codes (e.g. [\"tr\"]).",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "title": {
+          "description": "Book title.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "dpi": {
+      "default": 300,
+      "description": "DPI for PDF-to-image conversion.",
+      "minimum": 72,
+      "type": "integer"
+    },
+    "input": {
+      "deprecated": true,
+      "description": "Deprecated: use inputs instead. Single input path (backward compat).",
+      "type": "string"
+    },
+    "inputs": {
+      "default": [
+        {
+          "path": "./input"
+        }
+      ],
+      "description": "Input files with optional per-input page ranges.",
+      "items": {
+        "oneOf": [
+          {
+            "description": "Simple form: just a file path.",
+            "type": "string"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Structured form with optional page range.",
+            "properties": {
+              "pages": {
+                "description": "Page range for this input (e.g. \"1-50\", \"1,5,10-20\", \"all\").",
+                "type": "string"
+              },
+              "path": {
+                "description": "Path to the input file (relative to workspace root).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "type": "array"
+    },
+    "knowledge": {
+      "additionalProperties": false,
+      "description": "Knowledge base settings.",
+      "properties": {
+        "dir": {
+          "default": "./knowledge",
+          "description": "Knowledge directory (relative to workspace root).",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "midstate_dir": {
+      "default": "./midstate",
+      "description": "Intermediate state directory (relative to workspace root).",
+      "type": "string"
+    },
+    "output": {
+      "default": "./output",
+      "description": "Output directory (relative to workspace root).",
+      "type": "string"
+    },
+    "pages": {
+      "description": "Global page range — fallback for inputs without their own pages (e.g. \"1-50\", \"all\").",
+      "type": "string"
+    },
+    "rate_limit": {
+      "additionalProperties": false,
+      "description": "Rate limiting settings for API calls.",
+      "properties": {
+        "requests_per_minute": {
+          "default": 14,
+          "description": "Maximum requests per minute.",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "read": {
+      "additionalProperties": false,
+      "description": "Read phase (OCR/vision) settings.",
+      "properties": {
+        "concurrency": {
+          "default": 1,
+          "description": "Reserved for future parallel processing.",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "model": {
+          "default": "gemini-2.0-flash",
+          "description": "Model name for reading.",
+          "type": "string"
+        },
+        "provider": {
+          "default": "gemini",
+          "description": "AI provider for reading.",
+          "enum": [
+            "gemini",
+            "claude",
+            "openai",
+            "ollama",
+            "surya"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "retry": {
+      "additionalProperties": false,
+      "description": "Retry settings for API calls.",
+      "properties": {
+        "backoff_seconds": {
+          "default": 2,
+          "description": "Base backoff duration in seconds (exponential: 2s, 4s, 8s).",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_attempts": {
+          "default": 3,
+          "description": "Maximum number of retry attempts.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "sections": {
+      "default": [],
+      "description": "Book section definitions. Pages not covered default to type: auto.",
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Section name (for display/logging).",
+            "type": "string"
+          },
+          "pages": {
+            "description": "Page range (e.g. \"1-50\", \"1,5,10-20\").",
+            "type": "string"
+          },
+          "translate": {
+            "default": true,
+            "description": "Whether to translate this section.",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "Section layout type.",
+            "enum": [
+              "skip",
+              "prose",
+              "scholarly_entries",
+              "reference_table",
+              "toc",
+              "index",
+              "auto"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "pages",
+          "type"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "translate": {
+      "additionalProperties": false,
+      "description": "Translation phase settings.",
+      "properties": {
+        "context_window": {
+          "default": 2,
+          "description": "Number of previous pages to include as context.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "model": {
+          "default": "gemini-2.0-flash",
+          "description": "Model name for translation.",
+          "type": "string"
+        },
+        "provider": {
+          "default": "gemini",
+          "description": "AI provider for translation.",
+          "enum": [
+            "gemini",
+            "claude",
+            "openai",
+            "ollama"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "write": {
+      "additionalProperties": false,
+      "description": "Write/compilation phase settings.",
+      "properties": {
+        "expand_sources": {
+          "default": true,
+          "description": "Expand source abbreviations in output.",
+          "type": "boolean"
+        },
+        "formats": {
+          "default": [
+            "md",
+            "latex"
+          ],
+          "description": "Output formats to generate.",
+          "items": {
+            "enum": [
+              "md",
+              "latex",
+              "docx"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "latex_docker_image": {
+          "default": "mutercim/xelatex:latest",
+          "description": "Docker image for LaTeX/PDF compilation.",
+          "type": "string"
+        },
+        "skip_pdf": {
+          "default": false,
+          "description": "Skip PDF compilation from LaTeX.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "title": "mutercim configuration",
+  "type": "object"
+}

@@ -52,6 +52,18 @@ tasks:
       - GOOS=windows GOARCH=amd64 go build -o dist/windows_amd64/mutercim ./cmd/mutercim
       - GOOS=darwin GOARCH=arm64 go build -o dist/darwin_arm64/mutercim ./cmd/mutercim
 
+  schema:
+    desc: Regenerate config/mutercim.schema.json from Go types
+    cmds:
+      - go run ./cmd/gen-schema
+    sources:
+      - internal/config/schema.go
+      - internal/config/config.go
+      - internal/model/section.go
+      - internal/model/book.go
+    generates:
+      - config/mutercim.schema.json
+
   docker-xelatex:
     desc: Build the XeLaTeX Docker image
     cmds:
