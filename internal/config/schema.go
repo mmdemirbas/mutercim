@@ -84,10 +84,9 @@ var schemaAnnotations = map[string]schemaMeta{
 
 	// write
 	"write":                    {Description: "Write/compilation phase settings."},
-	"write.formats":            {Description: "Output formats to generate.", Default: []string{"md", "latex"}, ItemEnum: []string{"md", "latex", "docx"}},
+	"write.formats":            {Description: "Output formats to generate.", Default: []string{"md", "latex", "docx", "pdf"}, ItemEnum: []string{"md", "latex", "pdf", "docx"}},
 	"write.expand_sources":     {Description: "Expand source abbreviations in output.", Default: true},
 	"write.latex_docker_image": {Description: "Docker image for LaTeX/PDF compilation.", Default: "mutercim/xelatex:latest"},
-	"write.skip_pdf":           {Description: "Skip PDF compilation from LaTeX.", Default: false},
 
 	// knowledge
 	"knowledge_dir": {Description: "Knowledge YAML files directory (relative to workspace root).", Default: "./knowledge"},

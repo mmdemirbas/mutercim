@@ -18,7 +18,6 @@ func newWriteCmd() *cobra.Command {
 	var (
 		formats          string
 		latexDockerImage string
-		skipPDF          bool
 	)
 
 	cmd := &cobra.Command{
@@ -47,18 +46,12 @@ func newWriteCmd() *cobra.Command {
 			if latexDockerImage != "" {
 				cfg.Write.LaTeXDockerImage = latexDockerImage
 			}
-			if cmd.Flags().Changed("skip-pdf") {
-				cfg.Write.SkipPDF = skipPDF
-			}
-
 			// Preflight checks
 			for _, f := range cfg.Write.Formats {
 				switch f {
-				case "latex":
-					if !cfg.Write.SkipPDF {
-						if err := renderer.CheckDocker(); err != nil {
-							return err
-						}
+				case "pdf":
+					if err := renderer.CheckDocker(); err != nil {
+						return err
 					}
 				case "docx":
 					if err := renderer.CheckPandoc(); err != nil {
@@ -93,9 +86,8 @@ func newWriteCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&formats, "format", "", "output formats, comma-separated: md,latex,docx (default: from config)")
+	cmd.Flags().StringVar(&formats, "format", "", "output formats, comma-separated: md,latex,pdf,docx (default: from config)")
 	cmd.Flags().StringVar(&latexDockerImage, "latex-docker-image", "", "Docker image for LaTeX compilation (default: from config)")
-	cmd.Flags().BoolVar(&skipPDF, "skip-pdf", false, "generate .tex but don't compile to PDF")
 
 	return cmd
 }

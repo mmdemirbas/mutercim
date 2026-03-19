@@ -125,7 +125,7 @@ func truncateOutput(s string, maxLen int) string {
 // CheckDocker returns an error if docker is not available.
 func CheckDocker() error {
 	if _, err := exec.LookPath("docker"); err != nil {
-		return fmt.Errorf("docker not found in PATH (required for LaTeX→PDF compilation, or use --skip-pdf)")
+		return fmt.Errorf("docker not found in PATH (required for pdf output format)")
 	}
 	return nil
 }

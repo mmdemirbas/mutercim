@@ -66,6 +66,12 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Overridable per-model via `rpm` field in `ModelSpec`
 - Global `rate_limit` config kept for backward compat but per-model RPM takes precedence
 
+## PDF as Output Format (replaces skip_pdf)
+- `pdf` is now a first-class output format (default: `[md, pdf]`)
+- `pdf` implies LaTeX generation + PDF compilation via Docker
+- `latex` format generates only `.tex` without compiling
+- Removed `skip_pdf` config field and `--skip-pdf` CLI flag
+
 ## Live Status Line During API Calls
 - `StatusLine` type + `SetStatus(StatusLine)` added to Display interface
 - Shows "→ reading page N via provider/model ... Xs" below the active phase bar

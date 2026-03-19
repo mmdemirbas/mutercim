@@ -228,8 +228,8 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 	}
 
 	// Write config
-	if len(cfg.Write.Formats) != 2 || cfg.Write.Formats[0] != "md" || cfg.Write.Formats[1] != "latex" {
-		t.Errorf("Write.Formats = %v, want [md latex]", cfg.Write.Formats)
+	if len(cfg.Write.Formats) != 4 || cfg.Write.Formats[0] != "md" || cfg.Write.Formats[1] != "latex" || cfg.Write.Formats[2] != "docx" || cfg.Write.Formats[3] != "pdf" {
+		t.Errorf("Write.Formats = %v, want [md latex docx pdf]", cfg.Write.Formats)
 	}
 	if cfg.Write.LaTeXDockerImage != "mutercim/xelatex:latest" {
 		t.Errorf("Write.LaTeXDockerImage = %q, want %q", cfg.Write.LaTeXDockerImage, "mutercim/xelatex:latest")

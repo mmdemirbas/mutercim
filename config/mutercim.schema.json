@@ -272,13 +272,16 @@
         "formats": {
           "default": [
             "md",
-            "latex"
+            "latex",
+            "docx",
+            "pdf"
           ],
           "description": "Output formats to generate.",
           "items": {
             "enum": [
               "md",
               "latex",
+              "pdf",
               "docx"
             ],
             "type": "string"
@@ -289,11 +292,6 @@
           "default": "mutercim/xelatex:latest",
           "description": "Docker image for LaTeX/PDF compilation.",
           "type": "string"
-        },
-        "skip_pdf": {
-          "default": false,
-          "description": "Skip PDF compilation from LaTeX.",
-          "type": "boolean"
         }
       },
       "type": "object"

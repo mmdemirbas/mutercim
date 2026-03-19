@@ -146,10 +146,9 @@ translate:
   context_window: 2
 
 write:
-  formats: [md, latex]
+  formats: [md, pdf]
   expand_sources: true
   latex_docker_image: mutercim/xelatex:latest
-  skip_pdf: false
 
 # Knowledge paths (relative to workspace root)
 knowledge:

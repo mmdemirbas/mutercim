@@ -60,7 +60,6 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 		Book: model.Book{SourceLangs: []string{"ar"}, TargetLangs: []string{"tr"}},
 		Write: config.WriteConfig{
 			Formats:       []string{"md"},
-			SkipPDF:       true,
 			ExpandSources: true,
 		},
 	}
@@ -112,10 +111,9 @@ func TestWriteMarkdown(t *testing.T) {
 	}
 }
 
-func TestWriteLatexSkipPDF(t *testing.T) {
+func TestWriteLatex(t *testing.T) {
 	ws, cfg, tracker := setupWriteWorkspace(t)
 	cfg.Write.Formats = []string{"latex"}
-	cfg.Write.SkipPDF = true
 
 	err := Write(context.Background(), WriteOptions{
 		Workspace: ws,

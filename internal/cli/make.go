@@ -50,11 +50,9 @@ func newMakeCmd() *cobra.Command {
 			}
 			for _, f := range cfg.Write.Formats {
 				switch f {
-				case "latex":
-					if !cfg.Write.SkipPDF {
-						if err := renderer.CheckDocker(); err != nil {
-							return err
-						}
+				case "pdf":
+					if err := renderer.CheckDocker(); err != nil {
+						return err
 					}
 				case "docx":
 					if err := renderer.CheckPandoc(); err != nil {

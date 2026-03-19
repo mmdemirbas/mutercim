@@ -123,9 +123,14 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 				formatErrors = append(formatErrors, fmt.Sprintf("md: %v", err))
 			}
 		case "latex":
-			if err := compileLatex(ctx, ws, cfg, stem, targetLang, pages, logger); err != nil {
-				logger.Error("latex/PDF compilation failed", "input", stem, "error", err)
+			if err := compileLatex(ctx, ws, cfg, stem, targetLang, pages, false, logger); err != nil {
+				logger.Error("latex compilation failed", "input", stem, "error", err)
 				formatErrors = append(formatErrors, fmt.Sprintf("latex: %v", err))
+			}
+		case "pdf":
+			if err := compileLatex(ctx, ws, cfg, stem, targetLang, pages, true, logger); err != nil {
+				logger.Error("PDF compilation failed", "input", stem, "error", err)
+				formatErrors = append(formatErrors, fmt.Sprintf("pdf: %v", err))
 			}
 		case "docx":
 			if err := compileDocx(ctx, ws, cfg, stem, targetLang, logger); err != nil {
@@ -195,7 +200,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 	return nil
 }
 
-func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedPage, logger *slog.Logger) error {
+func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedPage, compilePDF bool, logger *slog.Logger) error {
 	latexDir := filepath.Join(ws.OutputDir(), targetLang, "latex")
 	if err := os.MkdirAll(latexDir, 0755); err != nil {
 		return fmt.Errorf("create latex output dir: %w", err)
@@ -209,8 +214,7 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 	}
 	logger.Info("wrote latex", "path", texPath)
 
-	// Compile to PDF unless skipped
-	if !cfg.Write.SkipPDF {
+	if compilePDF {
 		logger.Info("compiling PDF via Docker", "image", cfg.Write.LaTeXDockerImage)
 		if err := renderer.CompilePDF(ctx, latexDir, cfg.Write.LaTeXDockerImage); err != nil {
 			return fmt.Errorf("compile PDF: %w", err)

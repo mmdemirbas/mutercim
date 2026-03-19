@@ -57,7 +57,6 @@ type WriteConfig struct {
 	Formats          []string `yaml:"formats" mapstructure:"formats" json:"formats"`
 	ExpandSources    bool     `yaml:"expand_sources" mapstructure:"expand_sources" json:"expand_sources"`
 	LaTeXDockerImage string   `yaml:"latex_docker_image" mapstructure:"latex_docker_image" json:"latex_docker_image"`
-	SkipPDF          bool     `yaml:"skip_pdf" mapstructure:"skip_pdf" json:"skip_pdf"`
 }
 
 // RetryConfig holds retry settings.
@@ -83,10 +82,9 @@ func SetDefaults(v *viper.Viper) {
 
 	v.SetDefault("translate.context_window", 2)
 
-	v.SetDefault("write.formats", []string{"md", "latex"})
+	v.SetDefault("write.formats", []string{"md", "pdf"})
 	v.SetDefault("write.expand_sources", true)
 	v.SetDefault("write.latex_docker_image", "mutercim/xelatex:latest")
-	v.SetDefault("write.skip_pdf", false)
 
 	v.SetDefault("knowledge_dir", "./knowledge")
 
@@ -162,7 +160,7 @@ func applyDefaults(cfg *Config) {
 		cfg.Translate.ContextWindow = 2
 	}
 	if len(cfg.Write.Formats) == 0 {
-		cfg.Write.Formats = []string{"md", "latex"}
+		cfg.Write.Formats = []string{"md", "latex", "docx", "pdf"}
 	}
 	if cfg.Write.LaTeXDockerImage == "" {
 		cfg.Write.LaTeXDockerImage = "mutercim/xelatex:latest"

@@ -149,10 +149,9 @@ translate:
 # ─── Write phase ─────────────────────────────────────────────────────────────
 
 write:
-  formats: [md, latex]               # Output formats: md | latex | docx
+  formats: [md, latex, docx, pdf]    # Output formats: md | latex | pdf | docx
   expand_sources: true               # Expand source abbreviations in output
   latex_docker_image: mutercim/xelatex:latest  # Docker image for PDF compilation
-  skip_pdf: false                    # Skip PDF compilation from LaTeX
 
 # ─── Retry settings ──────────────────────────────────────────────────────────
 
