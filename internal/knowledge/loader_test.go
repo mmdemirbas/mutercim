@@ -15,8 +15,8 @@ func TestLoadEmbeddedDefaults(t *testing.T) {
 	if len(k.Honorifics) == 0 {
 		t.Error("expected embedded honorifics, got none")
 	}
-	if len(k.Companions) == 0 {
-		t.Error("expected embedded companions, got none")
+	if len(k.People) == 0 {
+		t.Error("expected embedded people, got none")
 	}
 	if len(k.Terminology) == 0 {
 		t.Error("expected embedded terminology, got none")

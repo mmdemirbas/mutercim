@@ -31,7 +31,7 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 	dir := t.TempDir()
 
 	// Create workspace directories
-	for _, d := range []string{"input", "cache/images", "cache/read"} {
+	for _, d := range []string{"input", "midstate/images", "midstate/read"} {
 		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
 			t.Fatalf("mkdir %s: %v", d, err)
 		}
@@ -44,7 +44,7 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 	}
 
 	// Create a test image in a per-input subdir
-	imagesDir := filepath.Join(dir, "cache/images/testinput")
+	imagesDir := filepath.Join(dir, "midstate/images/testinput")
 	if err := os.MkdirAll(imagesDir, 0755); err != nil {
 		t.Fatalf("mkdir images: %v", err)
 	}
@@ -59,9 +59,9 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Inputs:   []string{imagesDir},
-		CacheDir: "./cache",
-		DPI:      300,
+		Inputs:      []string{imagesDir},
+		MidstateDir: "./midstate",
+		DPI:         300,
 		Read: config.ReadConfig{
 			Provider:    "mock",
 			Model:       "test-model",
@@ -169,7 +169,7 @@ func TestReadPipelineNoImages(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create empty images dir
-	emptyDir := filepath.Join(dir, "cache/images/empty")
+	emptyDir := filepath.Join(dir, "midstate/images/empty")
 	if err := os.MkdirAll(emptyDir, 0755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}

@@ -43,7 +43,7 @@ func loadFromFS(k *Knowledge, fsys fs.FS, root, layer string) error {
 	if err := loadYAML(k, fsys, filepath.Join(root, "sources.yaml"), layer, loadSources); err != nil {
 		return err
 	}
-	if err := loadYAML(k, fsys, filepath.Join(root, "companions.yaml"), layer, loadCompanions); err != nil {
+	if err := loadYAML(k, fsys, filepath.Join(root, "people.yaml"), layer, loadPeople); err != nil {
 		return err
 	}
 	if err := loadYAML(k, fsys, filepath.Join(root, "terminology.yaml"), layer, loadTerminology); err != nil {
@@ -98,12 +98,12 @@ func loadSources(k *Knowledge, data []byte, layer string) error {
 	return nil
 }
 
-func loadCompanions(k *Knowledge, data []byte, layer string) error {
-	var f entriesFile[Companion]
+func loadPeople(k *Knowledge, data []byte, layer string) error {
+	var f entriesFile[Person]
 	if err := yaml.Unmarshal(data, &f); err != nil {
-		return fmt.Errorf("parse companions: %w", err)
+		return fmt.Errorf("parse people: %w", err)
 	}
-	mergeByKey(&k.Companions, f.Entries, func(c Companion) string { return c.Arabic })
+	mergeByKey(&k.People, f.Entries, func(p Person) string { return p.Arabic })
 	return nil
 }
 

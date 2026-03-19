@@ -12,7 +12,7 @@ inputs:
 pages: "155"
 
 output: ./output
-cache_dir: ./cache
+midstate_dir: ./midstate
 dpi: 300
 
 # Sections define the book's internal layout structure.

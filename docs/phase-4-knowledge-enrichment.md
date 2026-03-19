@@ -33,11 +33,11 @@ Before declaring this phase complete, execute these commands and verify they pas
 ### Files Created
 
 **Knowledge package** (`internal/knowledge/`):
-- `types.go` — `Honorific`, `Source`, `Companion`, `Term`, `Place`, `Knowledge` structs with `LookupSource()`
+- `types.go` — `Honorific`, `Source`, `Person`, `Term`, `Place`, `Knowledge` structs with `LookupSource()`
 - `embedded.go` — `go:embed defaults` for built-in knowledge YAML files
 - `loader.go` — Three-layer loading (embedded → workspace → staged) with merge-by-key logic
 - `glossary.go` — `BuildGlossary()` and per-section builders for prompt injection
-- `defaults/` — Copies of honorifics, companions, terminology, places YAML for embedding
+- `defaults/` — Copies of honorifics, people, terminology, places YAML for embedding
 - `loader_test.go` — Embedded loading, workspace overrides, staged overrides, layer tracking
 
 **Solver package** (`internal/solver/`):
@@ -45,7 +45,7 @@ Before declaring this phase complete, execute these commands and verify they pas
 - `abbreviation.go` — Resolves source codes from footnotes against knowledge, tracks layer provenance
 - `continuation.go` — Detects cross-page continuations (`continues_from`/`continues_on`)
 - `validator.go` — Validates hadith number sequences, flags empty types/text
-- `staging.go` — Auto-stages knowledge from `reference_table` pages to `cache/staged/`
+- `staging.go` — Auto-stages knowledge from `reference_table` pages to `midstate/staged/`
 - Tests for all four modules
 
 **Workspace** (`internal/workspace/`):

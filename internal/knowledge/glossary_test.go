@@ -10,7 +10,7 @@ func TestBuildGlossary(t *testing.T) {
 		Honorifics: []Honorific{
 			{Arabic: "صلى الله عليه وسلم", Turkish: "sallallâhu aleyhi ve sellem"},
 		},
-		Companions: []Companion{
+		People: []Person{
 			{Arabic: "أبو هريرة", Turkish: "Ebû Hüreyre"},
 		},
 		Sources: []Source{
@@ -62,11 +62,11 @@ func TestHonorificsSectionEmpty(t *testing.T) {
 	}
 }
 
-func TestCompanionsSection(t *testing.T) {
+func TestPeopleSection(t *testing.T) {
 	k := &Knowledge{
-		Companions: []Companion{{Arabic: "عائشة", Turkish: "Hz. Âişe"}},
+		People: []Person{{Arabic: "عائشة", Turkish: "Hz. Âişe"}},
 	}
-	s := k.CompanionsSection()
+	s := k.PeopleSection()
 	if !strings.Contains(s, "عائشة") || !strings.Contains(s, "Hz. Âişe") {
 		t.Errorf("unexpected section: %q", s)
 	}

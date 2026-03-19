@@ -19,7 +19,7 @@ func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize a new book workspace in current directory",
-		Long:  `Creates workspace directory structure (input/, output/, cache/, knowledge/, reports/) and a default mutercim.yaml config file.`,
+		Long:  `Creates workspace directory structure (input/, output/, midstate/, knowledge/, reports/) and a default mutercim.yaml config file.`,
 		RunE:  runInit,
 	}
 

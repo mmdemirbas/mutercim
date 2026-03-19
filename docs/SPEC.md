@@ -24,7 +24,7 @@ Go was chosen over Python and Kotlin after evaluating the actual workload:
 1. **Dual output**: Every book produces two valuable artifacts — a clean digital Arabic text (from OCR) and its Turkish translation.
 2. **Model-agnostic**: Reading and translation use swappable AI backends. Free models default, premium models available.
 3. **Incremental & resumable**: Results are saved per-page immediately. Processing can stop and resume at any point.
-4. **Domain-aware**: Islamic scholarly terminology, honorifics, companion names, and source abbreviations are handled correctly via pluggable knowledge modules.
+4. **Domain-aware**: Islamic scholarly terminology, honorifics, person names, and source abbreviations are handled correctly via pluggable knowledge modules.
 5. **Best-effort with transparency**: Errors don't halt processing. Every anomaly is logged and flagged for human review.
 
 ---
@@ -54,7 +54,7 @@ Go was chosen over Python and Kotlin after evaluating the actual workload:
 ### Phase 1: READ (parallelizable, AI-based)
 
 **Input**: Page images (PNG/JPG) or PDF pages converted to images.
-**Output**: One JSON file per page in `cache/read/page_NNN.json`.
+**Output**: One JSON file per page in `midstate/read/page_NNN.json`.
 **Model**: Gemini 2.0 Flash (free default) / Claude Sonnet / Qwen2.5-VL (local) / Surya (local OCR + AI structural parse)
 
 The read prompt asks the vision model to:
@@ -78,7 +78,7 @@ The read prompt asks the vision model to:
 ### Phase 2: SOLVE (sequential, local, no API calls)
 
 **Input**: All read JSONs + knowledge YAML files.
-**Output**: Solved JSONs in `cache/solved/page_NNN.json`.
+**Output**: Solved JSONs in `midstate/solved/page_NNN.json`.
 
 This phase performs:
 1. **Abbreviation resolution**: Match source codes (ت، ن، حم) against the source abbreviation table (from knowledge YAML or auto-detected from early book pages)
@@ -92,11 +92,11 @@ This phase performs:
 ### Phase 3: TRANSLATE (parallelizable in chunks, AI-based)
 
 **Input**: Solved JSONs + knowledge YAMLs + sliding context window.
-**Output**: One JSON file per page in `cache/translated/page_NNN.json`.
+**Output**: One JSON file per page in `midstate/translated/page_NNN.json`.
 **Model**: Gemini 2.0 Flash (free default) / Claude Sonnet / Claude Opus (premium) / local models
 
 The translation system prompt includes:
-- Full domain knowledge (honorifics, companion name mappings, terminology glossary)
+- Full domain knowledge (honorifics, person name mappings, terminology glossary)
 - Source abbreviation table with Turkish equivalents
 - Instructions for meaning-first translation (not word-by-word)
 - Rules for handling Arabic honorific formulas (صلى الله عليه وسلم → sallallâhu aleyhi ve sellem)
@@ -113,11 +113,11 @@ The translation system prompt includes:
 **Output**: Final documents in `output/`.
 
 Renderers:
-1. **Markdown renderer**: Produces `output/arabic/book.md` and `output/turkish/book.md`. Quick review format. One file per book with page breaks as horizontal rules.
-2. **LaTeX renderer**: Produces `output/latex/book.tex`. Uses XeLaTeX with `polyglossia` + `bidi` for proper Arabic/Turkish mixed typesetting. Compiles to PDF inside a Docker container.
-3. **DOCX renderer** (optional, via pandoc from Markdown or direct generation): `output/book.docx`.
+1. **Markdown renderer**: Produces `output/ar/book.md` and `output/tr/book.md`. Quick review format. One file per book with page breaks as horizontal rules.
+2. **LaTeX renderer**: Produces `output/tr/latex/book.tex`. Uses XeLaTeX with `polyglossia` + `bidi` for proper Arabic/Turkish mixed typesetting. Compiles to PDF inside a Docker container.
+3. **DOCX renderer** (optional, via pandoc from Markdown or direct generation): `output/tr/book.docx`.
 
-Per-page incremental output: Each renderer also writes per-page files (`output/turkish/pages/page_NNN.md`) as soon as translation completes, so the user can review while processing continues.
+Per-page incremental output: Each renderer also writes per-page files (`output/tr/pages/page_NNN.md`) as soon as translation completes, so the user can review while processing continues.
 
 ---
 
@@ -135,7 +135,7 @@ mutercim separates the **tool** (installed binary + embedded defaults) from **bo
 │   └── custom.yaml                  # Any overrides or additions
 ├── input/                           # Source material
 │   └── book.pdf                     # Or a directory of scanned images
-├── cache/                           # All intermediate artifacts
+├── midstate/                        # All intermediate artifacts
 │   ├── images/                      # PDF pages converted to PNG
 │   ├── read/                        # Phase 1 output: page_NNN.json
 │   ├── solved/                      # Phase 2 output: page_NNN.json
@@ -143,15 +143,16 @@ mutercim separates the **tool** (installed binary + embedded defaults) from **bo
 │   └── staged/                      # Auto-detected knowledge (pending review)
 │       └── sources_pages_6-8.yaml   # e.g., abbreviation table detected from pages 6-8
 ├── output/                          # Final deliverables
-│   ├── arabic/                      # Reconstructed Arabic text
+│   ├── ar/                          # Reconstructed Arabic text
 │   │   ├── book.md
 │   │   └── pages/                   # Per-page files written incrementally
-│   ├── turkish/                     # Translated Turkish text
+│   ├── tr/                          # Translated Turkish text
 │   │   ├── book.md
-│   │   └── pages/
-│   └── latex/
-│       ├── book.tex
-│       └── book.pdf
+│   │   ├── pages/
+│   │   ├── latex/
+│   │   │   ├── book.tex
+│   │   │   └── book.pdf
+│   │   └── book.docx
 ├── reports/                         # Per-phase reports
 │   ├── read_report.json
 │   ├── solve_report.json
@@ -165,12 +166,12 @@ Knowledge loads in three layers. Later layers override earlier on key conflicts:
 
 ```
 Layer 1: Embedded defaults (compiled into the binary via go:embed)
-  → Common honorifics, 50+ companion names, core Islamic terminology, common places
+  → Common honorifics, 50+ person names, core Islamic terminology, common places
 
 Layer 2: Workspace knowledge/ directory (persistent, user-reviewed)
   → Book-specific sources, custom overrides, promoted staged entries
 
-Layer 3: Staged cache/staged/ (auto-detected, pending review)
+Layer 3: Staged midstate/staged/ (auto-detected, pending review)
   → Abbreviation tables, terminology detected during read phase
   → Used during solve/translation but marked as "staged" in output
   → NOT written to persistent knowledge unless user explicitly promotes
@@ -182,7 +183,7 @@ When Phase 1 reads a page with `type: reference_table` (e.g., an abbreviation ke
 
 ```
 1. Read phase detects abbreviation table on pages 6-8
-   → Writes cache/staged/sources_pages_6-8.yaml
+   → Writes midstate/staged/sources_pages_6-8.yaml
 
 2. Solve phase loads all three knowledge layers
    → Staged sources are used for abbreviation resolution
@@ -293,7 +294,7 @@ book:
 # Paths (relative to workspace root)
 input: ./input
 output: ./output
-cache_dir: ./cache
+midstate_dir: ./midstate
 dpi: 300
 
 # Sections define the book's internal layout structure.
@@ -607,7 +608,7 @@ entries:
   # Add more as encountered in the book...
 ```
 
-### companions.yaml
+### people.yaml
 
 ```yaml
 entries:
@@ -742,7 +743,7 @@ mutercim/                            # Go project root (github.com/mmdemirbas/mu
 │   ├── knowledge/
 │   │   ├── loader.go                # Layered loading: embedded → workspace → staged
 │   │   ├── embedded.go              # go:embed for defaults/ directory
-│   │   ├── types.go                 # Knowledge data structures (Honorific, Source, Companion, etc.)
+│   │   ├── types.go                 # Knowledge data structures (Honorific, Source, Person, etc.)
 │   │   └── glossary.go              # Combined glossary builder for prompt injection
 │   ├── renderer/
 │   │   ├── renderer.go              # Renderer interface
@@ -762,7 +763,7 @@ mutercim/                            # Go project root (github.com/mmdemirbas/mu
 ├── defaults/                        # Embedded into binary via go:embed
 │   ├── knowledge/
 │   │   ├── honorifics.yaml          # Common Islamic honorifics
-│   │   ├── companions.yaml          # 50+ common companion name mappings
+│   │   ├── people.yaml              # 50+ common sahabi/person name mappings
 │   │   ├── terminology.yaml         # Core Islamic terminology
 │   │   └── places.yaml              # Common place name mappings
 │   └── templates/
@@ -1062,7 +1063,7 @@ func (t *Tracker) Save() error {
 }
 ```
 
-This same atomic write pattern should be used for any JSON file that serves as state (per-page cache files, staged knowledge files, report files).
+This same atomic write pattern should be used for any JSON file that serves as state (per-page midstate files, staged knowledge files, report files).
 
 ### PDF to Image Conversion
 
@@ -1128,7 +1129,7 @@ ENTRYPOINT ["xelatex", "-interaction=nonstopmode"]
 
 Compilation command:
 ```bash
-docker run --rm -v $(pwd)/output/latex:/data mutercim/xelatex book.tex
+docker run --rm -v $(pwd)/output/tr/latex:/data mutercim/xelatex book.tex
 ```
 
 ### Read System Prompt (Core)
@@ -1188,8 +1189,8 @@ TRANSLATION PRINCIPLES:
 HONORIFIC RULES:
 {honorifics_section}
 
-COMPANION NAME MAPPINGS:
-{companions_section}
+PERSON NAME MAPPINGS:
+{people_section}
 
 SOURCE ABBREVIATIONS:
 {sources_section}
@@ -1297,7 +1298,7 @@ Every phase produces a `report.json` alongside its outputs:
 }
 ```
 
-Failed pages save whatever raw text was read to `cache/read/page_NNN.raw.txt` so nothing is lost.
+Failed pages save whatever raw text was read to `midstate/read/page_NNN.raw.txt` so nothing is lost.
 
 ---
 

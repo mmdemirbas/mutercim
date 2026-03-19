@@ -9,7 +9,7 @@ Implement:
 3. internal/cli/translate.go
 
 The result should: take solved pages, translate via Gemini with knowledge-injected
-prompts, save translated JSON, write per-page incremental output to output/turkish/pages/.
+prompts, save translated JSON, write per-page incremental output to output/tr/pages/.
 
 ## Completion Checklist
 
@@ -33,14 +33,14 @@ Before declaring this phase complete, execute these commands and verify they pas
 - `prompts_test.go` — System prompt construction, section hints, context section building
 
 **Pipeline** (`internal/pipeline/`):
-- `translate.go` — Phase 3 orchestrator: discovers inputs from solved dir, sliding context window, per-page incremental markdown output to `output/turkish/pages/<stem>/`, progress tracking
+- `translate.go` — Phase 3 orchestrator: discovers inputs from solved dir, sliding context window, per-page incremental markdown output to `output/tr/pages/<stem>/`, progress tracking
 
 **CLI** (`internal/cli/`):
 - `translate.go` — `mutercim translate` subcommand with `--translate-provider`, `--translate-model`, `--context-window` flags
 
 ### Key Features
 
-- **Knowledge-injected prompts**: Honorifics, companions, sources, terminology all injected into the system prompt
+- **Knowledge-injected prompts**: Honorifics, people, sources, terminology all injected into the system prompt
 - **Sliding context window**: Previous N translated pages summarized and passed as context (configurable via `translate.context_window` or `--context-window`)
 - **Section-aware translation**: Different prompt hints for scholarly_entries, prose, toc, index
 - **Incremental output**: Per-page markdown files written immediately after each page translates

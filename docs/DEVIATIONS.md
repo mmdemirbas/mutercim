@@ -19,7 +19,7 @@
 - **What**: Added `Inputs []string` and `Pages string` fields to Config (SPEC has `Input string` only)
 - **Why**: Support multiple input PDF files and config-based page ranges so the user can define everything in `mutercim.yaml` without CLI flags. Old `input:` (singular) still works via migration in `applyDefaults`.
 
-- **What**: Read pipeline uses per-input subdirectories (`cache/images/<stem>/`, `cache/read/<stem>/`) and compound progress phase names (`"read:<stem>"`)
+- **What**: Read pipeline uses per-input subdirectories (`midstate/images/<stem>/`, `midstate/read/<stem>/`) and compound progress phase names (`"read:<stem>"`)
 - **Why**: Multiple inputs would have conflicting page numbers (both PDFs have page 1). Per-input namespacing avoids conflicts in both file output and progress tracking.
 
 ## Phase 4 — Knowledge & Solve

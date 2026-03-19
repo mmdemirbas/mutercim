@@ -27,14 +27,14 @@ func TestInit(t *testing.T) {
 	// Verify directories exist
 	dirs := []string{
 		"input",
-		"output/arabic/pages",
-		"output/turkish/pages",
-		"output/latex",
-		"cache/images",
-		"cache/read",
-		"cache/solved",
-		"cache/translated",
-		"cache/staged",
+		"output/tr/pages",
+		"output/tr/latex",
+		"output/ar",
+		"midstate/images",
+		"midstate/read",
+		"midstate/solved",
+		"midstate/translated",
+		"midstate/staged",
 		"knowledge",
 		"reports",
 	}
@@ -121,7 +121,7 @@ func TestDiscover(t *testing.T) {
 	}
 
 	// Discover from subdirectory
-	subDir := filepath.Join(dir, "cache", "read")
+	subDir := filepath.Join(dir, "midstate", "read")
 	ws, err = Discover(subDir)
 	if err != nil {
 		t.Fatalf("Discover() from subdir error = %v", err)
@@ -149,13 +149,13 @@ func TestWorkspacePaths(t *testing.T) {
 	if ws.InputDir() != "/tmp/test/input" {
 		t.Errorf("InputDir() = %q", ws.InputDir())
 	}
-	if ws.CacheDir() != "/tmp/test/cache" {
-		t.Errorf("CacheDir() = %q", ws.CacheDir())
+	if ws.MidstateDir() != "/tmp/test/midstate" {
+		t.Errorf("MidstateDir() = %q", ws.MidstateDir())
 	}
 	if ws.ProgressPath() != "/tmp/test/progress.json" {
 		t.Errorf("ProgressPath() = %q", ws.ProgressPath())
 	}
-	if ws.StagedDir() != "/tmp/test/cache/staged" {
+	if ws.StagedDir() != "/tmp/test/midstate/staged" {
 		t.Errorf("StagedDir() = %q", ws.StagedDir())
 	}
 }

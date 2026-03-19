@@ -16,7 +16,7 @@ TRANSLATION PRINCIPLES:
 HONORIFIC RULES:
 %s
 
-COMPANION NAME MAPPINGS:
+PERSON NAME MAPPINGS:
 %s
 
 SOURCE ABBREVIATIONS:
@@ -73,7 +73,7 @@ func SectionHint(sectionType string) string {
 }
 
 // BuildSystemPrompt constructs the full translation system prompt with knowledge injected.
-func BuildSystemPrompt(honorifics, companions, sources, terminology, context, sectionType string, expandSources bool) string {
+func BuildSystemPrompt(honorifics, people, sources, terminology, context, sectionType string, expandSources bool) string {
 	expandInstr := "When translating footnotes, expand all source abbreviation codes to their full Turkish names."
 	if !expandSources {
 		expandInstr = "Keep source abbreviation codes as-is in footnotes."
@@ -85,7 +85,7 @@ func BuildSystemPrompt(honorifics, companions, sources, terminology, context, se
 	}
 
 	return fmt.Sprintf(translationSystemPrompt,
-		honorifics, companions, sources, terminology, context, expandInstr)
+		honorifics, people, sources, terminology, context, expandInstr)
 }
 
 // BuildUserPrompt constructs the user prompt with the solved page JSON.

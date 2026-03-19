@@ -82,7 +82,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	cfg := opts.Config
 	solvedDir := filepath.Join(ws.SolvedDir(), stem)
 	translatedDir := filepath.Join(ws.TranslatedDir(), stem)
-	outputPagesDir := filepath.Join(ws.OutputDir(), "turkish", "pages", stem)
+	outputPagesDir := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang, "pages", stem)
 
 	// Build section lookup for translate checks
 	lookup, _ := config.NewSectionLookup(cfg.Sections)

@@ -19,10 +19,10 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 
 	// Create workspace structure
 	for _, d := range []string{
-		"cache/translated/TestBook",
-		"output/turkish",
-		"output/arabic",
-		"output/latex",
+		"midstate/translated/TestBook",
+		"output/tr",
+		"output/ar",
+		"output/tr/latex",
 	} {
 		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
 			t.Fatalf("mkdir %s: %v", d, err)
@@ -46,7 +46,7 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 	}
 
 	data, _ := json.MarshalIndent(page, "", "  ")
-	if err := os.WriteFile(filepath.Join(dir, "cache/translated/TestBook/page_001.json"), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "midstate/translated/TestBook/page_001.json"), data, 0644); err != nil {
 		t.Fatalf("write translated page: %v", err)
 	}
 
@@ -57,6 +57,7 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
+		Book: model.Book{SourceLang: "ar", TargetLang: "tr"},
 		Write: config.WriteConfig{
 			Formats:       []string{"md"},
 			SkipPDF:       true,
@@ -84,7 +85,7 @@ func TestWriteMarkdown(t *testing.T) {
 	}
 
 	// Check Turkish markdown was written
-	turkishPath := filepath.Join(ws.OutputDir(), "turkish", "TestBook.md")
+	turkishPath := filepath.Join(ws.OutputDir(), "tr", "TestBook.md")
 	data, err := os.ReadFile(turkishPath)
 	if err != nil {
 		t.Fatalf("read turkish markdown: %v", err)
@@ -95,7 +96,7 @@ func TestWriteMarkdown(t *testing.T) {
 	}
 
 	// Check Arabic markdown was written
-	arabicPath := filepath.Join(ws.OutputDir(), "arabic", "TestBook.md")
+	arabicPath := filepath.Join(ws.OutputDir(), "ar", "TestBook.md")
 	data, err = os.ReadFile(arabicPath)
 	if err != nil {
 		t.Fatalf("read arabic markdown: %v", err)
@@ -126,7 +127,7 @@ func TestWriteLatexSkipPDF(t *testing.T) {
 		t.Fatalf("Write() error: %v", err)
 	}
 
-	texPath := filepath.Join(ws.OutputDir(), "latex", "book.tex")
+	texPath := filepath.Join(ws.OutputDir(), "tr", "latex", "book.tex")
 	data, err := os.ReadFile(texPath)
 	if err != nil {
 		t.Fatalf("read latex: %v", err)

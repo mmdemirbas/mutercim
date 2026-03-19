@@ -28,7 +28,7 @@ tasks:
   test:
     desc: Run tests
     cmds:
-      - go test -v ./...
+      - go test ./...
 
   install:
     desc: Install mutercim and set up shell completion

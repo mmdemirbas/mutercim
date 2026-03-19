@@ -55,7 +55,7 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedPage, 
 	// Build the system prompt with knowledge injected
 	systemPrompt := BuildSystemPrompt(
 		t.knowledge.HonorificsSection(),
-		t.knowledge.CompanionsSection(),
+		t.knowledge.PeopleSection(),
 		t.knowledge.SourcesSection(),
 		t.knowledge.TerminologySection(),
 		BuildContextSection(contextSummaries),

@@ -11,7 +11,7 @@ Implement:
 4. internal/cli/read.go — `read` subcommand wiring
 
 The result should: take the sample page image, run read via Gemini,
-save structured JSON to cache/read/page_001.json, and update progress.json.
+save structured JSON to midstate/read/page_001.json, and update progress.json.
 
 After Phase 3: Run against your actual sample page. Review the read JSON. This is where you'll tune the read prompt — the code is just plumbing, the prompt is where quality lives.
 

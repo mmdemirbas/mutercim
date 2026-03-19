@@ -49,9 +49,9 @@ func (w *Workspace) OutputDir() string {
 	return filepath.Join(w.Root, "output")
 }
 
-// CacheDir returns the cache directory path.
-func (w *Workspace) CacheDir() string {
-	return filepath.Join(w.Root, "cache")
+// MidstateDir returns the midstate directory path.
+func (w *Workspace) MidstateDir() string {
+	return filepath.Join(w.Root, "midstate")
 }
 
 // KnowledgeDir returns the knowledge directory path.
@@ -71,25 +71,25 @@ func (w *Workspace) ReportsDir() string {
 
 // StagedDir returns the staged knowledge directory path.
 func (w *Workspace) StagedDir() string {
-	return filepath.Join(w.Root, "cache", "staged")
+	return filepath.Join(w.Root, "midstate", "staged")
 }
 
-// ReadDir returns the read cache directory path.
+// ReadDir returns the read midstate directory path.
 func (w *Workspace) ReadDir() string {
-	return filepath.Join(w.Root, "cache", "read")
+	return filepath.Join(w.Root, "midstate", "read")
 }
 
-// SolvedDir returns the solved cache directory path.
+// SolvedDir returns the solved midstate directory path.
 func (w *Workspace) SolvedDir() string {
-	return filepath.Join(w.Root, "cache", "solved")
+	return filepath.Join(w.Root, "midstate", "solved")
 }
 
-// TranslatedDir returns the translated cache directory path.
+// TranslatedDir returns the translated midstate directory path.
 func (w *Workspace) TranslatedDir() string {
-	return filepath.Join(w.Root, "cache", "translated")
+	return filepath.Join(w.Root, "midstate", "translated")
 }
 
-// ImagesDir returns the images cache directory path.
+// ImagesDir returns the images midstate directory path.
 func (w *Workspace) ImagesDir() string {
-	return filepath.Join(w.Root, "cache", "images")
+	return filepath.Join(w.Root, "midstate", "images")
 }

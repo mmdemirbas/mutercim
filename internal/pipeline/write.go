@@ -100,7 +100,7 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem string) error {
 	for _, format := range cfg.Write.Formats {
 		switch format {
 		case "md":
-			if err := compileMarkdown(ws, stem, pages, logger); err != nil {
+			if err := compileMarkdown(ws, cfg, stem, pages, logger); err != nil {
 				logger.Error("markdown compilation failed", "input", stem, "error", err)
 			}
 		case "latex":
@@ -108,7 +108,7 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem string) error {
 				logger.Error("latex compilation failed", "input", stem, "error", err)
 			}
 		case "docx":
-			if err := compileDocx(ctx, ws, stem, logger); err != nil {
+			if err := compileDocx(ctx, ws, cfg, stem, logger); err != nil {
 				logger.Error("docx compilation failed", "input", stem, "error", err)
 			}
 		default:
@@ -128,40 +128,40 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem string) error {
 	return nil
 }
 
-func compileMarkdown(ws *workspace.Workspace, stem string, pages []*model.TranslatedPage, logger *slog.Logger) error {
-	turkishDir := filepath.Join(ws.OutputDir(), "turkish")
-	arabicDir := filepath.Join(ws.OutputDir(), "arabic")
+func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem string, pages []*model.TranslatedPage, logger *slog.Logger) error {
+	targetDir := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang)
+	sourceDir := filepath.Join(ws.OutputDir(), cfg.Book.SourceLang)
 
-	if err := os.MkdirAll(turkishDir, 0755); err != nil {
-		return fmt.Errorf("create turkish output dir: %w", err)
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return fmt.Errorf("create target output dir: %w", err)
 	}
-	if err := os.MkdirAll(arabicDir, 0755); err != nil {
-		return fmt.Errorf("create arabic output dir: %w", err)
+	if err := os.MkdirAll(sourceDir, 0755); err != nil {
+		return fmt.Errorf("create source output dir: %w", err)
 	}
 
-	// Turkish book
+	// Target language book
 	mdRenderer := &renderer.MarkdownRenderer{}
-	turkishBook := mdRenderer.RenderBook(pages)
-	turkishPath := filepath.Join(turkishDir, stem+".md")
-	if err := atomicWrite(turkishPath, []byte(turkishBook)); err != nil {
-		return fmt.Errorf("write turkish markdown: %w", err)
+	targetBook := mdRenderer.RenderBook(pages)
+	targetPath := filepath.Join(targetDir, stem+".md")
+	if err := atomicWrite(targetPath, []byte(targetBook)); err != nil {
+		return fmt.Errorf("write target markdown: %w", err)
 	}
-	logger.Info("wrote turkish markdown", "path", turkishPath)
+	logger.Info("wrote target markdown", "path", targetPath)
 
-	// Arabic book
+	// Source language book
 	arRenderer := &renderer.ArabicMarkdownRenderer{}
-	arabicBook := arRenderer.RenderBook(pages)
-	arabicPath := filepath.Join(arabicDir, stem+".md")
-	if err := atomicWrite(arabicPath, []byte(arabicBook)); err != nil {
-		return fmt.Errorf("write arabic markdown: %w", err)
+	sourceBook := arRenderer.RenderBook(pages)
+	sourcePath := filepath.Join(sourceDir, stem+".md")
+	if err := atomicWrite(sourcePath, []byte(sourceBook)); err != nil {
+		return fmt.Errorf("write source markdown: %w", err)
 	}
-	logger.Info("wrote arabic markdown", "path", arabicPath)
+	logger.Info("wrote source markdown", "path", sourcePath)
 
 	return nil
 }
 
 func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem string, pages []*model.TranslatedPage, logger *slog.Logger) error {
-	latexDir := filepath.Join(ws.OutputDir(), "latex")
+	latexDir := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang, "latex")
 	if err := os.MkdirAll(latexDir, 0755); err != nil {
 		return fmt.Errorf("create latex output dir: %w", err)
 	}
@@ -186,9 +186,9 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 	return nil
 }
 
-func compileDocx(ctx context.Context, ws *workspace.Workspace, stem string, logger *slog.Logger) error {
-	mdPath := filepath.Join(ws.OutputDir(), "turkish", stem+".md")
-	docxPath := filepath.Join(ws.OutputDir(), stem+".docx")
+func compileDocx(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem string, logger *slog.Logger) error {
+	mdPath := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang, stem+".md")
+	docxPath := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang, stem+".docx")
 
 	if _, err := os.Stat(mdPath); err != nil {
 		return fmt.Errorf("markdown file not found at %s (compile md format first): %w", mdPath, err)

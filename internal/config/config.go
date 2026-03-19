@@ -11,20 +11,20 @@ import (
 
 // Config represents the full workspace configuration.
 type Config struct {
-	Book      model.Book      `yaml:"book" mapstructure:"book" json:"book"`
-	Input     string          `yaml:"input" mapstructure:"input" json:"input,omitempty"`    // single input (backward compat)
-	Inputs    []string        `yaml:"inputs" mapstructure:"inputs" json:"inputs,omitempty"` // multiple inputs
-	Pages     string          `yaml:"pages" mapstructure:"pages" json:"pages,omitempty"`
-	Output    string          `yaml:"output" mapstructure:"output" json:"output"`
-	CacheDir  string          `yaml:"cache_dir" mapstructure:"cache_dir" json:"cache_dir"`
-	DPI       int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
-	Sections  []model.Section `yaml:"sections" mapstructure:"sections" json:"sections"`
-	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
-	Translate TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
-	Write     WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
-	Knowledge KnowledgeConfig `yaml:"knowledge" mapstructure:"knowledge" json:"knowledge"`
-	Retry     RetryConfig     `yaml:"retry" mapstructure:"retry" json:"retry"`
-	RateLimit RateLimitConfig `yaml:"rate_limit" mapstructure:"rate_limit" json:"rate_limit"`
+	Book        model.Book      `yaml:"book" mapstructure:"book" json:"book"`
+	Input       string          `yaml:"input" mapstructure:"input" json:"input,omitempty"`    // single input (backward compat)
+	Inputs      []string        `yaml:"inputs" mapstructure:"inputs" json:"inputs,omitempty"` // multiple inputs
+	Pages       string          `yaml:"pages" mapstructure:"pages" json:"pages,omitempty"`
+	Output      string          `yaml:"output" mapstructure:"output" json:"output"`
+	MidstateDir string          `yaml:"midstate_dir" mapstructure:"midstate_dir" json:"midstate_dir"`
+	DPI         int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
+	Sections    []model.Section `yaml:"sections" mapstructure:"sections" json:"sections"`
+	Read        ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
+	Translate   TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
+	Write       WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
+	Knowledge   KnowledgeConfig `yaml:"knowledge" mapstructure:"knowledge" json:"knowledge"`
+	Retry       RetryConfig     `yaml:"retry" mapstructure:"retry" json:"retry"`
+	RateLimit   RateLimitConfig `yaml:"rate_limit" mapstructure:"rate_limit" json:"rate_limit"`
 }
 
 // ReadConfig holds read-phase settings.
@@ -71,7 +71,7 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("book.target_lang", "tr")
 	v.SetDefault("input", "./input")
 	v.SetDefault("output", "./output")
-	v.SetDefault("cache_dir", "./cache")
+	v.SetDefault("midstate_dir", "./midstate")
 	v.SetDefault("dpi", 300)
 
 	v.SetDefault("read.provider", "gemini")
@@ -146,8 +146,8 @@ func applyDefaults(cfg *Config) {
 	if cfg.Output == "" {
 		cfg.Output = "./output"
 	}
-	if cfg.CacheDir == "" {
-		cfg.CacheDir = "./cache"
+	if cfg.MidstateDir == "" {
+		cfg.MidstateDir = "./midstate"
 	}
 	if cfg.DPI == 0 {
 		cfg.DPI = 300

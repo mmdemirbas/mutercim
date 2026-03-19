@@ -12,7 +12,7 @@ func (k *Knowledge) BuildGlossary() string {
 	if s := k.buildHonorificsSection(); s != "" {
 		sections = append(sections, s)
 	}
-	if s := k.buildCompanionsSection(); s != "" {
+	if s := k.buildPeopleSection(); s != "" {
 		sections = append(sections, s)
 	}
 	if s := k.buildSourcesSection(); s != "" {
@@ -30,9 +30,9 @@ func (k *Knowledge) HonorificsSection() string {
 	return k.buildHonorificsSection()
 }
 
-// CompanionsSection returns the companions section for prompt injection.
-func (k *Knowledge) CompanionsSection() string {
-	return k.buildCompanionsSection()
+// PeopleSection returns the people section for prompt injection.
+func (k *Knowledge) PeopleSection() string {
+	return k.buildPeopleSection()
 }
 
 // SourcesSection returns the sources section for prompt injection.
@@ -56,13 +56,13 @@ func (k *Knowledge) buildHonorificsSection() string {
 	return strings.Join(lines, "\n")
 }
 
-func (k *Knowledge) buildCompanionsSection() string {
-	if len(k.Companions) == 0 {
+func (k *Knowledge) buildPeopleSection() string {
+	if len(k.People) == 0 {
 		return ""
 	}
 	var lines []string
-	for _, c := range k.Companions {
-		lines = append(lines, fmt.Sprintf("- %s → %s", c.Arabic, c.Turkish))
+	for _, p := range k.People {
+		lines = append(lines, fmt.Sprintf("- %s → %s", p.Arabic, p.Turkish))
 	}
 	return strings.Join(lines, "\n")
 }

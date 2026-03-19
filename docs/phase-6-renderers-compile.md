@@ -50,7 +50,7 @@ Before declaring this phase complete, execute these commands and verify they pas
 
 ### Output Structure
 
-- `output/turkish/<stem>.md` — Combined Turkish markdown
-- `output/arabic/<stem>.md` — Combined Arabic markdown
-- `output/latex/book.tex` — LaTeX document (optionally compiled to PDF)
-- `output/<stem>.docx` — DOCX via pandoc (if format includes docx)
+- `output/tr/<stem>.md` — Combined Turkish markdown
+- `output/ar/<stem>.md` — Combined Arabic markdown
+- `output/tr/latex/book.tex` — LaTeX document (optionally compiled to PDF)
+- `output/tr/<stem>.docx` — DOCX via pandoc (if format includes docx)

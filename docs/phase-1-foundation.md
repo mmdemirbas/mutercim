@@ -55,6 +55,6 @@ Before declaring this phase complete, execute these commands and verify they pas
 - `config_cmd.go` — Prints effective merged config as JSON
 - `status.go` — Shows progress per phase
 
-**Embedded defaults** (`defaults/knowledge/`): honorifics, companions (30+), terminology (20+), places (18)
+**Embedded defaults** (`defaults/knowledge/`): honorifics, people (30+), terminology (20+), places (18)
 
 **Tests**: 5 test suites, all passing — section parsing, config loading/merging/validation, section lookup, progress tracker (atomic writes, dedup, state transitions), workspace init/discover.

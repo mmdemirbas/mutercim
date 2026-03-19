@@ -33,16 +33,20 @@ func Init(opts InitOptions) (*Workspace, error) {
 	}
 
 	// Create directory structure
+	// Use language codes from config for output dirs
+	sourceLang := opts.SourceLang
+	targetLang := opts.TargetLang
+
 	dirs := []string{
 		"input",
-		"output/arabic/pages",
-		"output/turkish/pages",
-		"output/latex",
-		"cache/images",
-		"cache/read",
-		"cache/solved",
-		"cache/translated",
-		"cache/staged",
+		"output/" + targetLang + "/pages",
+		"output/" + targetLang + "/latex",
+		"output/" + sourceLang,
+		"midstate/images",
+		"midstate/read",
+		"midstate/solved",
+		"midstate/translated",
+		"midstate/staged",
 		"knowledge",
 		"reports",
 	}
@@ -102,7 +106,7 @@ inputs: [./input]
 # pages: all
 
 output: ./output
-cache_dir: ./cache
+midstate_dir: ./midstate
 dpi: 300
 
 # Sections define the book's internal layout structure.

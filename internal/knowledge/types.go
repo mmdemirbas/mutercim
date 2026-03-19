@@ -18,8 +18,8 @@ type Source struct {
 	Layer    string `yaml:"-" json:"-"` // set during loading, not persisted in YAML
 }
 
-// Companion represents a companion name mapping.
-type Companion struct {
+// Person represents a person name mapping.
+type Person struct {
 	Arabic     string `yaml:"arabic" json:"arabic"`
 	Turkish    string `yaml:"turkish" json:"turkish"`
 	FullNameTr string `yaml:"full_name_tr,omitempty" json:"full_name_tr,omitempty"`
@@ -48,7 +48,7 @@ type entriesFile[T any] struct {
 type Knowledge struct {
 	Honorifics  []Honorific
 	Sources     []Source
-	Companions  []Companion
+	People      []Person
 	Terminology []Term
 	Places      []Place
 }

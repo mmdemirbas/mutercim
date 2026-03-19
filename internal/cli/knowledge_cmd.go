@@ -14,7 +14,7 @@ import (
 func newKnowledgeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "knowledge",
-		Short: "Manage knowledge layers (sources, terminology, companions)",
+		Short: "Manage knowledge layers (sources, terminology, people)",
 	}
 
 	cmd.AddCommand(newKnowledgeListCmd())
@@ -51,7 +51,7 @@ func newKnowledgeListCmd() *cobra.Command {
 
 			fmt.Printf("Honorifics:  %d entries\n", len(k.Honorifics))
 			fmt.Printf("Sources:     %d entries\n", len(k.Sources))
-			fmt.Printf("Companions:  %d entries\n", len(k.Companions))
+			fmt.Printf("People:      %d entries\n", len(k.People))
 			fmt.Printf("Terminology: %d entries\n", len(k.Terminology))
 			fmt.Printf("Places:      %d entries\n", len(k.Places))
 
