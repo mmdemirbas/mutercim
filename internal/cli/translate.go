@@ -23,7 +23,7 @@ func newTranslateCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "translate",
-		Short: "Translate solved pages into Turkish (Phase 3)",
+		Short: "(Phase 3) Translate solved pages into target languages",
 		Long:  "Sends solved page data to an AI model with knowledge-injected prompts and saves translated JSON.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
@@ -82,6 +82,13 @@ func newTranslateCmd() *cobra.Command {
 			tracker := progress.NewTracker(ws.ProgressPath())
 			if err := tracker.Load(); err != nil {
 				return fmt.Errorf("load progress: %w", err)
+			}
+
+			// Auto-run prerequisites if needed
+			if auto {
+				if err := runPrerequisites(cmd.Context(), phaseTranslate, ws, cfg, pagesToProcess, display.FromContext(cmd.Context())); err != nil {
+					return err
+				}
 			}
 
 			_, err = pipeline.Translate(cmd.Context(), pipeline.TranslateOptions{

@@ -66,6 +66,13 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Overridable per-model via `rpm` field in `ModelSpec`
 - Global `rate_limit` config kept for backward compat but per-model RPM takes precedence
 
+## Auto-Run Prerequisites (--auto flag)
+- `--auto` persistent flag on root command, available to all subcommands
+- When set, each phase checks for missing prerequisite output and runs earlier phases automatically
+- Finds first missing phase and runs from there through the target phase's prerequisites
+- Detection: `hasPhaseOutput` checks if midstate directories have entries
+- Phases: pages → read → solve → translate → write (each depends on the previous)
+
 ## PDF as Output Format (replaces skip_pdf)
 - `pdf` is now a first-class output format (default: `[md, pdf]`)
 - `pdf` implies LaTeX generation + PDF compilation via Docker

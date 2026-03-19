@@ -22,8 +22,8 @@ func newWriteCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "write",
-		Short: "Write translated pages into final output (Phase 4)",
-		Long:  "Generates Markdown, LaTeX, and optionally DOCX from translated JSON files.",
+		Short: "(Phase 4) Write translated pages into final output",
+		Long:  "Generates output files from translated JSON. Supported formats: md, latex, pdf, docx.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
 			if err != nil {
@@ -74,6 +74,13 @@ func newWriteCmd() *cobra.Command {
 			tracker := progress.NewTracker(ws.ProgressPath())
 			if err := tracker.Load(); err != nil {
 				return fmt.Errorf("load progress: %w", err)
+			}
+
+			// Auto-run prerequisites if needed
+			if auto {
+				if err := runPrerequisites(cmd.Context(), phaseWrite, ws, cfg, pagesToProcess, display.FromContext(cmd.Context())); err != nil {
+					return err
+				}
 			}
 
 			return pipeline.Write(cmd.Context(), pipeline.WriteOptions{

@@ -21,7 +21,7 @@ import (
 func newMakeCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "make",
-		Short: "Run all phases: pages -> read -> solve -> translate -> write",
+		Short: "(Phase *) Run all phases: pages -> read -> solve -> translate -> write",
 		Long:  "Executes the full pipeline sequentially. Validates system dependencies before starting.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")

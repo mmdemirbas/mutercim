@@ -16,7 +16,7 @@ import (
 func newSolveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "solve",
-		Short: "Solve read pages with knowledge resolution (Phase 2)",
+		Short: "(Phase 2) Solve read pages with knowledge resolution",
 		Long:  "Resolves source abbreviations, detects cross-page continuations, validates structure, and injects translation context.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
@@ -55,6 +55,13 @@ func newSolveCmd() *cobra.Command {
 			tracker := progress.NewTracker(ws.ProgressPath())
 			if err := tracker.Load(); err != nil {
 				return fmt.Errorf("load progress: %w", err)
+			}
+
+			// Auto-run prerequisites if needed
+			if auto {
+				if err := runPrerequisites(cmd.Context(), phaseSolve, ws, cfg, pagesToProcess, display.FromContext(cmd.Context())); err != nil {
+					return err
+				}
 			}
 
 			_, err = pipeline.Solve(cmd.Context(), pipeline.SolveOptions{

@@ -20,6 +20,7 @@ var (
 	cfgFile  string
 	logLevel string
 	pages    string
+	auto     bool
 )
 
 // NewRootCmd creates the root cobra command.
@@ -81,6 +82,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "path to config file (default: ./mutercim.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&pages, "pages", "p", "", "page range: \"1-50\", \"1,5,10-20\", \"all\" (default: from config or all)")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "log verbosity: debug, info, warn, error")
+	rootCmd.PersistentFlags().BoolVar(&auto, "auto", false, "auto-run missing prerequisite phases before the requested phase")
 
 	// Command groups
 	rootCmd.AddGroup(

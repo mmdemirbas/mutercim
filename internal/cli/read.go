@@ -27,8 +27,8 @@ func newReadCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "read",
-		Short: "Read structured data from page images (OCR)",
-		Long:  "Sends page images to an AI vision model and reads structured JSON with entries, footnotes, and metadata. Images must exist in midstate/images/ (run 'mutercim pages' first for PDFs).",
+		Short: "(Phase 1) Read structured data from page images (OCR)",
+		Long:  "Sends page images to an AI vision model and reads structured JSON with entries, footnotes, and metadata. Images must exist in midstate/images/ (use --auto to run prerequisite phases automatically).",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
 			if err != nil {
@@ -84,6 +84,13 @@ func newReadCmd() *cobra.Command {
 			tracker := progress.NewTracker(ws.ProgressPath())
 			if err := tracker.Load(); err != nil {
 				return fmt.Errorf("load progress: %w", err)
+			}
+
+			// Auto-run prerequisites if needed
+			if auto {
+				if err := runPrerequisites(cmd.Context(), phaseRead, ws, cfg, pagesToProcess, display.FromContext(cmd.Context())); err != nil {
+					return err
+				}
 			}
 
 			// Run read pipeline

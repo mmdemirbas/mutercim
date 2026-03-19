@@ -15,10 +15,10 @@
 
 - Dependencies? Single-binary?
 
-- Add a flag to auto-execute missing previous steps if needed
-
 - Support fixing / completing tashkeels optionally in the arabic script.
 
-- Support on-demand output formats 'mutercim write pdf' (pdf|md|tex|docx etc). Same can be support with 'mutercim make'
+- Support on-demand output formats configs: 'mutercim write pdf' (pdf|md|tex|docx etc). Same can be support with 'mutercim make'. Even if the configured output formats are different, this command specifically build a pdf (or whatever output format specified in cli).
 
 - What does 'validate' do? How important is it? Should we remove it?
+
+- Allow adding to the system prompt, or a second prompt maybe (user prompt).

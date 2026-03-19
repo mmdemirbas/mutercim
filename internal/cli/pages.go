@@ -18,7 +18,7 @@ func newPagesCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "pages",
-		Short: "Convert PDF inputs to per-page images",
+		Short: "(Phase 0) Convert PDF inputs to per-page images",
 		Long:  "Converts PDF files to per-page PNG images in midstate/images/. No-op if the input is already a directory of images.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
