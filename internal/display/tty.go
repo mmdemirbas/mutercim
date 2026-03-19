@@ -19,6 +19,8 @@ type TTYDisplay struct {
 	colors       StatusColors
 	logBuffer    *RingBuffer
 	header       HeaderData
+	status       StatusLine
+	statusStop   chan struct{}
 }
 
 type phaseKey struct {
@@ -49,6 +51,52 @@ func newTTYDisplay(out io.Writer, nowFunc func() time.Time) *TTYDisplay {
 		phases:    make(map[phaseKey]*phaseState),
 		colors:    NewStatusColors(out),
 		logBuffer: NewRingBuffer(5),
+	}
+}
+
+// SetStatus sets the in-progress status line below the active phase bar.
+// Pass empty StatusLine to clear. Starts a 1-second ticker for live elapsed updates.
+func (d *TTYDisplay) SetStatus(status StatusLine) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	wasActive := d.status.Text != ""
+	d.status = status
+	isActive := d.status.Text != ""
+
+	if isActive && !wasActive {
+		d.startStatusTicker()
+	} else if !isActive && wasActive {
+		d.stopStatusTicker()
+	}
+
+	d.render()
+}
+
+func (d *TTYDisplay) startStatusTicker() {
+	d.statusStop = make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				d.mu.Lock()
+				if d.status.Text != "" {
+					d.render()
+				}
+				d.mu.Unlock()
+			case <-d.statusStop:
+				return
+			}
+		}
+	}()
+}
+
+func (d *TTYDisplay) stopStatusTicker() {
+	if d.statusStop != nil {
+		close(d.statusStop)
+		d.statusStop = nil
 	}
 }
 
@@ -127,6 +175,8 @@ func (d *TTYDisplay) Finish() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
+	d.stopStatusTicker()
+	d.status = StatusLine{}
 	d.clearLines()
 	RenderHeader(d.out, d.header, d.colors)
 	for _, key := range d.phaseOrder {
@@ -144,11 +194,20 @@ func (d *TTYDisplay) render() {
 	d.clearLines()
 
 	lines := RenderHeader(d.out, d.header, d.colors)
+	statusRendered := false
 	for _, key := range d.phaseOrder {
 		ps := d.phases[key]
 		row := d.buildLiveRow(key, ps)
 		fmt.Fprintln(d.out, RenderProgressLine(row, d.colors))
 		lines++
+
+		// Status line under the active (non-finished) phase
+		if !statusRendered && !ps.finished && d.status.Text != "" {
+			elapsed := d.now().Sub(d.status.StartedAt)
+			fmt.Fprintln(d.out, FormatStatusLine(d.status.Text, elapsed, d.status.Countdown, d.colors))
+			lines++
+			statusRendered = true
+		}
 
 		if weLine := RenderWarnErrorLine(ps.warnings, ps.failed, d.colors); weLine != "" {
 			fmt.Fprintln(d.out, weLine)

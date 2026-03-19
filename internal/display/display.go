@@ -33,10 +33,20 @@ type PageResult struct {
 	Err       error  // non-nil if this page failed
 }
 
+// StatusLine describes an in-progress operation shown below the active phase bar.
+type StatusLine struct {
+	Text      string        // e.g. "reading page 248 via gemini/gemini-2.5-flash-lite"
+	StartedAt time.Time     // when the operation started (for elapsed timer)
+	Countdown time.Duration // if > 0, show countdown instead of elapsed
+}
+
 // Display controls terminal progress output.
 type Display interface {
 	// SetHeader sets the metadata header (book, input, langs) shown above progress bars.
 	SetHeader(header HeaderData)
+	// SetStatus sets the in-progress status line below the active phase bar.
+	// Pass empty StatusLine to clear. The elapsed timer updates automatically.
+	SetStatus(status StatusLine)
 	// StartPhase begins tracking a new phase.
 	StartPhase(phase Phase, input string, total int, lang string)
 	// Update records one page's result and refreshes the display.

@@ -340,6 +340,64 @@ func TestRenderHeader_Empty(t *testing.T) {
 	}
 }
 
+func TestFormatStatusLine_InProgress(t *testing.T) {
+	line := FormatStatusLine("reading page 248 via gemini/gemini-2.5-flash-lite", 4200*time.Millisecond, 0, StatusColors{Enabled: false})
+
+	if !strings.Contains(line, "reading page 248") {
+		t.Errorf("should contain operation text, got: %q", line)
+	}
+	if !strings.Contains(line, "4.2s") {
+		t.Errorf("should show elapsed with one decimal, got: %q", line)
+	}
+	if !strings.Contains(line, "\u2192") {
+		t.Errorf("should contain arrow symbol, got: %q", line)
+	}
+}
+
+func TestFormatStatusLine_Retry(t *testing.T) {
+	line := FormatStatusLine("reading page 248 via gemini \u2014 retry 2/3 (429)", 6100*time.Millisecond, 0, StatusColors{Enabled: false})
+
+	if !strings.Contains(line, "retry 2/3") {
+		t.Errorf("should contain retry info, got: %q", line)
+	}
+	if !strings.Contains(line, "6.1s") {
+		t.Errorf("should show elapsed, got: %q", line)
+	}
+}
+
+func TestFormatStatusLine_Failover(t *testing.T) {
+	line := FormatStatusLine("reading page 248 via groq/llama \u2014 failover from gemini", 1300*time.Millisecond, 0, StatusColors{Enabled: false})
+
+	if !strings.Contains(line, "failover from gemini") {
+		t.Errorf("should contain failover info, got: %q", line)
+	}
+	if !strings.Contains(line, "1.3s") {
+		t.Errorf("should show elapsed, got: %q", line)
+	}
+}
+
+func TestFormatStatusLine_Backoff_Countdown(t *testing.T) {
+	// 1 second elapsed out of 4 second countdown → 3s remaining
+	line := FormatStatusLine("reading page 248 \u2014 retry 1/3 (429)", 1*time.Second, 4*time.Second, StatusColors{Enabled: false})
+
+	if !strings.Contains(line, "3s") {
+		t.Errorf("should show 3s remaining, got: %q", line)
+	}
+	// Should NOT show decimal for countdown
+	if strings.Contains(line, "3.0s") {
+		t.Errorf("countdown should use %%0.fs (no decimal), got: %q", line)
+	}
+}
+
+func TestFormatStatusLine_Backoff_Expired(t *testing.T) {
+	// Elapsed exceeds countdown → show 0s
+	line := FormatStatusLine("waiting", 10*time.Second, 4*time.Second, StatusColors{Enabled: false})
+
+	if !strings.Contains(line, "0s") {
+		t.Errorf("expired countdown should show 0s, got: %q", line)
+	}
+}
+
 func TestRenderHeader_LineCount(t *testing.T) {
 	var buf bytes.Buffer
 	lines := RenderHeader(&buf, HeaderData{

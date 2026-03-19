@@ -45,6 +45,9 @@ type Client struct {
 	maxRetries  int
 	baseBackoff time.Duration
 	logger      *slog.Logger
+	// OnRetry is called before each retry wait with attempt info and backoff duration.
+	// Used by the display layer to show retry/backoff status.
+	OnRetry func(attempt, maxRetries, statusCode int, backoff time.Duration)
 }
 
 // NewClient creates a Client with the given configuration.
@@ -95,6 +98,14 @@ func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
 		if attempt > 0 {
 			backoff := c.calculateBackoff(attempt, lastErr)
+			if c.OnRetry != nil {
+				var sc int
+				var httpErr *HTTPError
+				if errors.As(lastErr, &httpErr) {
+					sc = httpErr.StatusCode
+				}
+				c.OnRetry(attempt, c.maxRetries, sc, backoff)
+			}
 			c.logger.Info("retrying request",
 				"attempt", attempt,
 				"backoff_seconds", backoff.Seconds(),

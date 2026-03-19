@@ -198,6 +198,23 @@ func RenderProgressLine(row ProgressRow, colors StatusColors) string {
 	return fmt.Sprintf("%s  %s %s%s", label, bar, counts, suffix)
 }
 
+// FormatStatusLine renders the in-progress status line below a phase bar.
+// elapsed is the time since the operation started.
+// If countdown > 0, shows remaining time instead of elapsed.
+func FormatStatusLine(text string, elapsed time.Duration, countdown time.Duration, colors StatusColors) string {
+	timeStr := ""
+	if countdown > 0 {
+		remaining := countdown - elapsed
+		if remaining < 0 {
+			remaining = 0
+		}
+		timeStr = fmt.Sprintf("%.0fs", remaining.Seconds())
+	} else {
+		timeStr = fmt.Sprintf("%.1fs", elapsed.Seconds())
+	}
+	return fmt.Sprintf("%12s  %s %s ... %s", "", colors.dim("\u2192"), text, timeStr)
+}
+
 // RenderWarnErrorLine formats the ⚠/✗ detail line below a progress row.
 // Returns empty string if there are no warnings or errors.
 func RenderWarnErrorLine(warnings, failed int, colors StatusColors) string {

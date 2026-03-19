@@ -229,3 +229,79 @@ func TestTTYDisplayLogTail_RingBufferOverflow(t *testing.T) {
 		t.Errorf("should show most recent page, got: %q", out)
 	}
 }
+
+func TestTTYDisplayStatusLine(t *testing.T) {
+	var buf bytes.Buffer
+	now := time.Unix(1000, 0)
+	d := newTTYDisplay(&buf, func() time.Time { return now })
+
+	d.StartPhase(PhaseRead, "vol1", 100, "")
+
+	// Set status — should appear in output
+	d.SetStatus(StatusLine{
+		Text:      "reading page 1 via gemini/gemini-2.5-flash-lite",
+		StartedAt: now,
+	})
+
+	// Advance time to simulate elapsed
+	now = now.Add(5 * time.Second)
+
+	// Manually trigger a render by setting status again
+	d.SetStatus(StatusLine{
+		Text:      "reading page 1 via gemini/gemini-2.5-flash-lite",
+		StartedAt: now.Add(-5 * time.Second),
+	})
+
+	out := buf.String()
+	if !strings.Contains(out, "reading page 1") {
+		t.Errorf("should show status text, got: %q", out)
+	}
+	if !strings.Contains(out, "5.0s") {
+		t.Errorf("should show elapsed time, got: %q", out)
+	}
+}
+
+func TestTTYDisplayStatusLine_ClearedOnComplete(t *testing.T) {
+	var buf bytes.Buffer
+	now := time.Unix(1000, 0)
+	d := newTTYDisplay(&buf, func() time.Time { return now })
+
+	d.StartPhase(PhaseRead, "vol1", 100, "")
+
+	d.SetStatus(StatusLine{
+		Text:      "reading page 1",
+		StartedAt: now,
+	})
+
+	// Clear status
+	d.SetStatus(StatusLine{})
+
+	buf.Reset()
+	// Force a fresh render via Update
+	now = now.Add(time.Second)
+	d.Update(PageResult{Phase: PhaseRead, Input: "vol1", PageNum: 1, Total: 100, Completed: 1})
+	out := buf.String()
+	if strings.Contains(out, "reading page 1") {
+		t.Errorf("status should be cleared after SetStatus({}), got: %q", out)
+	}
+}
+
+func TestTTYDisplayStatusLine_Countdown(t *testing.T) {
+	var buf bytes.Buffer
+	now := time.Unix(1000, 0)
+	d := newTTYDisplay(&buf, func() time.Time { return now })
+
+	d.StartPhase(PhaseRead, "vol1", 100, "")
+
+	// Set countdown status — 1s elapsed of 4s countdown = 3s remaining
+	d.SetStatus(StatusLine{
+		Text:      "reading page 1 \u2014 retry 1/3 (429)",
+		StartedAt: now.Add(-1 * time.Second),
+		Countdown: 4 * time.Second,
+	})
+
+	out := buf.String()
+	if !strings.Contains(out, "3s") {
+		t.Errorf("should show countdown remaining, got: %q", out)
+	}
+}

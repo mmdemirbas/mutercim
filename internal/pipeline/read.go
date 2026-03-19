@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
@@ -146,6 +147,30 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		opts.Display.StartPhase(display.PhaseRead, stem, len(pagesToProcess), "")
 	}
 
+	// Set up status callbacks for retry/failover display
+	readModel := ""
+	if len(cfg.Read.Models) > 0 {
+		readModel = cfg.Read.Models[0].Provider + "/" + cfg.Read.Models[0].Model
+	}
+	var statusPageNum int
+	if opts.Display != nil {
+		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
+			chain.OnFailover = func(from, to string) {
+				opts.Display.SetStatus(display.StatusLine{
+					Text:      fmt.Sprintf("reading page %d via %s \u2014 failover from %s", statusPageNum, to, from),
+					StartedAt: time.Now(),
+				})
+			}
+			chain.SetRetryCallback(func(attempt, maxRetries, statusCode int, backoff time.Duration) {
+				opts.Display.SetStatus(display.StatusLine{
+					Text:      fmt.Sprintf("reading page %d \u2014 retry %d/%d (%d)", statusPageNum, attempt, maxRetries, statusCode),
+					StartedAt: time.Now(),
+					Countdown: backoff,
+				})
+			})
+		}
+	}
+
 	// Process pages
 	completed := 0
 	failed := 0
@@ -203,11 +228,17 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 
 		// Read page via AI
-		readModel := ""
-		if len(cfg.Read.Models) > 0 {
-			readModel = cfg.Read.Models[0].Provider + "/" + cfg.Read.Models[0].Model
+		statusPageNum = pageNum
+		if opts.Display != nil {
+			opts.Display.SetStatus(display.StatusLine{
+				Text:      fmt.Sprintf("reading page %d via %s", pageNum, readModel),
+				StartedAt: time.Now(),
+			})
 		}
 		page, err := rdr.ReadPage(ctx, imageData, pageNum, sectionType, readModel)
+		if opts.Display != nil {
+			opts.Display.SetStatus(display.StatusLine{}) // clear status
+		}
 		if err != nil {
 			logger.Error("read failed", "input", stem, "page", pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pageNum)

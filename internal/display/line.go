@@ -30,6 +30,9 @@ func newLineDisplay(out io.Writer) *LineDisplay {
 	return &LineDisplay{out: out}
 }
 
+// SetStatus is a no-op for non-TTY displays (no live status updates).
+func (d *LineDisplay) SetStatus(status StatusLine) {}
+
 // SetHeader prints the metadata header once.
 func (d *LineDisplay) SetHeader(header HeaderData) {
 	d.mu.Lock()

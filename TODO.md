@@ -16,3 +16,5 @@
 - Depenedencies? Single-binary?
 
 - Add a flag to auto-execute missing previous steps if needed
+
+- Use human readable log format instead of JSON in log file

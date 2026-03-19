@@ -82,7 +82,7 @@ sections: []
 # Models without vision support are automatically skipped for read phase.
 #
 # Providers:  gemini | claude | openai | groq | mistral | openrouter | xai | ollama
-# Default RPMs: gemini=10, groq=30, mistral=60, openrouter=200, openai=500, ollama=1000
+# Default RPMs: gemini=10, groq=30, mistral=60, openrouter=20, openai=500, ollama=1000
 #
 # Per-model options:
 #   rpm:      Override default rate limit (requests per minute)
@@ -140,7 +140,7 @@ translate:
       model: grok-2-latest
     # 6. OpenRouter: community-funded free models
     - provider: openrouter
-      model: meta-llama/llama-3.1-8b-instruct:free
+      model: meta-llama/llama-3.3-70b-instruct:free
     # 7. Local fallback
     - provider: ollama
       model: qwen3:14b
@@ -163,5 +163,6 @@ retry:
 # ─── Rate limiting (global fallback) ─────────────────────────────────────────
 # Per-model RPM in the models list takes precedence over this global setting.
 
+# TODO: Redundant section, remove?
 rate_limit:
   requests_per_minute: 14            # Max API requests per minute (min: 1)

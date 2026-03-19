@@ -21,6 +21,8 @@ type FailoverChain struct {
 	mu             sync.Mutex
 	logger         *slog.Logger
 	now            func() time.Time // injectable for testing
+	// OnFailover is called when switching to a different provider due to quota exhaustion.
+	OnFailover func(exhaustedProvider, nextProvider string)
 }
 
 type chainEntry struct {
@@ -85,6 +87,15 @@ func (f *FailoverChain) Translate(ctx context.Context, systemPrompt, userPrompt 
 	})
 }
 
+// SetRetryCallback sets the OnRetry callback on all clients in the chain.
+func (f *FailoverChain) SetRetryCallback(fn func(attempt, maxRetries, statusCode int, backoff time.Duration)) {
+	for i := range f.entries {
+		if f.entries[i].client != nil {
+			f.entries[i].client.OnRetry = fn
+		}
+	}
+}
+
 // Close releases resources held by all providers' clients.
 func (f *FailoverChain) Close() {
 	for _, e := range f.entries {
@@ -142,10 +153,31 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 			f.mu.Lock()
 			e.exhaustedUntil = f.now().Add(f.recoveryWindow)
 			f.mu.Unlock()
+
+			// Find next eligible provider name for the callback
+			nextName := ""
+			for j := i + 1; j < len(f.entries); j++ {
+				ne := &f.entries[j]
+				if needsVision && !ne.provider.SupportsVision() {
+					continue
+				}
+				f.mu.Lock()
+				nexhausted := now.Before(ne.exhaustedUntil)
+				f.mu.Unlock()
+				if !nexhausted {
+					nextName = ne.provider.Name()
+					break
+				}
+			}
+
 			f.logger.Warn("provider exhausted (429), failing over to next",
 				"provider", p.Name(),
+				"next", nextName,
 				"recovery_seconds", f.recoveryWindow.Seconds(),
 			)
+			if f.OnFailover != nil && nextName != "" {
+				f.OnFailover(p.Name(), nextName)
+			}
 			lastErr = err
 			continue
 		}

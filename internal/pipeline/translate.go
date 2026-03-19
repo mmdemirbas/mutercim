@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
@@ -148,6 +149,30 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		opts.Display.StartPhase(display.PhaseTranslate, stem, len(pages), targetLang)
 	}
 
+	// Set up status callbacks for retry/failover display
+	translateModel := ""
+	if len(cfg.Translate.Models) > 0 {
+		translateModel = cfg.Translate.Models[0].Provider + "/" + cfg.Translate.Models[0].Model
+	}
+	var statusPageNum int
+	if opts.Display != nil {
+		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
+			chain.OnFailover = func(from, to string) {
+				opts.Display.SetStatus(display.StatusLine{
+					Text:      fmt.Sprintf("translating page %d via %s \u2014 failover from %s", statusPageNum, to, from),
+					StartedAt: time.Now(),
+				})
+			}
+			chain.SetRetryCallback(func(attempt, maxRetries, statusCode int, backoff time.Duration) {
+				opts.Display.SetStatus(display.StatusLine{
+					Text:      fmt.Sprintf("translating page %d \u2014 retry %d/%d (%d)", statusPageNum, attempt, maxRetries, statusCode),
+					StartedAt: time.Now(),
+					Countdown: backoff,
+				})
+			})
+		}
+	}
+
 	completed := 0
 	failed := 0
 	skipped := 0
@@ -202,11 +227,17 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		}
 
 		// Translate
-		translateModel := ""
-		if len(cfg.Translate.Models) > 0 {
-			translateModel = cfg.Translate.Models[0].Provider + "/" + cfg.Translate.Models[0].Model
+		statusPageNum = pf.pageNum
+		if opts.Display != nil {
+			opts.Display.SetStatus(display.StatusLine{
+				Text:      fmt.Sprintf("translating page %d via %s", pf.pageNum, translateModel),
+				StartedAt: time.Now(),
+			})
 		}
 		translated, err := translator.TranslatePage(ctx, solved, contextSummaries, translateModel)
+		if opts.Display != nil {
+			opts.Display.SetStatus(display.StatusLine{}) // clear status
+		}
 		if err != nil {
 			logger.Error("translation failed", "input", stem, "page", pf.pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pf.pageNum)
