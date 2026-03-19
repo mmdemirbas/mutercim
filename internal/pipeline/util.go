@@ -7,6 +7,13 @@ import (
 	"sort"
 )
 
+// PhaseResult contains the outcome counts from running a pipeline phase.
+type PhaseResult struct {
+	Completed int
+	Failed    int
+	Skipped   int
+}
+
 // pageFile represents a JSON page file with its parsed page number.
 type pageFile struct {
 	pageNum int

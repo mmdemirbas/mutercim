@@ -119,7 +119,7 @@ func newMakeCmd() *cobra.Command {
 				return fmt.Errorf("create read provider: %w", err)
 			}
 
-			if err := pipeline.Read(cmd.Context(), pipeline.ReadOptions{
+			readResult, err := pipeline.Read(cmd.Context(), pipeline.ReadOptions{
 				Workspace: ws,
 				Config:    cfg,
 				Provider:  readProvider,
@@ -127,8 +127,13 @@ func newMakeCmd() *cobra.Command {
 				Pages:     pagesToProcess,
 				Logger:    logger,
 				Display:   disp,
-			}); err != nil {
+			})
+			if err != nil {
 				return fmt.Errorf("read: %w", err)
+			}
+			if readResult.Completed == 0 {
+				logger.Error("stopping pipeline: read produced 0 pages")
+				return fmt.Errorf("stopping pipeline: read produced 0 pages")
 			}
 
 			// Phase 2: Solve
@@ -139,15 +144,20 @@ func newMakeCmd() *cobra.Command {
 				return fmt.Errorf("load knowledge: %w", err)
 			}
 
-			if err := pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
+			solveResult, err := pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
 				Workspace: ws,
 				Knowledge: k,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
 				Display:   disp,
-			}); err != nil {
+			})
+			if err != nil {
 				return fmt.Errorf("solve: %w", err)
+			}
+			if solveResult.Completed == 0 {
+				logger.Error("stopping pipeline: solve produced 0 pages")
+				return fmt.Errorf("stopping pipeline: solve produced 0 pages")
 			}
 
 			// Phase 3: Translate
@@ -169,7 +179,7 @@ func newMakeCmd() *cobra.Command {
 				return fmt.Errorf("create translate provider: %w", err)
 			}
 
-			if err := pipeline.Translate(cmd.Context(), pipeline.TranslateOptions{
+			translateResult, err := pipeline.Translate(cmd.Context(), pipeline.TranslateOptions{
 				Workspace: ws,
 				Config:    cfg,
 				Provider:  translateProvider,
@@ -178,8 +188,13 @@ func newMakeCmd() *cobra.Command {
 				Pages:     pagesToProcess,
 				Logger:    logger,
 				Display:   disp,
-			}); err != nil {
+			})
+			if err != nil {
 				return fmt.Errorf("translate: %w", err)
+			}
+			if translateResult.Completed == 0 {
+				logger.Error("stopping pipeline: translate produced 0 pages")
+				return fmt.Errorf("stopping pipeline: translate produced 0 pages")
 			}
 
 			// Phase 4: Write

@@ -31,7 +31,7 @@ type ReadOptions struct {
 
 // Read runs the read (OCR) pipeline for all configured inputs.
 // Images must already exist in midstate/images/ (run 'mutercim pages' first).
-func Read(ctx context.Context, opts ReadOptions) error {
+func Read(ctx context.Context, opts ReadOptions) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -40,15 +40,16 @@ func Read(ctx context.Context, opts ReadOptions) error {
 	// Discover input stems from images directory
 	stems, err := discoverSubdirs(opts.Workspace.ImagesDir())
 	if err != nil {
-		return fmt.Errorf("discover images: %w", err)
+		return PhaseResult{}, fmt.Errorf("discover images: %w", err)
 	}
 	if len(stems) == 0 {
-		return fmt.Errorf("no page images found in %s — run 'mutercim pages' first", opts.Workspace.ImagesDir())
+		return PhaseResult{}, fmt.Errorf("no page images found in %s — run 'mutercim pages' first", opts.Workspace.ImagesDir())
 	}
 
 	// Build per-input page lookup from config
 	inputPages := buildInputPageMap(opts.Config)
 
+	var total PhaseResult
 	for _, stem := range stems {
 		logger.Info("processing input", "input", stem)
 
@@ -60,12 +61,16 @@ func Read(ctx context.Context, opts ReadOptions) error {
 			}
 		}
 
-		if err := readOneInput(ctx, opts, stem, pages); err != nil {
+		result, err := readOneInput(ctx, opts, stem, pages)
+		total.Completed += result.Completed
+		total.Failed += result.Failed
+		total.Skipped += result.Skipped
+		if err != nil {
 			logger.Error("input failed", "input", stem, "error", err)
 		}
 	}
 
-	return nil
+	return total, nil
 }
 
 // buildInputPageMap maps input stems to their configured page lists.
@@ -82,7 +87,7 @@ func buildInputPageMap(cfg *config.Config) map[string][]int {
 	return m
 }
 
-func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []int) error {
+func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []int) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -97,10 +102,10 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	// List available images
 	images, err := input.ListImages(imagesDir)
 	if err != nil {
-		return fmt.Errorf("list images in %s: %w", imagesDir, err)
+		return PhaseResult{}, fmt.Errorf("list images in %s: %w", imagesDir, err)
 	}
 	if len(images) == 0 {
-		return fmt.Errorf("no images found in %s", imagesDir)
+		return PhaseResult{}, fmt.Errorf("no images found in %s", imagesDir)
 	}
 
 	logger.Info("found images", "count", len(images), "input", stem)
@@ -130,7 +135,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 
 	// Ensure output directory exists
 	if err := os.MkdirAll(readDir, 0755); err != nil {
-		return fmt.Errorf("create read dir: %w", err)
+		return PhaseResult{}, fmt.Errorf("create read dir: %w", err)
 	}
 
 	// Use compound phase name for per-input progress tracking
@@ -233,7 +238,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		opts.Display.FinishPhase(display.PhaseRead, stem)
 	}
 	logger.Info("input read complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
-	return nil
+	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 
 func saveReadPage(dir string, pageNum int, page *model.ReadPage) error {

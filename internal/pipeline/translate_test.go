@@ -95,7 +95,7 @@ func TestTranslatePipeline(t *testing.T) {
 
 	ws, cfg, tracker := setupTranslateWorkspace(t, stem, pages)
 
-	err := Translate(context.Background(), TranslateOptions{
+	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: translateResponseJSON()},
@@ -166,7 +166,7 @@ func TestTranslatePipelineNoSolvedPages(t *testing.T) {
 	}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
-	err := Translate(context.Background(), TranslateOptions{
+	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: translateResponseJSON()},
@@ -191,7 +191,7 @@ func TestTranslatePipelineMultiLang(t *testing.T) {
 	ws, cfg, tracker := setupTranslateWorkspace(t, stem, pages)
 	cfg.Book.TargetLangs = []string{"tr", "en"}
 
-	err := Translate(context.Background(), TranslateOptions{
+	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: translateResponseJSON()},

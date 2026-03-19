@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -78,7 +79,7 @@ func TestReadPipeline(t *testing.T) {
 		"warnings": []
 	}`
 
-	err := Read(context.Background(), ReadOptions{
+	result, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
@@ -115,6 +116,11 @@ func TestReadPipeline(t *testing.T) {
 	if !containsInt(phase.Completed, 1) {
 		t.Error("expected page 1 in completed list")
 	}
+
+	// Verify PhaseResult counts
+	if result.Completed != 1 {
+		t.Errorf("expected result.Completed=1, got %d", result.Completed)
+	}
 }
 
 func TestReadPipelineSkipsCompleted(t *testing.T) {
@@ -131,7 +137,7 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 	outputPath := filepath.Join(outputDir, "page_001.json")
 	os.WriteFile(outputPath, []byte(`{"version":"1.0","page_number":1}`), 0644)
 
-	err := Read(context.Background(), ReadOptions{
+	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: `{"entries":[],"footnotes":[],"warnings":[]}`},
@@ -161,7 +167,7 @@ func TestReadPipelineNoImages(t *testing.T) {
 	cfg := &config.Config{}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
-	err := Read(context.Background(), ReadOptions{
+	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: "{}"},
@@ -183,7 +189,7 @@ func TestReadPipelineMissingImagesDir(t *testing.T) {
 	cfg := &config.Config{}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
-	err := Read(context.Background(), ReadOptions{
+	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: "{}"},
@@ -201,7 +207,7 @@ func TestReadPipelinePerInputPages(t *testing.T) {
 
 	response := `{"page_number": 1, "entries": [], "footnotes": [], "warnings": []}`
 
-	err := Read(context.Background(), ReadOptions{
+	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
@@ -229,7 +235,7 @@ func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
 	response := `{"page_number": 2, "entries": [], "footnotes": [], "warnings": []}`
 
 	// CLI override: process page 2 only
-	err := Read(context.Background(), ReadOptions{
+	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
@@ -298,7 +304,7 @@ func TestReadPipelineMultiInput(t *testing.T) {
 		"warnings": []
 	}`
 
-	err := Read(context.Background(), ReadOptions{
+	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
@@ -336,6 +342,38 @@ func TestReadPipelineMultiInput(t *testing.T) {
 		if !containsInt(phase.Completed, 1) {
 			t.Errorf("expected page 1 in completed list for %s", phaseName)
 		}
+	}
+}
+
+type failingProvider struct{}
+
+func (m *failingProvider) Name() string         { return "failing" }
+func (m *failingProvider) SupportsVision() bool { return true }
+func (m *failingProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+	return "", fmt.Errorf("mock API failure")
+}
+func (m *failingProvider) Translate(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	return "", fmt.Errorf("mock API failure")
+}
+
+func TestReadPipeline_AllPagesFail_ReturnsZeroCompleted(t *testing.T) {
+	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+
+	// Provider that always fails
+	result, err := Read(context.Background(), ReadOptions{
+		Workspace: ws,
+		Config:    cfg,
+		Provider:  &failingProvider{},
+		Tracker:   tracker,
+	})
+	if err != nil {
+		t.Fatalf("Read() should not return error (individual pages fail gracefully), got: %v", err)
+	}
+	if result.Completed != 0 {
+		t.Errorf("expected 0 completed, got %d", result.Completed)
+	}
+	if result.Failed != 2 {
+		t.Errorf("expected 2 failed, got %d", result.Failed)
 	}
 }
 

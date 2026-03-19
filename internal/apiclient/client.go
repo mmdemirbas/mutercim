@@ -97,8 +97,8 @@ func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 			backoff := c.calculateBackoff(attempt, lastErr)
 			c.logger.Info("retrying request",
 				"attempt", attempt,
-				"backoff", backoff,
-				"url", sanitizeURL(req.URL),
+				"backoff_seconds", backoff.Seconds(),
+				"url", RedactURL(req.URL),
 			)
 			select {
 			case <-time.After(backoff):
@@ -182,20 +182,17 @@ func (c *Client) doOnce(ctx context.Context, req Request) ([]byte, error) {
 	return respBody, nil
 }
 
+// maxRetryAfter caps the Retry-After header value to prevent arbitrarily long waits.
+const maxRetryAfter = 30 * time.Second
+
 func (c *Client) calculateBackoff(attempt int, lastErr error) time.Duration {
 	var httpErr *HTTPError
-	if errors.As(lastErr, &httpErr) {
-		// Respect Retry-After header
-		if httpErr.RetryAfter > 0 {
-			return httpErr.RetryAfter
+	if errors.As(lastErr, &httpErr) && httpErr.RetryAfter > 0 {
+		// Respect Retry-After header but cap at maxRetryAfter
+		if httpErr.RetryAfter > maxRetryAfter {
+			return maxRetryAfter
 		}
-		// For 429 (rate limit), use a minimum 60s backoff since
-		// API rate limits typically reset per-minute
-		if httpErr.StatusCode == 429 {
-			minBackoff := 60 * time.Second
-			jitter := 0.5 + rand.Float64()
-			return time.Duration(float64(minBackoff) * jitter)
-		}
+		return httpErr.RetryAfter
 	}
 	// Exponential backoff: base * 2^(attempt-1) with jitter (0.5x to 1.5x)
 	backoff := c.baseBackoff * (1 << (attempt - 1))
@@ -203,8 +200,8 @@ func (c *Client) calculateBackoff(attempt int, lastErr error) time.Duration {
 	return time.Duration(float64(backoff) * jitter)
 }
 
-// sanitizeURL strips sensitive query parameters (API keys) from URLs before logging.
-func sanitizeURL(rawURL string) string {
+// RedactURL strips sensitive query parameters (API keys, tokens, secrets) from URLs before logging.
+func RedactURL(rawURL string) string {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return rawURL

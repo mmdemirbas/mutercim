@@ -26,3 +26,17 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Ring buffer (size 5) in `internal/display/ring.go` stores recent page summaries
 - Each `Update()` pushes a one-line log entry; rendered below progress bars as "recent" section
 - Log entries show HH:MM:SS timestamps, ⚠ for warnings, ✗ for errors, truncated at ~80 chars
+
+## Backoff Calculation
+- Removed 429-specific 60s minimum backoff; all retryable errors use exponential backoff (2s, 4s, 8s)
+- Retry-After header is respected but capped at 30s max (maxRetryAfter constant)
+- Retry log line includes `backoff_seconds` for debuggability
+
+## Pipeline Halt on Zero Results
+- Read, Solve, Translate return `PhaseResult` (Completed/Failed/Skipped counts) alongside error
+- `make` command checks `result.Completed == 0` after each phase and halts with clear log message
+- Individual CLI commands (read, solve, translate) ignore the result counts
+
+## URL Redaction
+- `sanitizeURL` renamed to exported `RedactURL` in apiclient package
+- Strips query params containing "key", "token", or "secret" (case-insensitive)

@@ -99,7 +99,7 @@ func newTranslateCmd() *cobra.Command {
 				return fmt.Errorf("load progress: %w", err)
 			}
 
-			return pipeline.Translate(cmd.Context(), pipeline.TranslateOptions{
+			_, err = pipeline.Translate(cmd.Context(), pipeline.TranslateOptions{
 				Workspace:     ws,
 				Config:        cfg,
 				Provider:      p,
@@ -110,6 +110,7 @@ func newTranslateCmd() *cobra.Command {
 				Logger:        logger,
 				Display:       display.FromContext(cmd.Context()),
 			})
+			return err
 		},
 	}
 

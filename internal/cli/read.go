@@ -99,7 +99,7 @@ func newReadCmd() *cobra.Command {
 			}
 
 			// Run read pipeline
-			return pipeline.Read(cmd.Context(), pipeline.ReadOptions{
+			_, err = pipeline.Read(cmd.Context(), pipeline.ReadOptions{
 				Workspace: ws,
 				Config:    cfg,
 				Provider:  p,
@@ -108,6 +108,7 @@ func newReadCmd() *cobra.Command {
 				Logger:    logger,
 				Display:   display.FromContext(cmd.Context()),
 			})
+			return err
 		},
 	}
 

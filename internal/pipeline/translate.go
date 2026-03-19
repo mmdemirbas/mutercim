@@ -33,7 +33,7 @@ type TranslateOptions struct {
 }
 
 // Translate runs the Phase 3 translation pipeline for all inputs and target languages.
-func Translate(ctx context.Context, opts TranslateOptions) error {
+func Translate(ctx context.Context, opts TranslateOptions) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -43,16 +43,16 @@ func Translate(ctx context.Context, opts TranslateOptions) error {
 	cfg := opts.Config
 
 	if len(cfg.Book.TargetLangs) == 0 {
-		return fmt.Errorf("no target languages configured")
+		return PhaseResult{}, fmt.Errorf("no target languages configured")
 	}
 
 	// Discover inputs from solved directory
 	inputs, err := discoverSubdirs(ws.SolvedDir())
 	if err != nil {
-		return fmt.Errorf("discover solved inputs: %w", err)
+		return PhaseResult{}, fmt.Errorf("discover solved inputs: %w", err)
 	}
 	if len(inputs) == 0 {
-		return fmt.Errorf("no solved pages found in %s (run solve first)", ws.SolvedDir())
+		return PhaseResult{}, fmt.Errorf("no solved pages found in %s (run solve first)", ws.SolvedDir())
 	}
 
 	contextWindow := opts.ContextWindow
@@ -64,6 +64,7 @@ func Translate(ctx context.Context, opts TranslateOptions) error {
 	}
 
 	// Translate for each target language
+	var total PhaseResult
 	for _, targetLang := range cfg.Book.TargetLangs {
 		logger.Info("translating to language", "target", targetLang)
 
@@ -78,16 +79,20 @@ func Translate(ctx context.Context, opts TranslateOptions) error {
 
 		for _, stem := range inputs {
 			logger.Info("translating input", "input", stem, "target", targetLang)
-			if err := translateOneInput(ctx, opts, translator, stem, targetLang, contextWindow); err != nil {
+			result, err := translateOneInput(ctx, opts, translator, stem, targetLang, contextWindow)
+			total.Completed += result.Completed
+			total.Failed += result.Failed
+			total.Skipped += result.Skipped
+			if err != nil {
 				logger.Error("translation failed", "input", stem, "target", targetLang, "error", err)
 			}
 		}
 	}
 
-	return nil
+	return total, nil
 }
 
-func translateOneInput(ctx context.Context, opts TranslateOptions, translator *translation.Translator, stem, targetLang string, contextWindow int) error {
+func translateOneInput(ctx context.Context, opts TranslateOptions, translator *translation.Translator, stem, targetLang string, contextWindow int) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -105,10 +110,10 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	// List solved pages
 	pages, err := listPageFiles(solvedDir)
 	if err != nil {
-		return fmt.Errorf("list solved pages: %w", err)
+		return PhaseResult{}, fmt.Errorf("list solved pages: %w", err)
 	}
 	if len(pages) == 0 {
-		return fmt.Errorf("no solved pages in %s", solvedDir)
+		return PhaseResult{}, fmt.Errorf("no solved pages in %s", solvedDir)
 	}
 
 	if len(opts.Pages) > 0 {
@@ -116,10 +121,10 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	}
 
 	if err := os.MkdirAll(translatedDir, 0755); err != nil {
-		return fmt.Errorf("create translated dir: %w", err)
+		return PhaseResult{}, fmt.Errorf("create translated dir: %w", err)
 	}
 	if err := os.MkdirAll(outputPagesDir, 0755); err != nil {
-		return fmt.Errorf("create output pages dir: %w", err)
+		return PhaseResult{}, fmt.Errorf("create output pages dir: %w", err)
 	}
 
 	phaseName := progress.PhaseName("translate:" + targetLang + ":" + stem)
@@ -247,7 +252,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		opts.Display.FinishPhase(display.PhaseTranslate, stem)
 	}
 	logger.Info("translation complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
-	return nil
+	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 
 func loadSolvedPage(path string) (*model.SolvedPage, error) {

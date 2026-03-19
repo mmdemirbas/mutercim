@@ -60,13 +60,14 @@ func newSolveCmd() *cobra.Command {
 				return fmt.Errorf("load progress: %w", err)
 			}
 
-			return pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
+			_, err = pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
 				Workspace: ws,
 				Knowledge: k,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Display:   display.FromContext(cmd.Context()),
 			})
+			return err
 		},
 	}
 }

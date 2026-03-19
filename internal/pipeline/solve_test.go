@@ -96,7 +96,7 @@ func TestSolvePipeline(t *testing.T) {
 
 	ws, tracker := setupSolveWorkspace(t, "testbook", map[int]*model.ReadPage{1: readPage})
 
-	err := Solve(context.Background(), SolveOptions{
+	_, err := Solve(context.Background(), SolveOptions{
 		Workspace: ws,
 		Knowledge: &knowledge.Knowledge{},
 		Tracker:   tracker,
@@ -176,7 +176,7 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 		t.Fatalf("write existing solved page: %v", err)
 	}
 
-	err := Solve(context.Background(), SolveOptions{
+	_, err := Solve(context.Background(), SolveOptions{
 		Workspace: ws,
 		Knowledge: &knowledge.Knowledge{},
 		Tracker:   tracker,
@@ -206,7 +206,7 @@ func TestSolvePipelineNoReadPages(t *testing.T) {
 	ws := &workspace.Workspace{Root: dir}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
-	err := Solve(context.Background(), SolveOptions{
+	_, err := Solve(context.Background(), SolveOptions{
 		Workspace: ws,
 		Knowledge: &knowledge.Knowledge{},
 		Tracker:   tracker,
@@ -228,7 +228,7 @@ func TestSolvePipelineMissingReadDir(t *testing.T) {
 	ws := &workspace.Workspace{Root: dir}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
-	err := Solve(context.Background(), SolveOptions{
+	_, err := Solve(context.Background(), SolveOptions{
 		Workspace: ws,
 		Knowledge: &knowledge.Knowledge{},
 		Tracker:   tracker,

@@ -27,7 +27,7 @@ type SolveOptions struct {
 }
 
 // Solve runs the Phase 2 solver pipeline for all inputs.
-func Solve(ctx context.Context, opts SolveOptions) error {
+func Solve(ctx context.Context, opts SolveOptions) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -38,25 +38,30 @@ func Solve(ctx context.Context, opts SolveOptions) error {
 	// Discover inputs from read directory
 	inputs, err := discoverSubdirs(ws.ReadDir())
 	if err != nil {
-		return fmt.Errorf("discover read inputs: %w", err)
+		return PhaseResult{}, fmt.Errorf("discover read inputs: %w", err)
 	}
 	if len(inputs) == 0 {
-		return fmt.Errorf("no read pages found in %s (run read first)", ws.ReadDir())
+		return PhaseResult{}, fmt.Errorf("no read pages found in %s (run read first)", ws.ReadDir())
 	}
 
 	slvr := solver.NewSolver(opts.Knowledge, logger)
 
+	var total PhaseResult
 	for _, stem := range inputs {
 		logger.Info("solving input", "input", stem)
-		if err := solveOneInput(ctx, opts, slvr, stem); err != nil {
+		result, err := solveOneInput(ctx, opts, slvr, stem)
+		total.Completed += result.Completed
+		total.Failed += result.Failed
+		total.Skipped += result.Skipped
+		if err != nil {
 			logger.Error("solve failed", "input", stem, "error", err)
 		}
 	}
 
-	return nil
+	return total, nil
 }
 
-func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, stem string) error {
+func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, stem string) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -70,10 +75,10 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 	// List read page files
 	pages, err := listPageFiles(readDir)
 	if err != nil {
-		return fmt.Errorf("list read pages: %w", err)
+		return PhaseResult{}, fmt.Errorf("list read pages: %w", err)
 	}
 	if len(pages) == 0 {
-		return fmt.Errorf("no read pages in %s", readDir)
+		return PhaseResult{}, fmt.Errorf("no read pages in %s", readDir)
 	}
 
 	// Filter to requested pages
@@ -82,7 +87,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 	}
 
 	if err := os.MkdirAll(solvedDir, 0755); err != nil {
-		return fmt.Errorf("create solved dir: %w", err)
+		return PhaseResult{}, fmt.Errorf("create solved dir: %w", err)
 	}
 
 	phaseName := progress.PhaseName("solve:" + stem)
@@ -177,7 +182,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		opts.Display.FinishPhase(display.PhaseSolve, stem)
 	}
 	logger.Info("solve complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
-	return nil
+	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 
 func loadReadPage(path string) (*model.ReadPage, error) {
