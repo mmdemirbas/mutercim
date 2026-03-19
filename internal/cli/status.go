@@ -106,8 +106,8 @@ func runStatus(cmd *cobra.Command, args []string) error {
 }
 
 // buildPhaseRows creates the status table rows from progress state.
-func buildPhaseRows(state progress.State, inputs []string, totalImages int, targetLangs []string) []display.PhaseRow {
-	var rows []display.PhaseRow
+func buildPhaseRows(state progress.State, inputs []string, totalImages int, targetLangs []string) []display.ProgressRow {
+	var rows []display.ProgressRow
 
 	// Aggregate across all inputs for each phase
 	pagesCompleted := aggregateCompleted(state, "pages", inputs)
@@ -119,23 +119,23 @@ func buildPhaseRows(state progress.State, inputs []string, totalImages int, targ
 	if pagesTotal == 0 {
 		pagesTotal = pagesCompleted // fallback
 	}
-	rows = append(rows, display.PhaseRow{
-		Name: "pages", Completed: pagesCompleted, Total: pagesTotal,
+	rows = append(rows, display.ProgressRow{
+		Phase: display.PhasePages, Completed: pagesCompleted, Total: pagesTotal,
 		Done: pagesCompleted > 0 && pagesCompleted >= pagesTotal,
 	})
 
 	// Read row
 	readTotal := totalImages
-	rows = append(rows, display.PhaseRow{
-		Name: "read", Completed: readCompleted, Failed: readFailed,
+	rows = append(rows, display.ProgressRow{
+		Phase: display.PhaseRead, Completed: readCompleted, Failed: readFailed,
 		Total: readTotal, Warnings: readWarnings,
 		Done: readTotal > 0 && readCompleted+readFailed >= readTotal,
 	})
 
 	// Solve row — total is based on successful reads
 	solveTotal := readCompleted
-	rows = append(rows, display.PhaseRow{
-		Name: "solve", Completed: solveCompleted, Failed: solveFailed,
+	rows = append(rows, display.ProgressRow{
+		Phase: display.PhaseSolve, Completed: solveCompleted, Failed: solveFailed,
 		Total: solveTotal,
 		Done:  solveTotal > 0 && solveCompleted+solveFailed >= solveTotal,
 	})
@@ -144,8 +144,8 @@ func buildPhaseRows(state progress.State, inputs []string, totalImages int, targ
 	for _, lang := range targetLangs {
 		transCompleted, transFailed, _ := aggregateAllLang(state, "translate", lang, inputs)
 		transTotal := solveCompleted
-		rows = append(rows, display.PhaseRow{
-			Name: "translate", Completed: transCompleted, Failed: transFailed,
+		rows = append(rows, display.ProgressRow{
+			Phase: display.PhaseTranslate, Completed: transCompleted, Failed: transFailed,
 			Total: transTotal, Lang: lang,
 			Done: transTotal > 0 && transCompleted+transFailed >= transTotal,
 		})
@@ -155,8 +155,8 @@ func buildPhaseRows(state progress.State, inputs []string, totalImages int, targ
 		writeCompleted, writeFailed, _ := aggregateAllLang(state, "write", lang, inputs)
 		transCompleted, _, _ := aggregateAllLang(state, "translate", lang, inputs)
 		writeTotal := transCompleted
-		rows = append(rows, display.PhaseRow{
-			Name: "write", Completed: writeCompleted, Failed: writeFailed,
+		rows = append(rows, display.ProgressRow{
+			Phase: display.PhaseWrite, Completed: writeCompleted, Failed: writeFailed,
 			Total: writeTotal, Lang: lang,
 			Done: writeTotal > 0 && writeCompleted+writeFailed >= writeTotal,
 		})

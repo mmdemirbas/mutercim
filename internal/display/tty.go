@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-const barWidth = 20
-
 // TTYDisplay renders live ANSI progress bars to a terminal.
 type TTYDisplay struct {
 	out          io.Writer
@@ -18,6 +16,8 @@ type TTYDisplay struct {
 	phaseOrder   []phaseKey
 	phases       map[phaseKey]*phaseState
 	currentLines int
+	colors       StatusColors
+	logBuffer    *RingBuffer
 }
 
 type phaseKey struct {
@@ -34,22 +34,20 @@ type phaseState struct {
 	startTime time.Time
 	finished  bool
 	// Rolling window for rate calculation
-	durations [10]time.Duration
-	durCount  int
-	durIndex  int
-	lastTime  time.Time
-	// Last page details
-	lastPage      int
-	lastEntries   int
-	lastFootnotes int
-	finishTime    time.Time
+	durations  [10]time.Duration
+	durCount   int
+	durIndex   int
+	lastTime   time.Time
+	finishTime time.Time
 }
 
 func newTTYDisplay(out io.Writer, nowFunc func() time.Time) *TTYDisplay {
 	return &TTYDisplay{
-		out:    out,
-		now:    nowFunc,
-		phases: make(map[phaseKey]*phaseState),
+		out:       out,
+		now:       nowFunc,
+		phases:    make(map[phaseKey]*phaseState),
+		colors:    NewStatusColors(out),
+		logBuffer: NewRingBuffer(5),
 	}
 }
 
@@ -95,9 +93,9 @@ func (d *TTYDisplay) Update(result PageResult) {
 	ps.completed = result.Completed
 	ps.failed = result.Failed
 	ps.warnings += result.Warnings
-	ps.lastPage = result.PageNum
-	ps.lastEntries = result.Entries
-	ps.lastFootnotes = result.Footnotes
+
+	// Push log entry
+	d.logBuffer.Push(logEntryFromResult(result, now))
 
 	d.render()
 }
@@ -123,32 +121,10 @@ func (d *TTYDisplay) Finish() {
 	d.clearLines()
 	for _, key := range d.phaseOrder {
 		ps := d.phases[key]
-		label := FormatLabel(key.phase, ps.lang)
-		elapsed := ""
-		if !ps.finishTime.IsZero() {
-			elapsed = "  " + formatDuration(ps.finishTime.Sub(ps.startTime))
-		} else if ps.completed > 0 || ps.failed > 0 {
-			elapsed = "  " + formatDuration(d.now().Sub(ps.startTime))
-		}
-
-		var parts []string
-		if ps.warnings > 0 {
-			parts = append(parts, fmt.Sprintf("%d warnings", ps.warnings))
-		}
-		if ps.failed > 0 {
-			parts = append(parts, fmt.Sprintf("%d errors", ps.failed))
-		}
-		suffix := ""
-		if len(parts) > 0 {
-			suffix = "  " + strings.Join(parts, " \u00b7 ")
-		}
-
-		if ps.finished {
-			fmt.Fprintf(d.out, "%s  %s %d/%d \u2713%s%s\n",
-				label, ProgressBar(ps.completed, ps.total), ps.completed, ps.total, suffix, elapsed)
-		} else {
-			fmt.Fprintf(d.out, "%s  %s %d/%d%s%s\n",
-				label, ProgressBar(ps.completed, ps.total), ps.completed, ps.total, suffix, elapsed)
+		row := d.buildFinishRow(key, ps)
+		fmt.Fprintln(d.out, RenderProgressLine(row, d.colors))
+		if weLine := RenderWarnErrorLine(ps.warnings, ps.failed, d.colors); weLine != "" {
+			fmt.Fprintln(d.out, weLine)
 		}
 	}
 	d.currentLines = 0
@@ -160,72 +136,24 @@ func (d *TTYDisplay) render() {
 	lines := 0
 	for _, key := range d.phaseOrder {
 		ps := d.phases[key]
-		label := FormatLabel(key.phase, ps.lang)
-
-		if ps.finished {
-			elapsed := formatDuration(ps.finishTime.Sub(ps.startTime))
-			var parts []string
-			if ps.warnings > 0 {
-				parts = append(parts, fmt.Sprintf("%d warnings", ps.warnings))
-			}
-			if ps.failed > 0 {
-				parts = append(parts, fmt.Sprintf("%d errors", ps.failed))
-			}
-			suffix := ""
-			if len(parts) > 0 {
-				suffix = "  " + strings.Join(parts, " \u00b7 ")
-			}
-			fmt.Fprintf(d.out, "%s  %s %d/%d \u2713%s  %s\n",
-				label, ProgressBar(ps.completed, ps.total), ps.completed, ps.total, suffix, elapsed)
-			lines++
-			continue
-		}
-
-		// Active phase: 3 lines
-		pct := ""
-		rateStr := ""
-		etaStr := ""
-		if ps.total > 0 {
-			pct = fmt.Sprintf("  %d%%", ps.completed*100/ps.total)
-		}
-		rate := ps.rate()
-		if rate > 0 {
-			rateStr = fmt.Sprintf("  %.0fp/min", rate)
-			remaining := ps.total - ps.completed
-			eta := time.Duration(float64(remaining)/rate*60) * time.Second
-			etaStr = fmt.Sprintf("  ETA %s", formatDuration(eta))
-		}
-		fmt.Fprintf(d.out, "%s  %s %d/%d%s%s%s\n",
-			label, ProgressBar(ps.completed, ps.total), ps.completed, ps.total, pct, rateStr, etaStr)
+		row := d.buildLiveRow(key, ps)
+		fmt.Fprintln(d.out, RenderProgressLine(row, d.colors))
 		lines++
 
-		// Detail line
-		if ps.lastPage > 0 {
-			var details []string
-			if ps.lastEntries > 0 {
-				details = append(details, fmt.Sprintf("%d entries", ps.lastEntries))
-			}
-			if ps.lastFootnotes > 0 {
-				details = append(details, fmt.Sprintf("%d footnotes", ps.lastFootnotes))
-			}
-			detail := ""
-			if len(details) > 0 {
-				detail = " \u2014 " + strings.Join(details, ", ")
-			}
-			fmt.Fprintf(d.out, "%12s  page %d%s\n", "", ps.lastPage, detail)
+		if weLine := RenderWarnErrorLine(ps.warnings, ps.failed, d.colors); weLine != "" {
+			fmt.Fprintln(d.out, weLine)
 			lines++
 		}
+	}
 
-		// Warnings/errors line
-		if ps.warnings > 0 || ps.failed > 0 {
-			var parts []string
-			if ps.warnings > 0 {
-				parts = append(parts, fmt.Sprintf("\u26a0 %d warnings", ps.warnings))
-			}
-			if ps.failed > 0 {
-				parts = append(parts, fmt.Sprintf("\u2717 %d errors", ps.failed))
-			}
-			fmt.Fprintf(d.out, "%12s  %s\n", "", strings.Join(parts, "  "))
+	// Log tail
+	entries := d.logBuffer.Entries()
+	if len(entries) > 0 {
+		fmt.Fprintln(d.out)
+		fmt.Fprintln(d.out, "  \u2500\u2500\u2500 recent \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
+		lines += 2
+		for _, e := range entries {
+			fmt.Fprintf(d.out, "  %s\n", FormatLogEntry(e, 80, d.colors))
 			lines++
 		}
 	}
@@ -238,6 +166,53 @@ func (d *TTYDisplay) clearLines() {
 		fmt.Fprint(d.out, "\033[A\033[2K")
 	}
 	d.currentLines = 0
+}
+
+// buildLiveRow creates a ProgressRow for live rendering (shows rate/ETA for active phases).
+func (d *TTYDisplay) buildLiveRow(key phaseKey, ps *phaseState) ProgressRow {
+	row := ProgressRow{
+		Phase:     key.phase,
+		Lang:      ps.lang,
+		Completed: ps.completed,
+		Failed:    ps.failed,
+		Total:     ps.total,
+		Warnings:  ps.warnings,
+		Done:      ps.finished,
+	}
+
+	if ps.finished {
+		row.Elapsed = ps.finishTime.Sub(ps.startTime)
+	} else {
+		rate := ps.rate()
+		if rate > 0 {
+			row.Rate = rate
+			remaining := ps.total - ps.completed
+			row.ETA = time.Duration(float64(remaining)/rate*60) * time.Second
+		}
+	}
+
+	return row
+}
+
+// buildFinishRow creates a ProgressRow for the final summary (shows elapsed for all phases).
+func (d *TTYDisplay) buildFinishRow(key phaseKey, ps *phaseState) ProgressRow {
+	row := ProgressRow{
+		Phase:     key.phase,
+		Lang:      ps.lang,
+		Completed: ps.completed,
+		Failed:    ps.failed,
+		Total:     ps.total,
+		Warnings:  ps.warnings,
+		Done:      ps.finished,
+	}
+
+	if !ps.finishTime.IsZero() {
+		row.Elapsed = ps.finishTime.Sub(ps.startTime)
+	} else if ps.completed > 0 || ps.failed > 0 {
+		row.Elapsed = d.now().Sub(ps.startTime)
+	}
+
+	return row
 }
 
 func (ps *phaseState) rate() float64 {
@@ -256,34 +231,34 @@ func (ps *phaseState) rate() float64 {
 	return 60.0 / avg.Seconds()
 }
 
-// ProgressBar renders a progress bar of barWidth characters.
-func ProgressBar(completed, total int) string {
-	if total <= 0 {
-		return strings.Repeat("\u2591", barWidth)
-	}
-	filled := completed * barWidth / total
-	if filled > barWidth {
-		filled = barWidth
-	}
-	return strings.Repeat("\u2588", filled) + strings.Repeat("\u2591", barWidth-filled)
-}
+func logEntryFromResult(result PageResult, now time.Time) LogEntry {
+	level := LogNormal
+	var msg string
 
-// FormatLabel right-aligns a phase label with optional language tag.
-func FormatLabel(phase Phase, lang string) string {
-	label := string(phase)
-	if lang != "" {
-		label += " [" + lang + "]"
+	if result.Err != nil {
+		level = LogError
+		msg = fmt.Sprintf("page %d \u2014 %v", result.PageNum, result.Err)
+	} else {
+		var details []string
+		if result.Entries > 0 {
+			details = append(details, fmt.Sprintf("%d entries", result.Entries))
+		}
+		if result.Footnotes > 0 {
+			details = append(details, fmt.Sprintf("%d footnotes", result.Footnotes))
+		}
+		if len(details) > 0 {
+			msg = fmt.Sprintf("page %d \u2014 %s", result.PageNum, strings.Join(details, ", "))
+		} else {
+			msg = fmt.Sprintf("page %d", result.PageNum)
+		}
+		if result.Warnings > 0 {
+			level = LogWarning
+		}
 	}
-	// Width 12 accommodates "TRANS [tr]" with padding
-	return fmt.Sprintf("%12s", label)
-}
 
-func formatDuration(d time.Duration) string {
-	if d < time.Minute {
-		return fmt.Sprintf("%.0fs", d.Seconds())
+	return LogEntry{
+		Time:    now,
+		Message: msg,
+		Level:   level,
 	}
-	if d < time.Hour {
-		return fmt.Sprintf("%.0fm", d.Minutes())
-	}
-	return fmt.Sprintf("%.1fh", d.Hours())
 }

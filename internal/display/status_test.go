@@ -16,12 +16,12 @@ func TestRenderStatus_AllDone(t *testing.T) {
 		InputPages:  612,
 		SourceLangs: []string{"ar"},
 		TargetLangs: []string{"tr"},
-		Phases: []PhaseRow{
-			{Name: "pages", Completed: 612, Total: 612, Done: true},
-			{Name: "read", Completed: 612, Total: 612, Done: true},
-			{Name: "solve", Completed: 612, Total: 612, Done: true},
-			{Name: "translate", Completed: 612, Total: 612, Done: true, Lang: "tr"},
-			{Name: "write", Completed: 612, Total: 612, Done: true, Lang: "tr"},
+		Phases: []ProgressRow{
+			{Phase: PhasePages, Completed: 612, Total: 612, Done: true},
+			{Phase: PhaseRead, Completed: 612, Total: 612, Done: true},
+			{Phase: PhaseSolve, Completed: 612, Total: 612, Done: true},
+			{Phase: PhaseTranslate, Completed: 612, Total: 612, Done: true, Lang: "tr"},
+			{Phase: PhaseWrite, Completed: 612, Total: 612, Done: true, Lang: "tr"},
 		},
 		LogPath: "mutercim.log",
 		LogSize: 1258000,
@@ -37,9 +37,7 @@ func TestRenderStatus_AllDone(t *testing.T) {
 		"ar",
 		"tr",
 		"612/612",
-		"done",
-		"Phase",
-		"Progress",
+		"\u2713", // checkmark replaces "done"
 		"mutercim.log",
 		"Warnings: 0",
 		"Errors: 0",
@@ -56,10 +54,10 @@ func TestRenderStatus_Partial(t *testing.T) {
 		BookTitle:  "Test Book",
 		InputName:  "vol1.pdf",
 		InputPages: 100,
-		Phases: []PhaseRow{
-			{Name: "pages", Completed: 100, Total: 100, Done: true},
-			{Name: "read", Completed: 60, Total: 100, Warnings: 2},
-			{Name: "solve", Completed: 0, Total: 60},
+		Phases: []ProgressRow{
+			{Phase: PhasePages, Completed: 100, Total: 100, Done: true},
+			{Phase: PhaseRead, Completed: 60, Total: 100, Warnings: 2},
+			{Phase: PhaseSolve, Completed: 0, Total: 60},
 		},
 		Warnings: []string{
 			"page 41 — hadith number gap",
@@ -91,17 +89,18 @@ func TestRenderStatus_EmptyWorkspace(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
 		BookTitle: "Empty Book",
-		Phases: []PhaseRow{
-			{Name: "pages", Total: 0},
-			{Name: "read", Total: 0},
+		Phases: []ProgressRow{
+			{Phase: PhasePages, Total: 0},
+			{Phase: PhaseRead, Total: 0},
 		},
 	}
 
 	RenderStatus(&buf, data, StatusColors{Enabled: false})
 	out := buf.String()
 
-	if !strings.Contains(out, "pending") {
-		t.Errorf("should show pending, got:\n%s", out)
+	// Pending phases show em-dash for counts (no "pending" text)
+	if !strings.Contains(out, "\u2014") {
+		t.Errorf("should show em-dash for pending, got:\n%s", out)
 	}
 }
 
@@ -113,7 +112,7 @@ func TestRenderStatus_WarningTruncation(t *testing.T) {
 	}
 	data := StatusData{
 		Warnings: warnings,
-		Phases:   []PhaseRow{{Name: "read", Completed: 15, Total: 100, Warnings: 15}},
+		Phases:   []ProgressRow{{Phase: PhaseRead, Completed: 15, Total: 100, Warnings: 15}},
 	}
 
 	RenderStatus(&buf, data, StatusColors{Enabled: false})
@@ -134,8 +133,8 @@ func TestRenderStatus_NoColor(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
 		BookTitle: "Test",
-		Phases: []PhaseRow{
-			{Name: "read", Completed: 50, Total: 100, Warnings: 1, Done: false},
+		Phases: []ProgressRow{
+			{Phase: PhaseRead, Completed: 50, Total: 100, Warnings: 1, Done: false},
 		},
 		Warnings: []string{"page 1 — test warning"},
 	}
@@ -152,9 +151,9 @@ func TestRenderStatus_NoColor(t *testing.T) {
 func TestRenderStatus_WithColors(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		Phases: []PhaseRow{
-			{Name: "read", Completed: 100, Total: 100, Done: true},
-			{Name: "solve", Total: 0},
+		Phases: []ProgressRow{
+			{Phase: PhaseRead, Completed: 100, Total: 100, Done: true},
+			{Phase: PhaseSolve, Total: 0},
 		},
 	}
 
@@ -174,9 +173,9 @@ func TestRenderStatus_TranslatePerLanguage(t *testing.T) {
 	data := StatusData{
 		SourceLangs: []string{"ar"},
 		TargetLangs: []string{"tr", "en"},
-		Phases: []PhaseRow{
-			{Name: "translate", Completed: 50, Total: 100, Lang: "tr"},
-			{Name: "translate", Completed: 0, Total: 100, Lang: "en"},
+		Phases: []ProgressRow{
+			{Phase: PhaseTranslate, Completed: 50, Total: 100, Lang: "tr"},
+			{Phase: PhaseTranslate, Completed: 0, Total: 100, Lang: "en"},
 		},
 	}
 
@@ -195,11 +194,11 @@ func TestRenderStatus_TotalCascade(t *testing.T) {
 	// Read produced 370/612, so solve total should be 370
 	var buf bytes.Buffer
 	data := StatusData{
-		Phases: []PhaseRow{
-			{Name: "pages", Completed: 612, Total: 612, Done: true},
-			{Name: "read", Completed: 370, Total: 612, Warnings: 2},
-			{Name: "solve", Completed: 0, Total: 370},
-			{Name: "translate", Completed: 0, Total: 370, Lang: "tr"},
+		Phases: []ProgressRow{
+			{Phase: PhasePages, Completed: 612, Total: 612, Done: true},
+			{Phase: PhaseRead, Completed: 370, Total: 612, Warnings: 2},
+			{Phase: PhaseSolve, Completed: 0, Total: 370},
+			{Phase: PhaseTranslate, Completed: 0, Total: 370, Lang: "tr"},
 		},
 	}
 
@@ -209,7 +208,7 @@ func TestRenderStatus_TotalCascade(t *testing.T) {
 	// Verify solve shows 0/370 not 0/612
 	lines := strings.Split(out, "\n")
 	for _, line := range lines {
-		if strings.Contains(line, "solve") && strings.Contains(line, "0/370") {
+		if strings.Contains(line, "SOLVE") && strings.Contains(line, "0/370") {
 			return // found it
 		}
 	}
@@ -219,10 +218,10 @@ func TestRenderStatus_TotalCascade(t *testing.T) {
 func TestRenderStatus_ColumnAlignment(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		Phases: []PhaseRow{
-			{Name: "pages", Completed: 5, Total: 5, Done: true},
-			{Name: "read", Completed: 3, Total: 5},
-			{Name: "translate", Completed: 100, Total: 1000, Lang: "tr"},
+		Phases: []ProgressRow{
+			{Phase: PhasePages, Completed: 5, Total: 5, Done: true},
+			{Phase: PhaseRead, Completed: 3, Total: 5},
+			{Phase: PhaseTranslate, Completed: 100, Total: 1000, Lang: "tr"},
 		},
 	}
 
@@ -254,8 +253,8 @@ func TestRenderStatus_ColumnAlignment(t *testing.T) {
 func TestRenderStatus_Errors(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		Phases: []PhaseRow{
-			{Name: "read", Completed: 8, Total: 10, Failed: 2},
+		Phases: []ProgressRow{
+			{Phase: PhaseRead, Completed: 8, Total: 10, Failed: 2},
 		},
 		Errors: []string{
 			"page 5 — provider timeout after 3 retries",

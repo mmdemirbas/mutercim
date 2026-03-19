@@ -9,7 +9,7 @@ book:
 # With per-input pages: "1-50", "1,5,10-20", "all"
 inputs:
   - path: ./input/Anfas1.pdf
-    pages: "155"
+    pages: "155-160"
 
 # Global page range (fallback for inputs without their own pages)
 # pages: all

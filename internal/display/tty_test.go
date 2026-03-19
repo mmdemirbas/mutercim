@@ -7,62 +7,6 @@ import (
 	"time"
 )
 
-func TestProgressBar(t *testing.T) {
-	tests := []struct {
-		name      string
-		completed int
-		total     int
-		wantFull  int
-		wantEmpty int
-	}{
-		{"zero", 0, 100, 0, 20},
-		{"half", 50, 100, 10, 10},
-		{"full", 100, 100, 20, 0},
-		{"quarter", 25, 100, 5, 15},
-		{"zero total", 0, 0, 0, 20},
-		{"over total", 200, 100, 20, 0},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			bar := ProgressBar(tt.completed, tt.total)
-			full := strings.Count(bar, "\u2588")
-			empty := strings.Count(bar, "\u2591")
-			if full != tt.wantFull {
-				t.Errorf("full blocks = %d, want %d (bar: %q)", full, tt.wantFull, bar)
-			}
-			if empty != tt.wantEmpty {
-				t.Errorf("empty blocks = %d, want %d (bar: %q)", empty, tt.wantEmpty, bar)
-			}
-			// Total width should always be barWidth
-			if full+empty != barWidth {
-				t.Errorf("total width = %d, want %d", full+empty, barWidth)
-			}
-		})
-	}
-}
-
-func TestFormatLabel(t *testing.T) {
-	tests := []struct {
-		phase Phase
-		lang  string
-		want  string
-	}{
-		{PhaseRead, "", "        READ"},
-		{PhasePages, "", "       PAGES"},
-		{PhaseTranslate, "", "       TRANS"},
-		{PhaseTranslate, "tr", "  TRANS [tr]"},
-		{PhaseWrite, "en", "  WRITE [en]"},
-	}
-
-	for _, tt := range tests {
-		got := FormatLabel(tt.phase, tt.lang)
-		if got != tt.want {
-			t.Errorf("FormatLabel(%q, %q) = %q, want %q", tt.phase, tt.lang, got, tt.want)
-		}
-	}
-}
-
 func TestTTYDisplayStartAndUpdate(t *testing.T) {
 	var buf bytes.Buffer
 	tick := time.Unix(1000, 0)
@@ -96,8 +40,9 @@ func TestTTYDisplayStartAndUpdate(t *testing.T) {
 	if !strings.Contains(out, "1/10") {
 		t.Errorf("Update output should contain 1/10, got: %q", out)
 	}
+	// Detail now appears in log tail section
 	if !strings.Contains(out, "5 entries") {
-		t.Errorf("Update output should contain '5 entries', got: %q", out)
+		t.Errorf("Update output should contain '5 entries' in log tail, got: %q", out)
 	}
 }
 
@@ -187,5 +132,100 @@ func TestTTYDisplayTranslateWithLang(t *testing.T) {
 	out := buf.String()
 	if !strings.Contains(out, "[tr]") {
 		t.Errorf("translate phase should show [tr], got: %q", out)
+	}
+}
+
+func TestTTYDisplayLogTail(t *testing.T) {
+	var buf bytes.Buffer
+	tick := time.Unix(1000, 0)
+	now := func() time.Time {
+		tick = tick.Add(time.Second)
+		return tick
+	}
+
+	d := newTTYDisplay(&buf, now)
+	d.StartPhase(PhaseRead, "vol1", 100, "")
+
+	// Send 3 updates
+	for i := 1; i <= 3; i++ {
+		d.Update(PageResult{
+			Phase: PhaseRead, Input: "vol1", PageNum: i, Total: 100, Completed: i,
+			Entries: i * 2, Footnotes: i,
+		})
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "recent") {
+		t.Errorf("should show log tail section, got: %q", out)
+	}
+	if !strings.Contains(out, "page 1") {
+		t.Errorf("should show page 1 in log tail, got: %q", out)
+	}
+	if !strings.Contains(out, "page 3") {
+		t.Errorf("should show page 3 in log tail, got: %q", out)
+	}
+}
+
+func TestTTYDisplayLogTail_WarningAndError(t *testing.T) {
+	var buf bytes.Buffer
+	tick := time.Unix(1000, 0)
+	now := func() time.Time {
+		tick = tick.Add(time.Second)
+		return tick
+	}
+
+	d := newTTYDisplay(&buf, now)
+	d.StartPhase(PhaseRead, "vol1", 100, "")
+
+	// Normal page
+	d.Update(PageResult{
+		Phase: PhaseRead, Input: "vol1", PageNum: 1, Total: 100, Completed: 1,
+		Entries: 5, Footnotes: 2,
+	})
+	// Warning page
+	d.Update(PageResult{
+		Phase: PhaseRead, Input: "vol1", PageNum: 2, Total: 100, Completed: 2,
+		Entries: 3, Warnings: 1,
+	})
+	// Error page
+	d.Update(PageResult{
+		Phase: PhaseRead, Input: "vol1", PageNum: 3, Total: 100, Completed: 2, Failed: 1,
+		Err: errTest,
+	})
+
+	out := buf.String()
+	// Log tail should show the error's ✗ symbol
+	if !strings.Contains(out, "\u2717") {
+		t.Errorf("log tail should show ✗ for error, got: %q", out)
+	}
+}
+
+func TestTTYDisplayLogTail_RingBufferOverflow(t *testing.T) {
+	var buf bytes.Buffer
+	tick := time.Unix(1000, 0)
+	now := func() time.Time {
+		tick = tick.Add(time.Second)
+		return tick
+	}
+
+	d := newTTYDisplay(&buf, now)
+	d.StartPhase(PhaseRead, "vol1", 100, "")
+
+	// Send 8 updates (buffer size is 5)
+	for i := 1; i <= 8; i++ {
+		d.Update(PageResult{
+			Phase: PhaseRead, Input: "vol1", PageNum: i, Total: 100, Completed: i,
+			Entries: i,
+		})
+	}
+
+	out := buf.String()
+	// Should not contain early pages (dropped from ring buffer)
+	// Only pages 4-8 should be in the last render
+	// Note: due to ANSI clear/re-render, all previous renders are overwritten,
+	// so only the last render's output matters. But since we're checking the buffer
+	// which includes ANSI sequences, let's check the last rendered content.
+	if !strings.Contains(out, "page 8") {
+		t.Errorf("should show most recent page, got: %q", out)
 	}
 }

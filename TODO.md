@@ -12,3 +12,8 @@
 - Optimize token usage
     * short JSON keys
     * shorter system prompts
+
+- Depenedencies? Single-binary?
+- Generate YAML schema
+- Provide full config example showing all keys with explanatory comments, default values and allowed values etc.
+- 
