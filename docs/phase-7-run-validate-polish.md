@@ -15,3 +15,31 @@ Before declaring this phase complete, execute these commands and verify they pas
 4. List all files you created/modified and verify each exists in SPEC.md's project structure
 5. If any file or pattern deviates from SPEC.md, append to DEVIATIONS.md
 6. Show me the output of all three commands above
+
+## Summary
+
+### Files Created
+
+**Providers** (`internal/provider/`):
+- `claude.go` — Anthropic Claude provider (vision + text, x-api-key auth, anthropic-version header)
+- `openai.go` — OpenAI provider (vision + text, Bearer auth, chat completions API)
+- `ollama.go` — Ollama local provider (vision + text, /api/generate, OLLAMA_HOST env var)
+- `claude_test.go`, `openai_test.go`, `ollama_test.go` — httptest-based tests for each
+
+**CLI** (`internal/cli/`):
+- `run.go` — `mutercim run` chains all phases: extract → enrich → translate → compile, with full preflight checks upfront
+- `validate.go` — `mutercim validate` reads extracted pages, validates numbering sequences and structural consistency, reports warnings (read-only, no API calls)
+
+### Files Modified
+
+- `internal/cli/extract.go` — `createProvider()` now supports gemini, claude, openai, ollama
+- `internal/cli/root.go` — registered `run` and `validate` subcommands
+
+### Provider Summary
+
+| Provider | Auth | Vision | Endpoint |
+|----------|------|--------|----------|
+| gemini | GEMINI_API_KEY | yes | generativelanguage.googleapis.com |
+| claude | ANTHROPIC_API_KEY | yes | api.anthropic.com/v1/messages |
+| openai | OPENAI_API_KEY | yes | api.openai.com/v1/chat/completions |
+| ollama | none (OLLAMA_HOST) | yes | localhost:11434/api/generate |

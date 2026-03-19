@@ -161,7 +161,13 @@ func createProvider(name string, client *apiclient.Client, apiKey, modelName str
 	switch name {
 	case "gemini":
 		return provider.NewGeminiProvider(client, apiKey, modelName), nil
+	case "claude":
+		return provider.NewClaudeProvider(client, apiKey, modelName), nil
+	case "openai":
+		return provider.NewOpenAIProvider(client, apiKey, modelName), nil
+	case "ollama":
+		return provider.NewOllamaProvider(client, modelName), nil
 	default:
-		return nil, fmt.Errorf("provider %q is not yet implemented", name)
+		return nil, fmt.Errorf("unknown provider %q", name)
 	}
 }
