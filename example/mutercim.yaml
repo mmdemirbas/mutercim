@@ -98,6 +98,7 @@ sections: []
 #   Mistral: console.mistral.ai — no credit card for free tier
 #   xAI: console.x.ai — $25 free credits on signup
 #   OpenRouter: openrouter.ai — free models available immediately
+# Put the keys into .env file.
 
 read:
   models:
