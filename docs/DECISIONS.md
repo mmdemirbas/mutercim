@@ -66,6 +66,13 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Overridable per-model via `rpm` field in `ModelSpec`
 - Global `rate_limit` config kept for backward compat but per-model RPM takes precedence
 
+## Idempotent Pipeline with --force Override
+- Pipeline is idempotent by default: pages are skipped if progress tracker marks them completed AND output file exists
+- If output file is missing but progress says completed → re-processes automatically with a warning
+- `--force` persistent flag bypasses all skip logic, re-processing every page unconditionally
+- `--force` applies to read, solve, translate phases (write always regenerates)
+- `--auto` prerequisite runs do NOT use force (they only fill gaps)
+
 ## On-Demand Output Formats (positional args)
 - `write` and `make` accept positional format arguments: `mutercim write pdf`, `mutercim make md docx`
 - Positional args override config; `--format` flag is kept as an alternative

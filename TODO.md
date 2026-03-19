@@ -21,12 +21,7 @@ OPTIMIZATION ===================================================================
 
 FEATURES ===========================================================================================
 
-- The tool should be idempotent and skip already-processed pages by default. We should provide a force flag, so we can force it to re-process.
-
 - Support fixing / completing tashkeels optionally in the arabic script.
-
-- Allow adding to the system prompt, or a second prompt maybe (user prompt). 
-  So we can teach some âdâb to the AI (Peygamberimiz, Efendimiz vs.)
 
 
 SIMPLIFICATION =====================================================================================

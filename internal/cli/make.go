@@ -138,6 +138,7 @@ func newMakeCmd() *cobra.Command {
 				Provider:  readChain,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
+				Force:     force,
 				Logger:    logger,
 				Display:   disp,
 			})
@@ -162,6 +163,7 @@ func newMakeCmd() *cobra.Command {
 				Knowledge: k,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
+				Force:     force,
 				Logger:    logger,
 				Display:   disp,
 			})
@@ -188,6 +190,7 @@ func newMakeCmd() *cobra.Command {
 				Knowledge: k,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
+				Force:     force,
 				Logger:    logger,
 				Display:   disp,
 			})

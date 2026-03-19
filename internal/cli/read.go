@@ -100,6 +100,7 @@ func newReadCmd() *cobra.Command {
 				Provider:  chain,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
+				Force:     force,
 				Logger:    logger,
 				Display:   display.FromContext(cmd.Context()),
 			})

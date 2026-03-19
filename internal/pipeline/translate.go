@@ -28,7 +28,8 @@ type TranslateOptions struct {
 	Knowledge     *knowledge.Knowledge
 	Tracker       *progress.Tracker
 	Pages         []int
-	ContextWindow int // number of previous pages for context (default: 2)
+	Force         bool // force re-processing of already completed pages
+	ContextWindow int  // number of previous pages for context (default: 2)
 	Logger        *slog.Logger
 	Display       display.Display
 }
@@ -182,15 +183,17 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			break
 		}
 		// Skip already completed — but only if the output file actually exists
-		outputPath := filepath.Join(translatedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
-		state := opts.Tracker.State()
-		if phase := state.Phases[phaseName]; phase != nil {
-			if containsInt(phase.Completed, pf.pageNum) {
-				if fileExists(outputPath) {
-					skipped++
-					continue
+		if !opts.Force {
+			outputPath := filepath.Join(translatedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
+			state := opts.Tracker.State()
+			if phase := state.Phases[phaseName]; phase != nil {
+				if containsInt(phase.Completed, pf.pageNum) {
+					if fileExists(outputPath) {
+						skipped++
+						continue
+					}
+					logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pf.pageNum)
 				}
-				logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pf.pageNum)
 			}
 		}
 

@@ -98,6 +98,7 @@ func newTranslateCmd() *cobra.Command {
 				Knowledge:     k,
 				Tracker:       tracker,
 				Pages:         pagesToProcess,
+				Force:         force,
 				ContextWindow: contextWindow,
 				Logger:        logger,
 				Display:       display.FromContext(cmd.Context()),

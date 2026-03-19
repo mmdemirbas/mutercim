@@ -69,6 +69,7 @@ func newSolveCmd() *cobra.Command {
 				Knowledge: k,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
+				Force:     force,
 				Display:   display.FromContext(cmd.Context()),
 			})
 			return err

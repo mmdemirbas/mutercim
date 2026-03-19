@@ -22,6 +22,7 @@ type SolveOptions struct {
 	Knowledge *knowledge.Knowledge
 	Tracker   *progress.Tracker
 	Pages     []int // specific pages to process; nil means all available
+	Force     bool  // force re-processing of already completed pages
 	Logger    *slog.Logger
 	Display   display.Display
 }
@@ -117,15 +118,17 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 			break
 		}
 		// Skip already completed — but only if the output file actually exists
-		outputPath := filepath.Join(solvedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
-		state := opts.Tracker.State()
-		if phase := state.Phases[phaseName]; phase != nil {
-			if containsInt(phase.Completed, pf.pageNum) {
-				if fileExists(outputPath) {
-					skipped++
-					continue
+		if !opts.Force {
+			outputPath := filepath.Join(solvedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
+			state := opts.Tracker.State()
+			if phase := state.Phases[phaseName]; phase != nil {
+				if containsInt(phase.Completed, pf.pageNum) {
+					if fileExists(outputPath) {
+						skipped++
+						continue
+					}
+					logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pf.pageNum)
 				}
-				logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pf.pageNum)
 			}
 		}
 

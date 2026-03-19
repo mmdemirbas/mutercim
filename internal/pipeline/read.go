@@ -26,6 +26,7 @@ type ReadOptions struct {
 	Provider  provider.Provider
 	Tracker   *progress.Tracker
 	Pages     []int // CLI override pages; nil means use per-input or global config
+	Force     bool  // force re-processing of already completed pages
 	Logger    *slog.Logger
 	Display   display.Display
 }
@@ -180,16 +181,18 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			break
 		}
 		// Skip already completed pages — but only if the output file actually exists
-		outputPath := filepath.Join(readDir, fmt.Sprintf("page_%03d.json", pageNum))
-		state := opts.Tracker.State()
-		if phase := state.Phases[phaseName]; phase != nil {
-			if containsInt(phase.Completed, pageNum) {
-				if fileExists(outputPath) {
-					logger.Debug("skipping already completed page", "input", stem, "page", pageNum)
-					skipped++
-					continue
+		if !opts.Force {
+			outputPath := filepath.Join(readDir, fmt.Sprintf("page_%03d.json", pageNum))
+			state := opts.Tracker.State()
+			if phase := state.Phases[phaseName]; phase != nil {
+				if containsInt(phase.Completed, pageNum) {
+					if fileExists(outputPath) {
+						logger.Debug("skipping already completed page", "input", stem, "page", pageNum)
+						skipped++
+						continue
+					}
+					logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pageNum)
 				}
-				logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pageNum)
 			}
 		}
 
