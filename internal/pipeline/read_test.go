@@ -251,6 +251,94 @@ func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
 	}
 }
 
+func TestReadPipelineMultiInput(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create image directories for two stems
+	for _, stem := range []string{"stem1", "stem2"} {
+		imagesDir := filepath.Join(dir, "midstate", "images", stem)
+		if err := os.MkdirAll(imagesDir, 0755); err != nil {
+			t.Fatalf("mkdir images for %s: %v", stem, err)
+		}
+		if err := os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake-image"), 0644); err != nil {
+			t.Fatalf("write image for %s: %v", stem, err)
+		}
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644); err != nil {
+		t.Fatalf("write progress: %v", err)
+	}
+
+	ws := &workspace.Workspace{Root: dir}
+	cfg := &config.Config{
+		Inputs: []config.InputSpec{
+			{Path: "./input/stem1.pdf"},
+			{Path: "./input/stem2.pdf"},
+		},
+		MidstateDir: "./midstate",
+		DPI:         300,
+		Read: config.ReadConfig{
+			Provider:    "mock",
+			Model:       "test-model",
+			Concurrency: 1,
+		},
+		Retry:     config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
+		RateLimit: config.RateLimitConfig{RequestsPerMinute: 100},
+	}
+
+	tracker := progress.NewTracker(ws.ProgressPath())
+	if err := tracker.Load(); err != nil {
+		t.Fatalf("load tracker: %v", err)
+	}
+
+	response := `{
+		"page_number": 1,
+		"entries": [{"number": 1, "type": "hadith", "arabic_text": "test", "is_continuation": false, "continues_on_next_page": false}],
+		"footnotes": [],
+		"warnings": []
+	}`
+
+	err := Read(context.Background(), ReadOptions{
+		Workspace: ws,
+		Config:    cfg,
+		Provider:  &mockProvider{response: response},
+		Tracker:   tracker,
+	})
+	if err != nil {
+		t.Fatalf("Read() error: %v", err)
+	}
+
+	// Verify output files exist and have correct page numbers for both stems
+	for _, stem := range []string{"stem1", "stem2"} {
+		outputPath := filepath.Join(ws.ReadDir(), stem, "page_001.json")
+		data, err := os.ReadFile(outputPath)
+		if err != nil {
+			t.Fatalf("read output for %s: %v", stem, err)
+		}
+
+		var page model.ReadPage
+		if err := json.Unmarshal(data, &page); err != nil {
+			t.Fatalf("unmarshal output for %s: %v", stem, err)
+		}
+		if page.PageNumber != 1 {
+			t.Errorf("%s: expected page number 1, got %d", stem, page.PageNumber)
+		}
+	}
+
+	// Verify progress has both "read:stem1" and "read:stem2" phases
+	state := tracker.State()
+	for _, stem := range []string{"stem1", "stem2"} {
+		phaseName := progress.PhaseName("read:" + stem)
+		phase := state.Phases[phaseName]
+		if phase == nil {
+			t.Fatalf("expected %s phase in progress", phaseName)
+		}
+		if !containsInt(phase.Completed, 1) {
+			t.Errorf("expected page 1 in completed list for %s", phaseName)
+		}
+	}
+}
+
 func TestSaveReadPage(t *testing.T) {
 	dir := t.TempDir()
 

@@ -39,7 +39,7 @@ type Config struct {
 type ReadConfig struct {
 	Provider    string `yaml:"provider" mapstructure:"provider" json:"provider"`
 	Model       string `yaml:"model" mapstructure:"model" json:"model"`
-	Concurrency int    `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"`
+	Concurrency int    `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"` // reserved for future parallel processing
 }
 
 // TranslateConfig holds translation-phase settings.

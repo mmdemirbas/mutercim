@@ -126,6 +126,9 @@ func TestTranslatePipeline(t *testing.T) {
 	if translated.TranslatedEntries[0].TranslatedText != "test translation" {
 		t.Errorf("expected translated text %q, got %q", "test translation", translated.TranslatedEntries[0].TranslatedText)
 	}
+	if translated.TranslationModel != "test-model" {
+		t.Errorf("expected translation model %q, got %q", "test-model", translated.TranslationModel)
+	}
 
 	// Verify incremental markdown output was written
 	mdPath := filepath.Join(ws.OutputDir(), "tr", "pages", stem, "page_001.md")

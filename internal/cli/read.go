@@ -150,18 +150,18 @@ func clientTimeout(providerName string) time.Duration {
 }
 
 func createProvider(name string, client *apiclient.Client, apiKey, modelName string) (provider.Provider, error) {
-	switch name {
-	case "gemini":
-		return provider.NewGeminiProvider(client, apiKey, modelName), nil
-	case "claude":
-		return provider.NewClaudeProvider(client, apiKey, modelName), nil
-	case "openai":
-		return provider.NewOpenAIProvider(client, apiKey, modelName), nil
-	case "ollama":
-		return provider.NewOllamaProvider(client, modelName), nil
-	case "surya":
-		return nil, fmt.Errorf("surya provider is not yet implemented (planned for a future release)")
-	default:
-		return nil, fmt.Errorf("unknown provider %q", name)
+	reg := provider.NewRegistry()
+	reg.Register(provider.NewGeminiProvider(client, apiKey, modelName))
+	reg.Register(provider.NewClaudeProvider(client, apiKey, modelName))
+	reg.Register(provider.NewOpenAIProvider(client, apiKey, modelName))
+	reg.Register(provider.NewOllamaProvider(client, modelName))
+
+	p, err := reg.Get(name)
+	if err != nil {
+		if name == "surya" {
+			return nil, fmt.Errorf("surya provider is not yet implemented (planned for a future release)")
+		}
+		return nil, err
 	}
+	return p, nil
 }

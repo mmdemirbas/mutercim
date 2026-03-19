@@ -25,9 +25,9 @@ var (
 func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "mutercim",
-		Short: "Translate Arabic Islamic scholarly books into Turkish",
-		Long: `mutercim (مترجم) — a CLI tool that translates Arabic Islamic scholarly books
-into Turkish, preserving layout, structure, and domain-specific terminology.`,
+		Short: "Translate Islamic scholarly books between languages",
+		Long: `mutercim (مترجم) — a CLI tool that translates Islamic scholarly books
+between languages, preserving layout, structure, and domain-specific terminology.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
