@@ -20,11 +20,11 @@ func TestMarkdownRenderPage(t *testing.T) {
 		},
 		TranslatedHeader: &model.TranslatedHeader{Text: "Bab Başlığı"},
 		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 42, TurkishText: "Bu bir hadîstir.", TranslatorNotes: "Zor bir metin"},
-			{Number: 43, TurkishText: "İkinci hadîs."},
+			{Number: 42, TranslatedText: "Bu bir hadîstir.", TranslatorNotes: "Zor bir metin"},
+			{Number: 43, TranslatedText: "İkinci hadîs."},
 		},
 		TranslatedFootnotes: []model.TranslatedFootnote{
-			{EntryNumber: 42, TurkishText: "Sahîh-i Buhârî'de rivayet edilmiştir."},
+			{EntryNumber: 42, TranslatedText: "Sahîh-i Buhârî'de rivayet edilmiştir."},
 		},
 	}
 
@@ -51,13 +51,13 @@ func TestMarkdownRenderBook(t *testing.T) {
 			SolvedPage: model.SolvedPage{
 				ReadPage: model.ReadPage{PageNumber: 1},
 			},
-			TranslatedEntries: []model.TranslatedEntry{{Number: 1, TurkishText: "Birinci"}},
+			TranslatedEntries: []model.TranslatedEntry{{Number: 1, TranslatedText: "Birinci"}},
 		},
 		{
 			SolvedPage: model.SolvedPage{
 				ReadPage: model.ReadPage{PageNumber: 2},
 			},
-			TranslatedEntries: []model.TranslatedEntry{{Number: 2, TurkishText: "İkinci"}},
+			TranslatedEntries: []model.TranslatedEntry{{Number: 2, TranslatedText: "İkinci"}},
 		},
 	}
 

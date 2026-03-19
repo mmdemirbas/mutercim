@@ -17,9 +17,9 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 	t.Helper()
 	dir := t.TempDir()
 
-	// Create workspace structure
+	// Create workspace structure with per-lang translated dir
 	for _, d := range []string{
-		"midstate/translated/TestBook",
+		"midstate/translated/tr/TestBook",
 		"output/tr",
 		"output/ar",
 		"output/tr/latex",
@@ -42,11 +42,11 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 			},
 		},
 		TranslatedHeader:  &model.TranslatedHeader{Text: "Elif Harfi"},
-		TranslatedEntries: []model.TranslatedEntry{{Number: 1, TurkishText: "M\u00fcjdelenin!"}},
+		TranslatedEntries: []model.TranslatedEntry{{Number: 1, TranslatedText: "M\u00fcjdelenin!"}},
 	}
 
 	data, _ := json.MarshalIndent(page, "", "  ")
-	if err := os.WriteFile(filepath.Join(dir, "midstate/translated/TestBook/page_001.json"), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "midstate/translated/tr/TestBook/page_001.json"), data, 0644); err != nil {
 		t.Fatalf("write translated page: %v", err)
 	}
 
@@ -57,7 +57,7 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Book: model.Book{SourceLang: "ar", TargetLang: "tr"},
+		Book: model.Book{SourceLangs: []string{"ar"}, TargetLangs: []string{"tr"}},
 		Write: config.WriteConfig{
 			Formats:       []string{"md"},
 			SkipPDF:       true,
@@ -84,32 +84,31 @@ func TestWriteMarkdown(t *testing.T) {
 		t.Fatalf("Write() error: %v", err)
 	}
 
-	// Check Turkish markdown was written
-	turkishPath := filepath.Join(ws.OutputDir(), "tr", "TestBook.md")
-	data, err := os.ReadFile(turkishPath)
+	// Check target language markdown was written
+	trPath := filepath.Join(ws.OutputDir(), "tr", "TestBook.md")
+	data, err := os.ReadFile(trPath)
 	if err != nil {
-		t.Fatalf("read turkish markdown: %v", err)
-	}
-	content := string(data)
-	if len(content) == 0 {
-		t.Fatal("empty turkish markdown")
-	}
-
-	// Check Arabic markdown was written
-	arabicPath := filepath.Join(ws.OutputDir(), "ar", "TestBook.md")
-	data, err = os.ReadFile(arabicPath)
-	if err != nil {
-		t.Fatalf("read arabic markdown: %v", err)
+		t.Fatalf("read target markdown: %v", err)
 	}
 	if len(data) == 0 {
-		t.Fatal("empty arabic markdown")
+		t.Fatal("empty target markdown")
 	}
 
-	// Check progress was updated
+	// Check source language markdown was written
+	arPath := filepath.Join(ws.OutputDir(), "ar", "TestBook.md")
+	data, err = os.ReadFile(arPath)
+	if err != nil {
+		t.Fatalf("read source markdown: %v", err)
+	}
+	if len(data) == 0 {
+		t.Fatal("empty source markdown")
+	}
+
+	// Check progress was updated with lang in phase name
 	state := tracker.State()
-	phase := state.Phases["write:TestBook"]
+	phase := state.Phases["write:tr:TestBook"]
 	if phase == nil {
-		t.Fatal("expected write:TestBook phase in progress")
+		t.Fatal("expected write:tr:TestBook phase in progress")
 	}
 }
 
@@ -132,8 +131,7 @@ func TestWriteLatexSkipPDF(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read latex: %v", err)
 	}
-	content := string(data)
-	if len(content) == 0 {
+	if len(data) == 0 {
 		t.Fatal("empty latex")
 	}
 }

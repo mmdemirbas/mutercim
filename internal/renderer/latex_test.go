@@ -16,7 +16,7 @@ func TestLatexRenderPage(t *testing.T) {
 		},
 		TranslatedHeader: &model.TranslatedHeader{Text: "Bab"},
 		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 10, TurkishText: "Test text"},
+			{Number: 10, TranslatedText: "Test text"},
 		},
 	}
 
@@ -41,7 +41,7 @@ func TestLatexRenderBook(t *testing.T) {
 			SolvedPage: model.SolvedPage{
 				ReadPage: model.ReadPage{PageNumber: 1},
 			},
-			TranslatedEntries: []model.TranslatedEntry{{Number: 1, TurkishText: "test"}},
+			TranslatedEntries: []model.TranslatedEntry{{Number: 1, TranslatedText: "test"}},
 		},
 	}
 

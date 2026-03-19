@@ -61,14 +61,14 @@ type TranslationContext struct {
 // TranslatedEntry represents a translated entry.
 type TranslatedEntry struct {
 	Number          int    `json:"number"`
-	TurkishText     string `json:"turkish_text"`
+	TranslatedText  string `json:"translated_text"`
 	TranslatorNotes string `json:"translator_notes"`
 }
 
 // TranslatedFootnote represents a translated footnote.
 type TranslatedFootnote struct {
 	EntryNumber     int      `json:"entry_number"`
-	TurkishText     string   `json:"turkish_text"`
+	TranslatedText  string   `json:"translated_text"`
 	SourcesExpanded []string `json:"sources_expanded"`
 }
 

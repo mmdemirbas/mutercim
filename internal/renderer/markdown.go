@@ -25,9 +25,9 @@ func (r *MarkdownRenderer) RenderPage(page *model.TranslatedPage) string {
 	// Entries
 	for _, e := range page.TranslatedEntries {
 		if e.Number > 0 {
-			fmt.Fprintf(&b, "**%d.** %s\n\n", e.Number, e.TurkishText)
+			fmt.Fprintf(&b, "**%d.** %s\n\n", e.Number, e.TranslatedText)
 		} else {
-			fmt.Fprintf(&b, "%s\n\n", e.TurkishText)
+			fmt.Fprintf(&b, "%s\n\n", e.TranslatedText)
 		}
 		if e.TranslatorNotes != "" {
 			fmt.Fprintf(&b, "_[Not: %s]_\n\n", e.TranslatorNotes)
@@ -39,9 +39,9 @@ func (r *MarkdownRenderer) RenderPage(page *model.TranslatedPage) string {
 		b.WriteString("---\n\n")
 		for _, fn := range page.TranslatedFootnotes {
 			if fn.EntryNumber > 0 {
-				fmt.Fprintf(&b, "[%d] %s\n\n", fn.EntryNumber, fn.TurkishText)
+				fmt.Fprintf(&b, "[%d] %s\n\n", fn.EntryNumber, fn.TranslatedText)
 			} else {
-				fmt.Fprintf(&b, "%s\n\n", fn.TurkishText)
+				fmt.Fprintf(&b, "%s\n\n", fn.TranslatedText)
 			}
 		}
 	}

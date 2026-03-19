@@ -75,8 +75,8 @@ type RateLimitConfig struct {
 
 // SetDefaults configures default values in viper.
 func SetDefaults(v *viper.Viper) {
-	v.SetDefault("book.source_lang", "ar")
-	v.SetDefault("book.target_lang", "tr")
+	v.SetDefault("book.source_langs", []string{"ar"})
+	v.SetDefault("book.target_langs", []string{"tr"})
 	v.SetDefault("input", "./input")
 	v.SetDefault("output", "./output")
 	v.SetDefault("midstate_dir", "./midstate")
@@ -143,11 +143,18 @@ func Load(configPath string) (*Config, error) {
 
 // applyDefaults fills in zero-valued fields with their defaults.
 func applyDefaults(cfg *Config) {
-	if cfg.Book.SourceLang == "" {
-		cfg.Book.SourceLang = "ar"
+	// Migrate singular lang fields to plural
+	if len(cfg.Book.SourceLangs) == 0 && cfg.Book.SourceLang != "" {
+		cfg.Book.SourceLangs = []string{cfg.Book.SourceLang}
 	}
-	if cfg.Book.TargetLang == "" {
-		cfg.Book.TargetLang = "tr"
+	if len(cfg.Book.TargetLangs) == 0 && cfg.Book.TargetLang != "" {
+		cfg.Book.TargetLangs = []string{cfg.Book.TargetLang}
+	}
+	if len(cfg.Book.SourceLangs) == 0 {
+		cfg.Book.SourceLangs = []string{"ar"}
+	}
+	if len(cfg.Book.TargetLangs) == 0 {
+		cfg.Book.TargetLangs = []string{"tr"}
 	}
 	// Migrate singular input to inputs list
 	if len(cfg.Inputs) == 0 && cfg.Input != "" {

@@ -29,7 +29,7 @@ type TranslateOptions struct {
 	Logger        *slog.Logger
 }
 
-// Translate runs the Phase 3 translation pipeline for all inputs.
+// Translate runs the Phase 3 translation pipeline for all inputs and target languages.
 func Translate(ctx context.Context, opts TranslateOptions) error {
 	logger := opts.Logger
 	if logger == nil {
@@ -37,6 +37,7 @@ func Translate(ctx context.Context, opts TranslateOptions) error {
 	}
 
 	ws := opts.Workspace
+	cfg := opts.Config
 
 	// Discover inputs from solved directory
 	inputs, err := discoverSubdirs(ws.SolvedDir())
@@ -49,30 +50,37 @@ func Translate(ctx context.Context, opts TranslateOptions) error {
 
 	contextWindow := opts.ContextWindow
 	if contextWindow <= 0 {
-		contextWindow = opts.Config.Translate.ContextWindow
+		contextWindow = cfg.Translate.ContextWindow
 	}
 	if contextWindow <= 0 {
 		contextWindow = 2
 	}
 
-	translator := translation.NewTranslator(
-		opts.Provider,
-		opts.Knowledge,
-		opts.Config.Write.ExpandSources,
-		logger,
-	)
+	// Translate for each target language
+	for _, targetLang := range cfg.Book.TargetLangs {
+		logger.Info("translating to language", "target", targetLang)
 
-	for _, stem := range inputs {
-		logger.Info("translating input", "input", stem)
-		if err := translateOneInput(ctx, opts, translator, stem, contextWindow); err != nil {
-			logger.Error("translation failed", "input", stem, "error", err)
+		translator := translation.NewTranslator(
+			opts.Provider,
+			opts.Knowledge,
+			cfg.Write.ExpandSources,
+			cfg.Book.SourceLangs,
+			targetLang,
+			logger,
+		)
+
+		for _, stem := range inputs {
+			logger.Info("translating input", "input", stem, "target", targetLang)
+			if err := translateOneInput(ctx, opts, translator, stem, targetLang, contextWindow); err != nil {
+				logger.Error("translation failed", "input", stem, "target", targetLang, "error", err)
+			}
 		}
 	}
 
 	return nil
 }
 
-func translateOneInput(ctx context.Context, opts TranslateOptions, translator *translation.Translator, stem string, contextWindow int) error {
+func translateOneInput(ctx context.Context, opts TranslateOptions, translator *translation.Translator, stem, targetLang string, contextWindow int) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -81,8 +89,8 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	ws := opts.Workspace
 	cfg := opts.Config
 	solvedDir := filepath.Join(ws.SolvedDir(), stem)
-	translatedDir := filepath.Join(ws.TranslatedDir(), stem)
-	outputPagesDir := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang, "pages", stem)
+	translatedDir := filepath.Join(ws.TranslatedDir(), targetLang, stem)
+	outputPagesDir := filepath.Join(ws.OutputDir(), targetLang, "pages", stem)
 
 	// Build section lookup for translate checks
 	lookup, _ := config.NewSectionLookup(cfg.Sections)
@@ -107,7 +115,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		return fmt.Errorf("create output pages dir: %w", err)
 	}
 
-	phaseName := progress.PhaseName("translate:" + stem)
+	phaseName := progress.PhaseName("translate:" + targetLang + ":" + stem)
 
 	// Load all solved pages for context window
 	solvedPages := make(map[int]*model.SolvedPage)
@@ -252,9 +260,9 @@ func writePageOutput(dir string, pageNum int, page *model.TranslatedPage) error 
 	// Entries
 	for _, e := range page.TranslatedEntries {
 		if e.Number > 0 {
-			lines = append(lines, fmt.Sprintf("**%d.** %s\n", e.Number, e.TurkishText))
+			lines = append(lines, fmt.Sprintf("**%d.** %s\n", e.Number, e.TranslatedText))
 		} else {
-			lines = append(lines, e.TurkishText+"\n")
+			lines = append(lines, e.TranslatedText+"\n")
 		}
 		if e.TranslatorNotes != "" {
 			lines = append(lines, fmt.Sprintf("_[Not: %s]_\n", e.TranslatorNotes))
@@ -266,9 +274,9 @@ func writePageOutput(dir string, pageNum int, page *model.TranslatedPage) error 
 		lines = append(lines, "---\n")
 		for _, fn := range page.TranslatedFootnotes {
 			if fn.EntryNumber > 0 {
-				lines = append(lines, fmt.Sprintf("[%d] %s\n", fn.EntryNumber, fn.TurkishText))
+				lines = append(lines, fmt.Sprintf("[%d] %s\n", fn.EntryNumber, fn.TranslatedText))
 			} else {
-				lines = append(lines, fn.TurkishText+"\n")
+				lines = append(lines, fn.TranslatedText+"\n")
 			}
 		}
 	}

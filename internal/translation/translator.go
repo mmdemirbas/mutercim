@@ -24,7 +24,7 @@ type translationResponse struct {
 // translatedFootnoteResp matches the footnote format in the translation prompt.
 type translatedFootnoteResp struct {
 	EntryNumbers    []int    `json:"entry_numbers"`
-	TurkishText     string   `json:"turkish_text"`
+	TranslatedText  string   `json:"translated_text"`
 	SourcesExpanded []string `json:"sources_expanded"`
 }
 
@@ -33,11 +33,13 @@ type Translator struct {
 	provider      provider.Provider
 	knowledge     *knowledge.Knowledge
 	expandSources bool
+	sourceLangs   []string
+	targetLang    string
 	logger        *slog.Logger
 }
 
-// NewTranslator creates a new Translator.
-func NewTranslator(p provider.Provider, k *knowledge.Knowledge, expandSources bool, logger *slog.Logger) *Translator {
+// NewTranslator creates a new Translator for a specific target language.
+func NewTranslator(p provider.Provider, k *knowledge.Knowledge, expandSources bool, sourceLangs []string, targetLang string, logger *slog.Logger) *Translator {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -45,6 +47,8 @@ func NewTranslator(p provider.Provider, k *knowledge.Knowledge, expandSources bo
 		provider:      p,
 		knowledge:     k,
 		expandSources: expandSources,
+		sourceLangs:   sourceLangs,
+		targetLang:    targetLang,
 		logger:        logger,
 	}
 }
@@ -61,6 +65,8 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedPage, 
 		BuildContextSection(contextSummaries),
 		page.SectionType,
 		t.expandSources,
+		t.sourceLangs,
+		t.targetLang,
 	)
 
 	// Build user prompt with page JSON
@@ -110,7 +116,7 @@ func convertTranslatedFootnotes(resps []translatedFootnoteResp) []model.Translat
 		}
 		footnotes = append(footnotes, model.TranslatedFootnote{
 			EntryNumber:     entryNum,
-			TurkishText:     r.TurkishText,
+			TranslatedText:  r.TranslatedText,
 			SourcesExpanded: r.SourcesExpanded,
 		})
 	}

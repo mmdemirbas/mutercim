@@ -11,8 +11,8 @@ var (
 	initNonInteractive bool
 	initTitle          string
 	initAuthor         string
-	initSourceLang     string
-	initTargetLang     string
+	initSourceLangs    string
+	initTargetLangs    string
 )
 
 func newInitCmd() *cobra.Command {
@@ -26,18 +26,18 @@ func newInitCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&initNonInteractive, "non-interactive", false, "scaffold workspace with defaults, no prompts")
 	cmd.Flags().StringVar(&initTitle, "title", "", "book title (non-interactive mode)")
 	cmd.Flags().StringVar(&initAuthor, "author", "", "book author (non-interactive mode)")
-	cmd.Flags().StringVar(&initSourceLang, "source-lang", "ar", "source language")
-	cmd.Flags().StringVar(&initTargetLang, "target-lang", "tr", "target language")
+	cmd.Flags().StringVar(&initSourceLangs, "source-langs", "ar", "source languages, comma-separated (e.g. ar,fa)")
+	cmd.Flags().StringVar(&initTargetLangs, "target-langs", "tr", "target languages, comma-separated (e.g. tr,en)")
 
 	return cmd
 }
 
 func runInit(cmd *cobra.Command, args []string) error {
 	opts := workspace.InitOptions{
-		Title:      initTitle,
-		Author:     initAuthor,
-		SourceLang: initSourceLang,
-		TargetLang: initTargetLang,
+		Title:       initTitle,
+		Author:      initAuthor,
+		SourceLangs: initSourceLangs,
+		TargetLangs: initTargetLangs,
 	}
 
 	if !initNonInteractive && initTitle == "" {
@@ -48,18 +48,18 @@ func runInit(cmd *cobra.Command, args []string) error {
 		fmt.Print("Book author: ")
 		fmt.Scanln(&opts.Author)
 
-		fmt.Printf("Source language [%s]: ", initSourceLang)
+		fmt.Printf("Source languages (comma-separated) [%s]: ", initSourceLangs)
 		var sl string
 		fmt.Scanln(&sl)
 		if sl != "" {
-			opts.SourceLang = sl
+			opts.SourceLangs = sl
 		}
 
-		fmt.Printf("Target language [%s]: ", initTargetLang)
+		fmt.Printf("Target languages (comma-separated) [%s]: ", initTargetLangs)
 		var tl string
 		fmt.Scanln(&tl)
 		if tl != "" {
-			opts.TargetLang = tl
+			opts.TargetLangs = tl
 		}
 	}
 
@@ -72,6 +72,6 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Place your PDF or page images in input/")
 	fmt.Println("  2. Edit mutercim.yaml to configure sections")
-	fmt.Println("  3. Run: mutercim read")
+	fmt.Println("  3. Run: mutercim pages && mutercim read")
 	return nil
 }

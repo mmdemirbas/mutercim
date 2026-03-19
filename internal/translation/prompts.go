@@ -5,12 +5,14 @@ import (
 	"strings"
 )
 
-const translationSystemPrompt = `You are an expert translator of classical Arabic Islamic scholarly texts into Turkish.
+const translationSystemPrompt = `You are an expert translator of classical scholarly texts.
+
+%s
 
 TRANSLATION PRINCIPLES:
-1. Translate for MEANING, not word-by-word. The Turkish reader should understand the intended message naturally.
-2. Use established Turkish Islamic scholarly terminology (see glossary below).
-3. Translate Arabic idioms into their Turkish equivalents or explain them naturally — never produce a literal translation that would be cryptic.
+1. Translate for MEANING, not word-by-word. The reader should understand the intended message naturally.
+2. Use established scholarly terminology for the target language (see glossary below).
+3. Translate idioms into their target language equivalents or explain them naturally — never produce a literal translation that would be cryptic.
 4. Preserve the scholarly register and dignity of the text.
 
 HONORIFIC RULES:
@@ -29,26 +31,26 @@ CONTEXT FROM PREVIOUS PAGES:
 %s
 
 INSTRUCTIONS:
-For each entry in the input JSON, produce a Turkish translation.
-For footnotes, translate the explanatory text and expand source abbreviations to their full Turkish names.
+For each entry in the input JSON, produce a translation into the target language.
+For footnotes, translate the explanatory text and expand source abbreviations to their full names in the target language.
 
 %s
 
 Return a JSON object with this exact schema:
 {
-  "translated_header": { "text": "<Turkish header>" } | null,
+  "translated_header": { "text": "<translated header>" } | null,
   "translated_entries": [
     {
       "number": <int>,
-      "turkish_text": "<Turkish translation>",
+      "translated_text": "<translation>",
       "translator_notes": "<any notes about difficult passages>"
     }
   ],
   "translated_footnotes": [
     {
       "entry_numbers": [<int>],
-      "turkish_text": "<Turkish footnote translation>",
-      "sources_expanded": ["<full Turkish source name>"]
+      "translated_text": "<translated footnote>",
+      "sources_expanded": ["<full source name in target language>"]
     }
   ],
   "warnings": ["<any translation difficulties>"]
@@ -73,8 +75,10 @@ func SectionHint(sectionType string) string {
 }
 
 // BuildSystemPrompt constructs the full translation system prompt with knowledge injected.
-func BuildSystemPrompt(honorifics, people, sources, terminology, context, sectionType string, expandSources bool) string {
-	expandInstr := "When translating footnotes, expand all source abbreviation codes to their full Turkish names."
+func BuildSystemPrompt(honorifics, people, sources, terminology, context, sectionType string, expandSources bool, sourceLangs []string, targetLang string) string {
+	langInstr := buildLanguageInstruction(sourceLangs, targetLang)
+
+	expandInstr := fmt.Sprintf("When translating footnotes, expand all source abbreviation codes to their full names in %s.", targetLang)
 	if !expandSources {
 		expandInstr = "Keep source abbreviation codes as-is in footnotes."
 	}
@@ -85,7 +89,20 @@ func BuildSystemPrompt(honorifics, people, sources, terminology, context, sectio
 	}
 
 	return fmt.Sprintf(translationSystemPrompt,
-		honorifics, people, sources, terminology, context, expandInstr)
+		langInstr, honorifics, people, sources, terminology, context, expandInstr)
+}
+
+// buildLanguageInstruction creates the source/target language description for the prompt.
+func buildLanguageInstruction(sourceLangs []string, targetLang string) string {
+	if len(sourceLangs) == 0 {
+		return fmt.Sprintf("Translate the source text into %s.", targetLang)
+	}
+	primary := sourceLangs[0]
+	if len(sourceLangs) == 1 {
+		return fmt.Sprintf("The source text is in %s. Translate everything into %s.", primary, targetLang)
+	}
+	rest := strings.Join(sourceLangs[1:], ", ")
+	return fmt.Sprintf("The source text is primarily %s but may contain %s fragments. Translate everything into %s.", primary, rest, targetLang)
 }
 
 // BuildUserPrompt constructs the user prompt with the solved page JSON.

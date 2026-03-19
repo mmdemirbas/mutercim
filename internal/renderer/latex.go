@@ -29,9 +29,9 @@ func (r *LaTeXRenderer) RenderPage(page *model.TranslatedPage) string {
 	// Entries
 	for _, e := range page.TranslatedEntries {
 		if e.Number > 0 {
-			fmt.Fprintf(&b, "\\textbf{%d.} %s\n\n", e.Number, latexEscape(e.TurkishText))
+			fmt.Fprintf(&b, "\\textbf{%d.} %s\n\n", e.Number, latexEscape(e.TranslatedText))
 		} else {
-			fmt.Fprintf(&b, "%s\n\n", latexEscape(e.TurkishText))
+			fmt.Fprintf(&b, "%s\n\n", latexEscape(e.TranslatedText))
 		}
 		if e.TranslatorNotes != "" {
 			fmt.Fprintf(&b, "\\emph{[Not: %s]}\n\n", latexEscape(e.TranslatorNotes))
@@ -43,9 +43,9 @@ func (r *LaTeXRenderer) RenderPage(page *model.TranslatedPage) string {
 		b.WriteString("\\begin{small}\n\\hrule\\vspace{0.5em}\n")
 		for _, fn := range page.TranslatedFootnotes {
 			if fn.EntryNumber > 0 {
-				fmt.Fprintf(&b, "[%d] %s\n\n", fn.EntryNumber, latexEscape(fn.TurkishText))
+				fmt.Fprintf(&b, "[%d] %s\n\n", fn.EntryNumber, latexEscape(fn.TranslatedText))
 			} else {
-				fmt.Fprintf(&b, "%s\n\n", latexEscape(fn.TurkishText))
+				fmt.Fprintf(&b, "%s\n\n", latexEscape(fn.TranslatedText))
 			}
 		}
 		b.WriteString("\\end{small}\n")

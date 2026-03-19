@@ -1,8 +1,8 @@
 book:
   title: "Test Book"
   author: "Unknown Author"
-  source_lang: ar
-  target_lang: tr
+  source_langs: [ar]
+  target_langs: [tr]
 
 # Input files (relative to workspace root)
 # Simple form: inputs: [./input/book.pdf]

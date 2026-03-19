@@ -28,14 +28,14 @@ func TestTranslatePage(t *testing.T) {
 		"translated_entries": [
 			{
 				"number": 1,
-				"turkish_text": "Bu bir hadîs-i şerîftir.",
+				"translated_text": "Bu bir hadîs-i şerîftir.",
 				"translator_notes": ""
 			}
 		],
 		"translated_footnotes": [
 			{
 				"entry_numbers": [1],
-				"turkish_text": "Sahîh-i Buhârî'de rivayet edilmiştir.",
+				"translated_text": "Sahîh-i Buhârî'de rivayet edilmiştir.",
 				"sources_expanded": ["Sahîh-i Buhârî"]
 			}
 		],
@@ -49,7 +49,7 @@ func TestTranslatePage(t *testing.T) {
 	}
 
 	mock := &mockProvider{response: response}
-	translator := NewTranslator(mock, k, true, nil)
+	translator := NewTranslator(mock, k, true, []string{"ar"}, "tr", nil)
 
 	page := &model.SolvedPage{
 		ReadPage: model.ReadPage{
@@ -79,8 +79,8 @@ func TestTranslatePage(t *testing.T) {
 	if len(translated.TranslatedEntries) != 1 {
 		t.Fatalf("expected 1 entry, got %d", len(translated.TranslatedEntries))
 	}
-	if translated.TranslatedEntries[0].TurkishText != "Bu bir hadîs-i şerîftir." {
-		t.Errorf("unexpected turkish text: %q", translated.TranslatedEntries[0].TurkishText)
+	if translated.TranslatedEntries[0].TranslatedText != "Bu bir hadîs-i şerîftir." {
+		t.Errorf("unexpected turkish text: %q", translated.TranslatedEntries[0].TranslatedText)
 	}
 	if len(translated.TranslatedFootnotes) != 1 {
 		t.Fatalf("expected 1 footnote, got %d", len(translated.TranslatedFootnotes))
@@ -91,7 +91,7 @@ func TestTranslatePageWithContext(t *testing.T) {
 	response := `{"translated_entries": [], "warnings": []}`
 
 	mock := &mockProvider{response: response}
-	translator := NewTranslator(mock, &knowledge.Knowledge{}, true, nil)
+	translator := NewTranslator(mock, &knowledge.Knowledge{}, true, []string{"ar"}, "tr", nil)
 
 	page := &model.SolvedPage{
 		ReadPage: model.ReadPage{
@@ -114,8 +114,8 @@ func TestPageSummary(t *testing.T) {
 		},
 		TranslatedHeader: &model.TranslatedHeader{Text: "Bab"},
 		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 100, TurkishText: "text1"},
-			{Number: 105, TurkishText: "text5"},
+			{Number: 100, TranslatedText: "text1"},
+			{Number: 105, TranslatedText: "text5"},
 		},
 	}
 

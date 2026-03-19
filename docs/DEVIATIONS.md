@@ -25,6 +25,9 @@
 - **What**: Split `read` command into `pages` (PDF→images) and `read` (OCR only); `make` chains `pages → read → solve → translate → write`
 - **Why**: Separation of concerns — PDF conversion is local/deterministic, OCR is AI-based/expensive. Allows re-running OCR without re-converting PDFs, and using pre-existing image directories without a PDF.
 
+- **What**: `source_lang`/`target_lang` → `source_langs`/`target_langs` (plural, `[]string`); translate/write run per target language; prompt is language-parameterized; `TurkishText` → `TranslatedText`
+- **Why**: Support multiple source languages (e.g., Arabic with Persian fragments) and multiple target languages (e.g., Turkish + English), producing separate output per target.
+
 ## Phase 4 — Knowledge & Solve
 
 - **What**: Embedded default YAML files live only in `internal/knowledge/defaults/` (single source of truth)

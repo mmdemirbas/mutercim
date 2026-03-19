@@ -38,11 +38,11 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.RateLimit.RequestsPerMinute != 14 {
 		t.Errorf("RateLimit.RequestsPerMinute = %d, want 14", cfg.RateLimit.RequestsPerMinute)
 	}
-	if cfg.Book.SourceLang != "ar" {
-		t.Errorf("Book.SourceLang = %q, want %q", cfg.Book.SourceLang, "ar")
+	if cfg.Book.PrimarySourceLang() != "ar" {
+		t.Errorf("PrimarySourceLang() = %q, want %q", cfg.Book.PrimarySourceLang(), "ar")
 	}
-	if cfg.Book.TargetLang != "tr" {
-		t.Errorf("Book.TargetLang = %q, want %q", cfg.Book.TargetLang, "tr")
+	if cfg.Book.PrimaryTargetLang() != "tr" {
+		t.Errorf("PrimaryTargetLang() = %q, want %q", cfg.Book.PrimaryTargetLang(), "tr")
 	}
 }
 

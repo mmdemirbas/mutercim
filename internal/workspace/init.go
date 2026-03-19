@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // InitOptions configures workspace initialization.
 type InitOptions struct {
-	Dir        string
-	Title      string
-	Author     string
-	SourceLang string
-	TargetLang string
+	Dir         string
+	Title       string
+	Author      string
+	SourceLangs string // comma-separated, e.g. "ar" or "ar,fa"
+	TargetLangs string // comma-separated, e.g. "tr" or "tr,en"
 }
 
 // Init creates a new workspace directory structure and config file.
@@ -32,16 +33,20 @@ func Init(opts InitOptions) (*Workspace, error) {
 		return nil, fmt.Errorf("workspace already initialized (mutercim.yaml exists in %s)", root)
 	}
 
-	// Create directory structure
-	// Use language codes from config for output dirs
-	sourceLang := opts.SourceLang
-	targetLang := opts.TargetLang
+	// Set defaults
+	if opts.SourceLangs == "" {
+		opts.SourceLangs = "ar"
+	}
+	if opts.TargetLangs == "" {
+		opts.TargetLangs = "tr"
+	}
 
+	sourceLangs := splitLangs(opts.SourceLangs)
+	targetLangs := splitLangs(opts.TargetLangs)
+
+	// Create directory structure
 	dirs := []string{
 		"input",
-		"output/" + targetLang + "/pages",
-		"output/" + targetLang + "/latex",
-		"output/" + sourceLang,
 		"midstate/images",
 		"midstate/read",
 		"midstate/solved",
@@ -51,22 +56,24 @@ func Init(opts InitOptions) (*Workspace, error) {
 		"reports",
 	}
 
+	// Source language output dirs
+	for _, lang := range sourceLangs {
+		dirs = append(dirs, "output/"+lang)
+	}
+	// Target language output dirs
+	for _, lang := range targetLangs {
+		dirs = append(dirs, "output/"+lang+"/pages")
+		dirs = append(dirs, "output/"+lang+"/latex")
+	}
+
 	for _, d := range dirs {
 		if err := os.MkdirAll(filepath.Join(root, d), 0755); err != nil {
 			return nil, fmt.Errorf("create directory %s: %w", d, err)
 		}
 	}
 
-	// Set defaults
-	if opts.SourceLang == "" {
-		opts.SourceLang = "ar"
-	}
-	if opts.TargetLang == "" {
-		opts.TargetLang = "tr"
-	}
-
 	// Write config file
-	config := generateConfig(opts)
+	config := generateConfig(opts, sourceLangs, targetLangs)
 	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
 		return nil, fmt.Errorf("write config: %w", err)
 	}
@@ -80,7 +87,7 @@ func Init(opts InitOptions) (*Workspace, error) {
 	return &Workspace{Root: root}, nil
 }
 
-func generateConfig(opts InitOptions) string {
+func generateConfig(opts InitOptions, sourceLangs, targetLangs []string) string {
 	title := opts.Title
 	if title == "" {
 		title = "Untitled Book"
@@ -93,8 +100,8 @@ func generateConfig(opts InitOptions) string {
 	return fmt.Sprintf(`book:
   title: %q
   author: %q
-  source_lang: %s
-  target_lang: %s
+  source_langs: [%s]
+  target_langs: [%s]
 
 # Input files or directories (relative to workspace root)
 # Simple:       inputs: [./input/book.pdf]
@@ -155,5 +162,17 @@ retry:
 
 rate_limit:
   requests_per_minute: 14
-`, title, author, opts.SourceLang, opts.TargetLang)
+`, title, author, strings.Join(sourceLangs, ", "), strings.Join(targetLangs, ", "))
+}
+
+// splitLangs splits a comma-separated language string into a slice.
+func splitLangs(s string) []string {
+	var langs []string
+	for _, l := range strings.Split(s, ",") {
+		l = strings.TrimSpace(l)
+		if l != "" {
+			langs = append(langs, l)
+		}
+	}
+	return langs
 }

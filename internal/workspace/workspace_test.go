@@ -10,11 +10,11 @@ func TestInit(t *testing.T) {
 	dir := t.TempDir()
 
 	ws, err := Init(InitOptions{
-		Dir:        dir,
-		Title:      "Test Book",
-		Author:     "Test Author",
-		SourceLang: "ar",
-		TargetLang: "tr",
+		Dir:         dir,
+		Title:       "Test Book",
+		Author:      "Test Author",
+		SourceLangs: "ar",
+		TargetLangs: "tr",
 	})
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
@@ -97,11 +97,11 @@ func TestInitDefaults(t *testing.T) {
 	}
 	content := string(data)
 
-	if !contains(content, "source_lang: ar") {
-		t.Error("config missing default source_lang")
+	if !contains(content, "source_langs: [ar]") {
+		t.Error("config missing default source_langs")
 	}
-	if !contains(content, "target_lang: tr") {
-		t.Error("config missing default target_lang")
+	if !contains(content, "target_langs: [tr]") {
+		t.Error("config missing default target_langs")
 	}
 }
 

@@ -25,7 +25,7 @@ type WriteOptions struct {
 	Logger    *slog.Logger
 }
 
-// Write runs the Phase 4 compilation pipeline for all inputs.
+// Write runs the Phase 4 compilation pipeline for all inputs and target languages.
 func Write(ctx context.Context, opts WriteOptions) error {
 	logger := opts.Logger
 	if logger == nil {
@@ -33,27 +33,43 @@ func Write(ctx context.Context, opts WriteOptions) error {
 	}
 
 	ws := opts.Workspace
+	cfg := opts.Config
 
-	// Discover inputs from translated directory
-	inputs, err := discoverSubdirs(ws.TranslatedDir())
+	// Write source language markdown (once, not per target)
+	sourceInputs, err := discoverSubdirs(filepath.Join(ws.TranslatedDir(), cfg.Book.TargetLangs[0]))
+	if err != nil || len(sourceInputs) == 0 {
+		// Fall back to old layout (no per-lang subdir)
+		sourceInputs, err = discoverSubdirs(ws.TranslatedDir())
+	}
 	if err != nil {
 		return fmt.Errorf("discover translated inputs: %w", err)
 	}
-	if len(inputs) == 0 {
-		return fmt.Errorf("no translated pages found in %s (run translate first)", ws.TranslatedDir())
-	}
 
-	for _, stem := range inputs {
-		logger.Info("compiling input", "input", stem)
-		if err := writeOneInput(ctx, opts, stem); err != nil {
-			logger.Error("compilation failed", "input", stem, "error", err)
+	// Render per target language
+	for _, targetLang := range cfg.Book.TargetLangs {
+		langDir := filepath.Join(ws.TranslatedDir(), targetLang)
+		inputs, err := discoverSubdirs(langDir)
+		if err != nil {
+			logger.Warn("no translated output for language", "lang", targetLang, "error", err)
+			continue
+		}
+		if len(inputs) == 0 {
+			logger.Warn("no translated pages for language", "lang", targetLang)
+			continue
+		}
+
+		for _, stem := range inputs {
+			logger.Info("compiling input", "input", stem, "target", targetLang)
+			if err := writeOneInput(ctx, opts, stem, targetLang); err != nil {
+				logger.Error("compilation failed", "input", stem, "target", targetLang, "error", err)
+			}
 		}
 	}
 
 	return nil
 }
 
-func writeOneInput(ctx context.Context, opts WriteOptions, stem string) error {
+func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang string) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -61,7 +77,7 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem string) error {
 
 	ws := opts.Workspace
 	cfg := opts.Config
-	translatedDir := filepath.Join(ws.TranslatedDir(), stem)
+	translatedDir := filepath.Join(ws.TranslatedDir(), targetLang, stem)
 
 	// Load translated pages
 	pageFiles, err := listPageFiles(translatedDir)
@@ -94,21 +110,21 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem string) error {
 		return pages[i].PageNumber < pages[j].PageNumber
 	})
 
-	phaseName := progress.PhaseName("write:" + stem)
+	phaseName := progress.PhaseName("write:" + targetLang + ":" + stem)
 
 	// Render each requested format
 	for _, format := range cfg.Write.Formats {
 		switch format {
 		case "md":
-			if err := compileMarkdown(ws, cfg, stem, pages, logger); err != nil {
+			if err := compileMarkdown(ws, cfg, stem, targetLang, pages, logger); err != nil {
 				logger.Error("markdown compilation failed", "input", stem, "error", err)
 			}
 		case "latex":
-			if err := compileLatex(ctx, ws, cfg, stem, pages, logger); err != nil {
+			if err := compileLatex(ctx, ws, cfg, stem, targetLang, pages, logger); err != nil {
 				logger.Error("latex compilation failed", "input", stem, "error", err)
 			}
 		case "docx":
-			if err := compileDocx(ctx, ws, cfg, stem, logger); err != nil {
+			if err := compileDocx(ctx, ws, cfg, stem, targetLang, logger); err != nil {
 				logger.Error("docx compilation failed", "input", stem, "error", err)
 			}
 		default:
@@ -128,9 +144,9 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem string) error {
 	return nil
 }
 
-func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem string, pages []*model.TranslatedPage, logger *slog.Logger) error {
-	targetDir := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang)
-	sourceDir := filepath.Join(ws.OutputDir(), cfg.Book.SourceLang)
+func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedPage, logger *slog.Logger) error {
+	targetDir := filepath.Join(ws.OutputDir(), targetLang)
+	sourceDir := filepath.Join(ws.OutputDir(), cfg.Book.PrimarySourceLang())
 
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		return fmt.Errorf("create target output dir: %w", err)
@@ -160,8 +176,8 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem string, p
 	return nil
 }
 
-func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem string, pages []*model.TranslatedPage, logger *slog.Logger) error {
-	latexDir := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang, "latex")
+func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedPage, logger *slog.Logger) error {
+	latexDir := filepath.Join(ws.OutputDir(), targetLang, "latex")
 	if err := os.MkdirAll(latexDir, 0755); err != nil {
 		return fmt.Errorf("create latex output dir: %w", err)
 	}
@@ -186,9 +202,9 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 	return nil
 }
 
-func compileDocx(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem string, logger *slog.Logger) error {
-	mdPath := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang, stem+".md")
-	docxPath := filepath.Join(ws.OutputDir(), cfg.Book.TargetLang, stem+".docx")
+func compileDocx(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, logger *slog.Logger) error {
+	mdPath := filepath.Join(ws.OutputDir(), targetLang, stem+".md")
+	docxPath := filepath.Join(ws.OutputDir(), targetLang, stem+".docx")
 
 	if _, err := os.Stat(mdPath); err != nil {
 		return fmt.Errorf("markdown file not found at %s (compile md format first): %w", mdPath, err)
