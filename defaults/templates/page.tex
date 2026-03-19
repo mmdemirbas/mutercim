@@ -1,0 +1,23 @@
+%% Page {{PAGE_NUMBER}}
+{{#HEADER}}
+\section*{{{HEADER_TEXT}}}
+{{/HEADER}}
+
+{{#ENTRIES}}
+\textbf{{{NUMBER}}.} {{TURKISH_TEXT}}
+
+{{#TRANSLATOR_NOTES}}
+\emph{[Not: {{TRANSLATOR_NOTES}}]}
+{{/TRANSLATOR_NOTES}}
+{{/ENTRIES}}
+
+{{#FOOTNOTES}}
+\begin{small}
+\hrule\vspace{0.5em}
+{{#FOOTNOTE}}
+[{{ENTRY_NUMBER}}] {{TURKISH_TEXT}}
+{{/FOOTNOTE}}
+\end{small}
+{{/FOOTNOTES}}
+
+\newpage
