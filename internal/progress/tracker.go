@@ -99,12 +99,26 @@ func (t *Tracker) Save() error {
 	return nil
 }
 
-// State returns a copy of the current state.
+// State returns a deep copy of the current state.
 func (t *Tracker) State() State {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	// Shallow copy is fine for display purposes
-	return *t.state
+
+	cp := State{
+		BookID:     t.state.BookID,
+		TotalPages: t.state.TotalPages,
+		Phases:     make(map[PhaseName]*PhaseState, len(t.state.Phases)),
+	}
+	for name, ps := range t.state.Phases {
+		psCopy := &PhaseState{
+			LastRun: ps.LastRun,
+		}
+		psCopy.Completed = append(psCopy.Completed, ps.Completed...)
+		psCopy.Failed = append(psCopy.Failed, ps.Failed...)
+		psCopy.Pending = append(psCopy.Pending, ps.Pending...)
+		cp.Phases[name] = psCopy
+	}
+	return cp
 }
 
 // MarkCompleted marks a page as completed for the given phase.

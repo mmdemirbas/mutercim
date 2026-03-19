@@ -10,6 +10,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/enrichment"
 	"github.com/mmdemirbas/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -49,7 +50,7 @@ func newValidateCmd() *cobra.Command {
 			}
 
 			// Discover inputs from extracted directory
-			inputs, err := discoverSubdirs(ws.ExtractedDir())
+			inputs, err := pipeline.DiscoverSubdirs(ws.ExtractedDir())
 			if err != nil || len(inputs) == 0 {
 				fmt.Println("No extracted pages found. Run extract first.")
 				return nil
@@ -164,23 +165,4 @@ func loadExtractedPages(dir string, filter []int) ([]*model.ExtractedPage, error
 		return pages[i].PageNumber < pages[j].PageNumber
 	})
 	return pages, nil
-}
-
-func discoverSubdirs(dir string) ([]string, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	var stems []string
-	for _, e := range entries {
-		if e.IsDir() {
-			stems = append(stems, e.Name())
-		}
-	}
-	sort.Strings(stems)
-	return stems, nil
 }

@@ -221,12 +221,3 @@ func saveExtractedPage(dir string, pageNum int, page *model.ExtractedPage) error
 	}
 	return nil
 }
-
-func containsInt(s []int, v int) bool {
-	for _, x := range s {
-		if x == v {
-			return true
-		}
-	}
-	return false
-}
