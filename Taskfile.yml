@@ -7,41 +7,57 @@ tasks:
       - task -l
 
   all:
-    desc: Run all tasks
+    desc: Build, vet, test, and install
+    deps: [ build, vet, test, install ]
+
+  clean:
+    desc: Clean up build artifacts
     cmds:
-      - rm -rf build
-      - go build -o build/mutercim ./cmd/mutercim
-      - go test ./...
-      - go vet ./...
+      - rm -rf build dist
 
   build:
     desc: Build for the current platform
     cmds:
       - go build -o build/mutercim ./cmd/mutercim
 
+  vet:
+    desc: Run static analysis
+    cmds:
+      - go vet ./...
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v ./...
+
   install:
     desc: Install mutercim and set up shell completion
     cmds:
       - go install ./cmd/mutercim
-      - mkdir -p ~/.zsh/completions
-      - mutercim completion zsh > ~/.zsh/completions/_mutercim
-      - echo "Done. Add this to your .zshrc if not already present:"
-      - echo '  fpath=(~/.zsh/completions $fpath)'
-      - echo '  autoload -Uz compinit && compinit'
-      - echo "Then restart your shell or run 'source ~/.zshrc'"
+      - mkdir -p ~/.zfunc
+      - mutercim completion zsh > ~/.zfunc/_mutercim
 
   uninstall:
     desc: Remove mutercim binary and shell completion
     cmds:
       - rm -f $(go env GOPATH)/bin/mutercim
-      - rm -f ~/.zsh/completions/_mutercim
+      - rm -f ~/.zfunc/_mutercim
 
-  test:
-    desc: Run all tests
+  dist:
+    desc: Build for all platforms
     cmds:
-      - go test ./...
+      - GOOS=linux GOARCH=amd64 go build -o dist/linux_amd64/mutercim ./cmd/mutercim
+      - GOOS=linux GOARCH=arm64 go build -o dist/linux_arm64/mutercim ./cmd/mutercim
+      - GOOS=windows GOARCH=amd64 go build -o dist/windows_amd64/mutercim ./cmd/mutercim
+      - GOOS=darwin GOARCH=arm64 go build -o dist/darwin_arm64/mutercim ./cmd/mutercim
 
   docker-xelatex:
     desc: Build the XeLaTeX Docker image
     cmds:
       - docker build -t mutercim/xelatex docker/xelatex/
+
+  run:
+    desc: Run mutercim passing the arguments
+    deps: [ build ]
+    cmds:
+      - ./build/mutercim "$@"
