@@ -65,3 +65,14 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Default RPMs: gemini=10, groq=30, mistral=60, openrouter=200, openai=500, ollama=1000
 - Overridable per-model via `rpm` field in `ModelSpec`
 - Global `rate_limit` config kept for backward compat but per-model RPM takes precedence
+
+## Live Status Line During API Calls
+- `StatusLine` type + `SetStatus(StatusLine)` added to Display interface
+- Shows "→ reading page N via provider/model ... Xs" below the active phase bar
+- 1-second ticker goroutine in TTYDisplay re-renders elapsed time live
+- Countdown mode for backoff waits: shows remaining seconds ticking down
+- `FormatStatusLine()` in render.go handles both elapsed and countdown formatting
+- `Client.OnRetry` callback in apiclient: called before retry backoff wait
+- `FailoverChain.OnFailover` callback + `SetRetryCallback()`: propagates retry callbacks to all clients
+- Pipeline wires callbacks via type assertion on `*provider.FailoverChain`
+- Status cleared automatically when API call completes (pipeline calls `SetStatus({})`)

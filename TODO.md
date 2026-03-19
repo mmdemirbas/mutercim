@@ -13,8 +13,6 @@
     * short JSON keys
     * shorter system prompts
 
-- Depenedencies? Single-binary?
+- Dependencies? Single-binary?
 
 - Add a flag to auto-execute missing previous steps if needed
-
-- Use human readable log format instead of JSON in log file

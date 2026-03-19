@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -47,11 +48,11 @@ between languages, preserving layout, structure, and domain-specific terminology
 				f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 				if err == nil {
 					logFileHandle = f
-					fileLogger = slog.New(slog.NewJSONHandler(f, &slog.HandlerOptions{Level: level}))
+					fileLogger = slog.New(newHumanHandler(f, level))
 				}
 			}
 			if fileLogger == nil {
-				fileLogger = slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{Level: level}))
+				fileLogger = slog.New(newHumanHandler(io.Discard, level))
 			}
 			slog.SetDefault(fileLogger)
 
@@ -254,6 +255,63 @@ func parseEnvLines(content string) map[string]string {
 		result[key] = value
 	}
 	return result
+}
+
+// humanHandler is a slog.Handler that writes human-readable log lines.
+// Format: "15:04:05 LEVEL msg  key=value key=value"
+type humanHandler struct {
+	w     io.Writer
+	level slog.Level
+	attrs []slog.Attr
+}
+
+func newHumanHandler(w io.Writer, level slog.Level) *humanHandler {
+	return &humanHandler{w: w, level: level}
+}
+
+func (h *humanHandler) Enabled(_ context.Context, level slog.Level) bool {
+	return level >= h.level
+}
+
+func (h *humanHandler) Handle(_ context.Context, r slog.Record) error {
+	var b strings.Builder
+	b.WriteString(r.Time.Format("15:04:05"))
+	b.WriteByte(' ')
+	switch r.Level {
+	case slog.LevelDebug:
+		b.WriteString("DEBUG")
+	case slog.LevelInfo:
+		b.WriteString("INFO ")
+	case slog.LevelWarn:
+		b.WriteString("WARN ")
+	case slog.LevelError:
+		b.WriteString("ERROR")
+	default:
+		b.WriteString(r.Level.String())
+	}
+	b.WriteString("  ")
+	b.WriteString(r.Message)
+	// Write pre-set attrs
+	for _, a := range h.attrs {
+		fmt.Fprintf(&b, "  %s=%v", a.Key, a.Value)
+	}
+	// Write per-record attrs
+	r.Attrs(func(a slog.Attr) bool {
+		fmt.Fprintf(&b, "  %s=%v", a.Key, a.Value)
+		return true
+	})
+	b.WriteByte('\n')
+	_, err := io.WriteString(h.w, b.String())
+	return err
+}
+
+func (h *humanHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &humanHandler{w: h.w, level: h.level, attrs: append(h.attrs, attrs...)}
+}
+
+func (h *humanHandler) WithGroup(name string) slog.Handler {
+	// Groups not used in this codebase; passthrough
+	return h
 }
 
 var usageTemplate = `Usage:{{if .Runnable}}
