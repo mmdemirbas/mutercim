@@ -36,6 +36,8 @@ into Turkish, preserving layout, structure, and domain-specific terminology.`,
 	rootCmd.AddCommand(newConfigCmd())
 	rootCmd.AddCommand(newStatusCmd())
 	rootCmd.AddCommand(newExtractCmd())
+	rootCmd.AddCommand(newEnrichCmd())
+	rootCmd.AddCommand(newKnowledgeCmd())
 
 	return rootCmd
 }

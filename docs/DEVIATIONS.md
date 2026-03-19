@@ -21,3 +21,8 @@
 
 - **What**: Extraction pipeline uses per-input subdirectories (`cache/images/<stem>/`, `cache/extracted/<stem>/`) and compound progress phase names (`"extract:<stem>"`)
 - **Why**: Multiple inputs would have conflicting page numbers (both PDFs have page 1). Per-input namespacing avoids conflicts in both file output and progress tracking.
+
+## Phase 4 — Knowledge & Enrichment
+
+- **What**: Embedded default YAML files placed in `internal/knowledge/defaults/` instead of project-root `defaults/`
+- **Why**: `go:embed` can only access files within or below the package directory. The SPEC puts defaults at project root, but that path is unreachable from `internal/knowledge/embedded.go`. The root `defaults/` directory is kept as the source of truth; files are copied into the package.
