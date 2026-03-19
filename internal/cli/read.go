@@ -8,7 +8,6 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
 	"github.com/mmdemirbas/mutercim/internal/config"
-	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/progress"
@@ -22,21 +21,18 @@ func newReadCmd() *cobra.Command {
 		readProvider string
 		readModel    string
 		concurrency  int
-		dpi          int
 	)
 
 	cmd := &cobra.Command{
 		Use:   "read",
-		Short: "Read structured data from page images (Phase 1)",
-		Long:  "Sends page images to an AI vision model and reads structured JSON with entries, footnotes, and metadata.",
+		Short: "Read structured data from page images (OCR)",
+		Long:  "Sends page images to an AI vision model and reads structured JSON with entries, footnotes, and metadata. Images must exist in midstate/images/ (run 'mutercim pages' first for PDFs).",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Discover workspace
 			ws, err := workspace.Discover(".")
 			if err != nil {
 				return fmt.Errorf("workspace: %w", err)
 			}
 
-			// Load config
 			configPath := cfgFile
 			if configPath == "" {
 				configPath = ws.ConfigPath()
@@ -55,20 +51,6 @@ func newReadCmd() *cobra.Command {
 			}
 			if concurrency > 0 {
 				cfg.Read.Concurrency = concurrency
-			}
-			if dpi > 0 {
-				cfg.DPI = dpi
-			}
-
-			// Preflight: check pdftoppm if any input is PDF
-			for _, inp := range cfg.Inputs {
-				resolved := cfg.ResolvePath(ws.Root, inp.Path)
-				if config.IsPDF(resolved) {
-					if err := input.CheckPdftoppm(); err != nil {
-						return err
-					}
-					break
-				}
 			}
 
 			// Resolve API key
@@ -95,9 +77,9 @@ func newReadCmd() *cobra.Command {
 			}
 
 			// Determine page range: CLI flag > config > all
-			pageSpec := cfg.Pages // from config
+			pageSpec := cfg.Pages
 			if pages != "" {
-				pageSpec = pages // CLI flag overrides
+				pageSpec = pages
 			}
 
 			var pagesToProcess []int
@@ -130,7 +112,6 @@ func newReadCmd() *cobra.Command {
 	cmd.Flags().StringVar(&readProvider, "read-provider", "", "provider: gemini, claude, openai, ollama, surya (default: from config)")
 	cmd.Flags().StringVar(&readModel, "read-model", "", "model for reading (default: from config)")
 	cmd.Flags().IntVar(&concurrency, "concurrency", 0, "parallel read workers (default: from config)")
-	cmd.Flags().IntVar(&dpi, "dpi", 0, "DPI for PDF-to-image conversion (default: from config)")
 
 	return cmd
 }

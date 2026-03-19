@@ -71,6 +71,17 @@ func discoverSubdirs(dir string) ([]string, error) {
 	return stems, nil
 }
 
+// fileStem returns the filename without extension.
+// e.g. "./input/Anfas1.pdf" -> "Anfas1"
+func fileStem(path string) string {
+	base := filepath.Base(path)
+	ext := filepath.Ext(base)
+	if ext == "" {
+		return base
+	}
+	return base[:len(base)-len(ext)]
+}
+
 // fileExists returns true if the path exists and is a regular file.
 func fileExists(path string) bool {
 	info, err := os.Stat(path)

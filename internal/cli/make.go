@@ -20,7 +20,7 @@ import (
 func newMakeCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "make",
-		Short: "Run all phases: read -> solve -> translate -> write",
+		Short: "Run all phases: pages -> read -> solve -> translate -> write",
 		Long:  "Executes the full pipeline sequentially. Validates system dependencies before starting.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
@@ -81,6 +81,17 @@ func newMakeCmd() *cobra.Command {
 			tracker := progress.NewTracker(ws.ProgressPath())
 			if err := tracker.Load(); err != nil {
 				return fmt.Errorf("load progress: %w", err)
+			}
+
+			// Phase 0: Pages (PDF → images)
+			logger.Info("=== PAGES ===")
+			if err := pipeline.Pages(cmd.Context(), pipeline.PagesOptions{
+				Workspace: ws,
+				Config:    cfg,
+				Pages:     pagesToProcess,
+				Logger:    logger,
+			}); err != nil {
+				return fmt.Errorf("pages: %w", err)
 			}
 
 			// Phase 1: Read

@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/input"
@@ -28,41 +27,60 @@ type ReadOptions struct {
 	Logger    *slog.Logger
 }
 
-// Read runs the Phase 1 read pipeline for all configured inputs.
+// Read runs the read (OCR) pipeline for all configured inputs.
+// Images must already exist in midstate/images/ (run 'mutercim pages' first).
 func Read(ctx context.Context, opts ReadOptions) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
 	}
 
-	inputs := opts.Config.Inputs
-	if len(inputs) == 0 {
-		return fmt.Errorf("no inputs configured")
+	// Discover input stems from images directory
+	stems, err := discoverSubdirs(opts.Workspace.ImagesDir())
+	if err != nil {
+		return fmt.Errorf("discover images: %w", err)
+	}
+	if len(stems) == 0 {
+		return fmt.Errorf("no page images found in %s — run 'mutercim pages' first", opts.Workspace.ImagesDir())
 	}
 
-	for _, inp := range inputs {
-		resolved := opts.Config.ResolvePath(opts.Workspace.Root, inp.Path)
-		stem := fileStem(inp.Path)
-		logger.Info("processing input", "input", inp.Path, "stem", stem)
+	// Build per-input page lookup from config
+	inputPages := buildInputPageMap(opts.Config)
 
-		// Determine effective pages: CLI override > per-input > global config > all
+	for _, stem := range stems {
+		logger.Info("processing input", "input", stem)
+
+		// Determine effective pages: CLI override > per-input config > global config > all
 		pages := opts.Pages
-		if len(pages) == 0 && inp.Pages != "" {
-			if ranges, err := model.ParsePageRanges(inp.Pages); err == nil {
-				pages = model.ExpandPages(ranges)
+		if len(pages) == 0 {
+			if pp, ok := inputPages[stem]; ok {
+				pages = pp
 			}
 		}
 
-		if err := readOneInput(ctx, opts, resolved, stem, pages); err != nil {
-			logger.Error("input failed", "input", inp.Path, "error", err)
-			// Continue to next input — don't abort the whole run
+		if err := readOneInput(ctx, opts, stem, pages); err != nil {
+			logger.Error("input failed", "input", stem, "error", err)
 		}
 	}
 
 	return nil
 }
 
-func readOneInput(ctx context.Context, opts ReadOptions, inputPath, stem string, pages []int) error {
+// buildInputPageMap maps input stems to their configured page lists.
+func buildInputPageMap(cfg *config.Config) map[string][]int {
+	m := make(map[string][]int)
+	for _, inp := range cfg.Inputs {
+		if inp.Pages != "" {
+			stem := fileStem(inp.Path)
+			if ranges, err := model.ParsePageRanges(inp.Pages); err == nil {
+				m[stem] = model.ExpandPages(ranges)
+			}
+		}
+	}
+	return m
+}
+
+func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []int) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -71,29 +89,8 @@ func readOneInput(ctx context.Context, opts ReadOptions, inputPath, stem string,
 	ws := opts.Workspace
 	cfg := opts.Config
 
-	// Per-input subdirectories
 	imagesDir := filepath.Join(ws.ImagesDir(), stem)
 	readDir := filepath.Join(ws.ReadDir(), stem)
-
-	// Convert PDF to images if needed
-	if config.IsPDF(inputPath) {
-		if err := os.MkdirAll(imagesDir, 0755); err != nil {
-			return fmt.Errorf("create images dir: %w", err)
-		}
-		// Only convert requested pages, not the entire PDF
-		firstPage, lastPage := 0, 0
-		if len(opts.Pages) > 0 {
-			firstPage = opts.Pages[0]
-			lastPage = opts.Pages[len(opts.Pages)-1]
-		}
-		logger.Info("converting PDF to images", "input", inputPath, "dpi", cfg.DPI, "first", firstPage, "last", lastPage)
-		if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, cfg.DPI, firstPage, lastPage); err != nil {
-			return fmt.Errorf("convert PDF %s: %w", inputPath, err)
-		}
-	} else {
-		// Non-PDF: use the path directly as image directory
-		imagesDir = inputPath
-	}
 
 	// List available images
 	images, err := input.ListImages(imagesDir)
@@ -211,14 +208,6 @@ func readOneInput(ctx context.Context, opts ReadOptions, inputPath, stem string,
 
 	logger.Info("input read complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 	return nil
-}
-
-// fileStem returns the filename without extension.
-// e.g. "./input/Anfas1.pdf" -> "Anfas1"
-func fileStem(path string) string {
-	base := filepath.Base(path)
-	ext := filepath.Ext(base)
-	return strings.TrimSuffix(base, ext)
 }
 
 func saveReadPage(dir string, pageNum int, page *model.ReadPage) error {

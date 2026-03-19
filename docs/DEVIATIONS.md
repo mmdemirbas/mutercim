@@ -22,6 +22,9 @@
 - **What**: Read pipeline uses per-input subdirectories (`midstate/images/<stem>/`, `midstate/read/<stem>/`) and compound progress phase names (`"read:<stem>"`)
 - **Why**: Multiple inputs would have conflicting page numbers (both PDFs have page 1). Per-input namespacing avoids conflicts in both file output and progress tracking.
 
+- **What**: Split `read` command into `pages` (PDF→images) and `read` (OCR only); `make` chains `pages → read → solve → translate → write`
+- **Why**: Separation of concerns — PDF conversion is local/deterministic, OCR is AI-based/expensive. Allows re-running OCR without re-converting PDFs, and using pre-existing image directories without a PDF.
+
 ## Phase 4 — Knowledge & Solve
 
 - **What**: Embedded default YAML files live only in `internal/knowledge/defaults/` (single source of truth)

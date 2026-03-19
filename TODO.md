@@ -1,8 +1,3 @@
-- Support multiple source languages: An Arabic book could contain Persian poetry or Turkish
-  fragments. We should support this.
-- Support multiple target languages: We could want to translate into multiple languages at once.
-
-
 - prettify status output (colors, alignment, tabularization, visualization etc.)
 
 - print live plan and progress

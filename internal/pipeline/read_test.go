@@ -26,40 +26,29 @@ func (m *mockProvider) Translate(ctx context.Context, systemPrompt, userPrompt s
 	return m.response, nil
 }
 
-func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *progress.Tracker) {
+// setupReadWorkspace creates a workspace with images already in midstate/images/<stem>/.
+func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*workspace.Workspace, *config.Config, *progress.Tracker) {
 	t.Helper()
 	dir := t.TempDir()
 
-	// Create workspace directories
-	for _, d := range []string{"input", "midstate/images", "midstate/read"} {
-		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
-			t.Fatalf("mkdir %s: %v", d, err)
-		}
-	}
-
-	// Create config file
-	cfgContent := "book:\n  title: Test\ninput: ./input\n"
-	if err := os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte(cfgContent), 0644); err != nil {
-		t.Fatalf("write config: %v", err)
-	}
-
-	// Create a test image in a per-input subdir
-	imagesDir := filepath.Join(dir, "midstate/images/testinput")
+	imagesDir := filepath.Join(dir, "midstate", "images", stem)
 	if err := os.MkdirAll(imagesDir, 0755); err != nil {
 		t.Fatalf("mkdir images: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake-image"), 0644); err != nil {
-		t.Fatalf("write image: %v", err)
+
+	for _, pf := range pageFiles {
+		if err := os.WriteFile(filepath.Join(imagesDir, pf), []byte("fake-image"), 0644); err != nil {
+			t.Fatalf("write image %s: %v", pf, err)
+		}
 	}
 
-	// Create progress file
 	if err := os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644); err != nil {
 		t.Fatalf("write progress: %v", err)
 	}
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Inputs:      []config.InputSpec{{Path: imagesDir}},
+		Inputs:      []config.InputSpec{{Path: "./input/" + stem + ".pdf"}},
 		MidstateDir: "./midstate",
 		DPI:         300,
 		Read: config.ReadConfig{
@@ -80,7 +69,7 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 }
 
 func TestReadPipeline(t *testing.T) {
-	ws, cfg, tracker := setupTestWorkspace(t)
+	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png")
 
 	response := `{
 		"page_number": 1,
@@ -94,13 +83,12 @@ func TestReadPipeline(t *testing.T) {
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
 		Tracker:   tracker,
-		Logger:    nil,
 	})
 	if err != nil {
 		t.Fatalf("Read() error: %v", err)
 	}
 
-	// Verify output file was created in per-input subdir
+	// Verify output file was created
 	outputPath := filepath.Join(ws.ReadDir(), "testinput", "page_001.json")
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
@@ -118,7 +106,7 @@ func TestReadPipeline(t *testing.T) {
 		t.Errorf("expected 1 entry, got %d", len(page.Entries))
 	}
 
-	// Verify progress was updated with compound phase name
+	// Verify progress was updated
 	state := tracker.State()
 	phase := state.Phases["read:testinput"]
 	if phase == nil {
@@ -130,15 +118,14 @@ func TestReadPipeline(t *testing.T) {
 }
 
 func TestReadPipelineSkipsCompleted(t *testing.T) {
-	ws, cfg, tracker := setupTestWorkspace(t)
+	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png")
 
-	// Mark page as already completed AND create the output file
 	tracker.MarkCompleted("read:testinput", 1)
 	if err := tracker.Save(); err != nil {
 		t.Fatalf("save tracker: %v", err)
 	}
 
-	// Create the output file so the skip logic sees it as truly complete
+	// Create the output file so skip logic sees it as truly complete
 	outputDir := filepath.Join(ws.ReadDir(), "testinput")
 	os.MkdirAll(outputDir, 0755)
 	outputPath := filepath.Join(outputDir, "page_001.json")
@@ -149,13 +136,12 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 		Config:    cfg,
 		Provider:  &mockProvider{response: `{"entries":[],"footnotes":[],"warnings":[]}`},
 		Tracker:   tracker,
-		Logger:    nil,
 	})
 	if err != nil {
 		t.Fatalf("Read() error: %v", err)
 	}
 
-	// Output file should still contain the original content (not re-processed)
+	// Output should still contain original content (not re-processed)
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
@@ -168,14 +154,11 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 func TestReadPipelineNoImages(t *testing.T) {
 	dir := t.TempDir()
 
-	// Create empty images dir
-	emptyDir := filepath.Join(dir, "midstate/images/empty")
-	if err := os.MkdirAll(emptyDir, 0755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
+	// midstate/images/ exists but is empty (no subdirs)
+	os.MkdirAll(filepath.Join(dir, "midstate", "images"), 0755)
 
 	ws := &workspace.Workspace{Root: dir}
-	cfg := &config.Config{Inputs: []config.InputSpec{{Path: emptyDir}}}
+	cfg := &config.Config{}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
 	err := Read(context.Background(), ReadOptions{
@@ -184,41 +167,37 @@ func TestReadPipelineNoImages(t *testing.T) {
 		Provider:  &mockProvider{response: "{}"},
 		Tracker:   tracker,
 	})
-	// Read logs per-input errors but doesn't fail the overall run
-	if err != nil {
-		t.Fatalf("Read() unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected error when no images found")
 	}
+	if got := err.Error(); got != "no page images found in "+ws.ImagesDir()+" — run 'mutercim pages' first" {
+		t.Errorf("unexpected error: %q", got)
+	}
+}
 
-	// No output files should exist
-	outputPath := filepath.Join(ws.ReadDir(), "empty", "page_001.json")
-	if _, err := os.Stat(outputPath); err == nil {
-		t.Error("expected no output files for empty input")
+func TestReadPipelineMissingImagesDir(t *testing.T) {
+	dir := t.TempDir()
+
+	// midstate/images/ doesn't exist at all
+	ws := &workspace.Workspace{Root: dir}
+	cfg := &config.Config{}
+	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
+
+	err := Read(context.Background(), ReadOptions{
+		Workspace: ws,
+		Config:    cfg,
+		Provider:  &mockProvider{response: "{}"},
+		Tracker:   tracker,
+	})
+	if err == nil {
+		t.Fatal("expected error when images dir missing")
 	}
 }
 
 func TestReadPipelinePerInputPages(t *testing.T) {
-	dir := t.TempDir()
-
-	// Create workspace with two images (page 1 and page 2)
-	imagesDir := filepath.Join(dir, "midstate/images/testinput")
-	os.MkdirAll(imagesDir, 0755)
-	os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(imagesDir, "page-02.png"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644)
-
-	ws := &workspace.Workspace{Root: dir}
-	cfg := &config.Config{
-		// Per-input pages: only process page 1
-		Inputs:      []config.InputSpec{{Path: imagesDir, Pages: "1"}},
-		MidstateDir: "./midstate",
-		DPI:         300,
-		Read:        config.ReadConfig{Provider: "mock", Model: "test", Concurrency: 1},
-		Retry:       config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
-		RateLimit:   config.RateLimitConfig{RequestsPerMinute: 100},
-	}
-
-	tracker := progress.NewTracker(ws.ProgressPath())
-	tracker.Load()
+	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+	// Per-input pages: only process page 1
+	cfg.Inputs = []config.InputSpec{{Path: "./input/testinput.pdf", Pages: "1"}}
 
 	response := `{"page_number": 1, "entries": [], "footnotes": [], "warnings": []}`
 
@@ -232,13 +211,11 @@ func TestReadPipelinePerInputPages(t *testing.T) {
 		t.Fatalf("Read() error: %v", err)
 	}
 
-	// Page 1 should be processed
 	page1 := filepath.Join(ws.ReadDir(), "testinput", "page_001.json")
 	if _, err := os.Stat(page1); err != nil {
 		t.Errorf("expected page 1 output, got error: %v", err)
 	}
 
-	// Page 2 should NOT be processed (filtered by per-input pages)
 	page2 := filepath.Join(ws.ReadDir(), "testinput", "page_002.json")
 	if _, err := os.Stat(page2); err == nil {
 		t.Error("page 2 should not be processed when per-input pages is '1'")
@@ -246,32 +223,12 @@ func TestReadPipelinePerInputPages(t *testing.T) {
 }
 
 func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
-	dir := t.TempDir()
-
-	// Create workspace with two images
-	imagesDir := filepath.Join(dir, "midstate/images/testinput")
-	os.MkdirAll(imagesDir, 0755)
-	os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(imagesDir, "page-02.png"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644)
-
-	ws := &workspace.Workspace{Root: dir}
-	cfg := &config.Config{
-		// Per-input pages says "1" only
-		Inputs:      []config.InputSpec{{Path: imagesDir, Pages: "1"}},
-		MidstateDir: "./midstate",
-		DPI:         300,
-		Read:        config.ReadConfig{Provider: "mock", Model: "test", Concurrency: 1},
-		Retry:       config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
-		RateLimit:   config.RateLimitConfig{RequestsPerMinute: 100},
-	}
-
-	tracker := progress.NewTracker(ws.ProgressPath())
-	tracker.Load()
+	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+	cfg.Inputs = []config.InputSpec{{Path: "./input/testinput.pdf", Pages: "1"}}
 
 	response := `{"page_number": 2, "entries": [], "footnotes": [], "warnings": []}`
 
-	// CLI override: process page 2 only (should override per-input "1")
+	// CLI override: process page 2 only
 	err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
@@ -283,13 +240,11 @@ func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
 		t.Fatalf("Read() error: %v", err)
 	}
 
-	// Page 1 should NOT be processed (CLI override says page 2 only)
 	page1 := filepath.Join(ws.ReadDir(), "testinput", "page_001.json")
 	if _, err := os.Stat(page1); err == nil {
 		t.Error("page 1 should not be processed when CLI pages override is [2]")
 	}
 
-	// Page 2 should be processed (CLI override)
 	page2 := filepath.Join(ws.ReadDir(), "testinput", "page_002.json")
 	if _, err := os.Stat(page2); err != nil {
 		t.Errorf("expected page 2 output, got error: %v", err)
@@ -309,7 +264,6 @@ func TestSaveReadPage(t *testing.T) {
 		t.Fatalf("saveReadPage() error: %v", err)
 	}
 
-	// Verify file exists with correct name
 	path := filepath.Join(dir, "page_005.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
