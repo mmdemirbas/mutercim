@@ -42,8 +42,8 @@ func (r *LaTeXRenderer) RenderPage(page *model.TranslatedPage) string {
 	if len(page.TranslatedFootnotes) > 0 {
 		b.WriteString("\\begin{small}\n\\hrule\\vspace{0.5em}\n")
 		for _, fn := range page.TranslatedFootnotes {
-			if fn.EntryNumber > 0 {
-				fmt.Fprintf(&b, "[%d] %s\n\n", fn.EntryNumber, latexEscape(fn.TranslatedText))
+			if len(fn.EntryNumbers) > 0 {
+				fmt.Fprintf(&b, "[%s] %s\n\n", formatEntryNums(fn.EntryNumbers), latexEscape(fn.TranslatedText))
 			} else {
 				fmt.Fprintf(&b, "%s\n\n", latexEscape(fn.TranslatedText))
 			}

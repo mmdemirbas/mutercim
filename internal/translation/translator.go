@@ -109,13 +109,8 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedPage, 
 func convertTranslatedFootnotes(resps []translatedFootnoteResp) []model.TranslatedFootnote {
 	footnotes := make([]model.TranslatedFootnote, 0, len(resps))
 	for _, r := range resps {
-		// If entry_numbers has entries, create a footnote for each (or first)
-		entryNum := 0
-		if len(r.EntryNumbers) > 0 {
-			entryNum = r.EntryNumbers[0]
-		}
 		footnotes = append(footnotes, model.TranslatedFootnote{
-			EntryNumber:     entryNum,
+			EntryNumbers:    r.EntryNumbers,
 			TranslatedText:  r.TranslatedText,
 			SourcesExpanded: r.SourcesExpanded,
 		})

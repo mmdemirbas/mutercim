@@ -37,14 +37,8 @@ func Write(ctx context.Context, opts WriteOptions) error {
 	ws := opts.Workspace
 	cfg := opts.Config
 
-	// Write source language markdown (once, not per target)
-	sourceInputs, err := discoverSubdirs(filepath.Join(ws.TranslatedDir(), cfg.Book.TargetLangs[0]))
-	if err != nil || len(sourceInputs) == 0 {
-		// Fall back to old layout (no per-lang subdir)
-		sourceInputs, err = discoverSubdirs(ws.TranslatedDir())
-	}
-	if err != nil {
-		return fmt.Errorf("discover translated inputs: %w", err)
+	if len(cfg.Book.TargetLangs) == 0 {
+		return fmt.Errorf("no target languages configured")
 	}
 
 	// Render per target language

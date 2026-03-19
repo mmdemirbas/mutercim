@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
@@ -301,8 +302,12 @@ func writePageOutput(dir string, pageNum int, page *model.TranslatedPage) error 
 	if len(page.TranslatedFootnotes) > 0 {
 		lines = append(lines, "---\n")
 		for _, fn := range page.TranslatedFootnotes {
-			if fn.EntryNumber > 0 {
-				lines = append(lines, fmt.Sprintf("[%d] %s\n", fn.EntryNumber, fn.TranslatedText))
+			if len(fn.EntryNumbers) > 0 {
+				nums := make([]string, len(fn.EntryNumbers))
+				for i, n := range fn.EntryNumbers {
+					nums[i] = fmt.Sprintf("%d", n)
+				}
+				lines = append(lines, fmt.Sprintf("[%s] %s\n", strings.Join(nums, ","), fn.TranslatedText))
 			} else {
 				lines = append(lines, fn.TranslatedText+"\n")
 			}

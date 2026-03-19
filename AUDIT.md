@@ -2,31 +2,31 @@
 
 ## Correctness
 
-### [CORRECTNESS] API key logged in plaintext via Gemini URL
+### [FIXED] [CORRECTNESS] API key logged in plaintext via Gemini URL
 - **Severity**: critical
 - **File**: internal/provider/gemini.go:122, internal/apiclient/client.go:97-100
 - **Issue**: Gemini embeds the API key as a URL query parameter (`?key=...`). The apiclient logs the full URL on retries: `c.logger.Info("retrying request", "url", req.URL)`. This writes the API key to mutercim.log.
 - **Fix**: Either move the API key to an Authorization header, or sanitize URLs before logging (strip query parameters containing "key").
 
-### [CORRECTNESS] Panic on empty TargetLangs in Write phase
+### [FIXED] [CORRECTNESS] Panic on empty TargetLangs in Write phase
 - **Severity**: critical
 - **File**: internal/pipeline/write.go:41
 - **Issue**: `cfg.Book.TargetLangs[0]` accessed without length check. If TargetLangs is empty (config bug, manual edit), this panics with array index out of bounds.
 - **Fix**: Add `if len(cfg.Book.TargetLangs) == 0 { return error }` guard at top of Write().
 
-### [CORRECTNESS] Data loss in footnote entry number conversion
+### [FIXED] [CORRECTNESS] Data loss in footnote entry number conversion
 - **Severity**: high
 - **File**: internal/translation/translator.go:109-123
 - **Issue**: `convertTranslatedFootnotes` only keeps the first entry number when the API returns `entry_numbers: [1, 2, 3]`. The model's `TranslatedFootnote.EntryNumber` is a single int, so references to entries 2 and 3 are silently dropped.
 - **Fix**: Either change `TranslatedFootnote` to support `[]int`, or create one footnote record per entry number.
 
-### [CORRECTNESS] Footnote model inconsistency across pipeline
+### [FIXED] [CORRECTNESS] Footnote model inconsistency across pipeline
 - **Severity**: high
 - **File**: internal/model/entry.go:13-19 vs :69-73
 - **Issue**: Input `Footnote` has both `EntryNumber *int` and `EntryNumbers []int`. Output `TranslatedFootnote` has only `EntryNumber int`. Data narrows as it flows through the pipeline — multi-entry footnotes lose references.
 - **Fix**: Align the translated footnote model with the input model.
 
-### [CORRECTNESS] Log file handle never closed
+### [FIXED] [CORRECTNESS] Log file handle never closed
 - **Severity**: high
 - **File**: internal/cli/root.go:46-48
 - **Issue**: `os.OpenFile` for mutercim.log is called in PersistentPreRunE but the file handle `f` is never closed. It stays open for the entire process lifetime. No cleanup on context cancellation.
@@ -46,7 +46,7 @@
 
 ## Robustness
 
-### [ROBUSTNESS] RateLimiter.Close() panics on double-close
+### [FIXED] [ROBUSTNESS] RateLimiter.Close() panics on double-close
 - **Severity**: high
 - **File**: internal/apiclient/ratelimit.go:55-56
 - **Issue**: `Close()` calls `close(rl.refillStop)`. If called twice (e.g., deferred close + explicit close), it panics. The `Client.Close()` calls `RateLimiter.Close()` directly.
@@ -78,7 +78,7 @@
 
 ## Security
 
-### [SECURITY] API key in Gemini URL parameter
+### [FIXED] [SECURITY] API key in Gemini URL parameter
 - **Severity**: critical
 - **File**: internal/provider/gemini.go:122
 - **Issue**: Same as the first correctness finding. The API key appears in the URL, which gets logged to mutercim.log and could appear in error messages.
@@ -158,7 +158,7 @@
 
 ## Summary
 
-- **Critical**: 2 (API key logging, panic on empty TargetLangs)
-- **High**: 4 (footnote data loss, footnote model inconsistency, log file leak, double-close panic)
+- **Critical**: 2 — all FIXED (API key logging, panic on empty TargetLangs)
+- **High**: 4 — all FIXED (footnote data loss, footnote model inconsistency, log file leak, double-close panic)
 - **Medium**: 6 (signal cancel, pages returns nil, empty TargetLangs, non-atomic write, knowledge diff missing, surya missing)
 - **Low**: 10 (consistency, performance, test quality)

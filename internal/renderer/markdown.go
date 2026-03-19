@@ -38,8 +38,8 @@ func (r *MarkdownRenderer) RenderPage(page *model.TranslatedPage) string {
 	if len(page.TranslatedFootnotes) > 0 {
 		b.WriteString("---\n\n")
 		for _, fn := range page.TranslatedFootnotes {
-			if fn.EntryNumber > 0 {
-				fmt.Fprintf(&b, "[%d] %s\n\n", fn.EntryNumber, fn.TranslatedText)
+			if len(fn.EntryNumbers) > 0 {
+				fmt.Fprintf(&b, "[%s] %s\n\n", formatEntryNums(fn.EntryNumbers), fn.TranslatedText)
 			} else {
 				fmt.Fprintf(&b, "%s\n\n", fn.TranslatedText)
 			}
@@ -62,6 +62,15 @@ func (r *MarkdownRenderer) RenderBook(pages []*model.TranslatedPage) string {
 	}
 
 	return b.String()
+}
+
+// formatEntryNums formats entry numbers as "1" or "1,2,3".
+func formatEntryNums(nums []int) string {
+	parts := make([]string, len(nums))
+	for i, n := range nums {
+		parts[i] = fmt.Sprintf("%d", n)
+	}
+	return strings.Join(parts, ",")
 }
 
 // ArabicMarkdownRenderer renders the original Arabic text as Markdown.

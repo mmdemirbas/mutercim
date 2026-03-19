@@ -193,8 +193,8 @@ func TestLatexRenderPage_Footnotes(t *testing.T) {
 			ReadPage: model.ReadPage{PageNumber: 1},
 		},
 		TranslatedFootnotes: []model.TranslatedFootnote{
-			{EntryNumber: 5, TranslatedText: "Footnote with number"},
-			{EntryNumber: 0, TranslatedText: "Footnote without number"},
+			{EntryNumbers: []int{5}, TranslatedText: "Footnote with number"},
+			{EntryNumbers: nil, TranslatedText: "Footnote without number"},
 		},
 	}
 

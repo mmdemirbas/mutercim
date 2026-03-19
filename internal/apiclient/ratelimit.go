@@ -2,6 +2,7 @@ package apiclient
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -9,6 +10,7 @@ import (
 type RateLimiter struct {
 	tokens     chan struct{}
 	refillStop chan struct{}
+	closeOnce  sync.Once
 }
 
 // NewRateLimiter creates a rate limiter that allows n requests per minute.
@@ -51,7 +53,9 @@ func (rl *RateLimiter) Wait(ctx context.Context) error {
 	}
 }
 
-// Close stops the refill goroutine.
+// Close stops the refill goroutine. Safe to call multiple times.
 func (rl *RateLimiter) Close() {
-	close(rl.refillStop)
+	rl.closeOnce.Do(func() {
+		close(rl.refillStop)
+	})
 }

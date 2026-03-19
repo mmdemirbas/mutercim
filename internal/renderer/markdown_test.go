@@ -24,7 +24,7 @@ func TestMarkdownRenderPage(t *testing.T) {
 			{Number: 43, TranslatedText: "İkinci hadîs."},
 		},
 		TranslatedFootnotes: []model.TranslatedFootnote{
-			{EntryNumber: 42, TranslatedText: "Sahîh-i Buhârî'de rivayet edilmiştir."},
+			{EntryNumbers: []int{42}, TranslatedText: "Sahîh-i Buhârî'de rivayet edilmiştir."},
 		},
 	}
 
@@ -132,7 +132,7 @@ func TestMarkdownRenderPage_EntryWithoutNumber(t *testing.T) {
 	}
 }
 
-func TestMarkdownRenderPage_FootnoteWithoutEntryNumber(t *testing.T) {
+func TestMarkdownRenderPage_FootnoteWithoutEntryNumbers(t *testing.T) {
 	r := &MarkdownRenderer{}
 
 	page := &model.TranslatedPage{
@@ -140,7 +140,7 @@ func TestMarkdownRenderPage_FootnoteWithoutEntryNumber(t *testing.T) {
 			ReadPage: model.ReadPage{PageNumber: 1},
 		},
 		TranslatedFootnotes: []model.TranslatedFootnote{
-			{EntryNumber: 0, TranslatedText: "Genel dipnot"},
+			{EntryNumbers: nil, TranslatedText: "Genel dipnot"},
 		},
 	}
 
@@ -199,7 +199,7 @@ func TestMarkdownRenderBook_MultiplePages(t *testing.T) {
 				ReadPage: model.ReadPage{PageNumber: 3},
 			},
 			TranslatedFootnotes: []model.TranslatedFootnote{
-				{EntryNumber: 3, TranslatedText: "Dipnot"},
+				{EntryNumbers: []int{3}, TranslatedText: "Dipnot"},
 			},
 		},
 	}

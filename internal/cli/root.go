@@ -40,11 +40,13 @@ into Turkish, preserving layout, structure, and domain-specific terminology.`,
 
 			// Set up log file (non-fatal if workspace not found)
 			var fileLogger *slog.Logger
+			var logFileHandle *os.File
 			ws, wsErr := workspace.Discover(".")
 			if wsErr == nil {
 				logPath := filepath.Join(ws.Root, "mutercim.log")
 				f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 				if err == nil {
+					logFileHandle = f
 					fileLogger = slog.New(slog.NewJSONHandler(f, &slog.HandlerOptions{Level: level}))
 				}
 			}
@@ -58,9 +60,17 @@ into Turkish, preserving layout, structure, and domain-specific terminology.`,
 			ctx := display.WithDisplay(cmd.Context(), disp)
 
 			// Set up Ctrl+C handling
-			ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
-			_ = cancel // cancel is called when context is done
+			ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 			cmd.SetContext(ctx)
+
+			// Register cleanup for log file and signal handling
+			cmd.Root().PersistentPostRunE = func(*cobra.Command, []string) error {
+				stop()
+				if logFileHandle != nil {
+					logFileHandle.Close()
+				}
+				return nil
+			}
 
 			return nil
 		},

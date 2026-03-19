@@ -67,7 +67,7 @@ type TranslatedEntry struct {
 
 // TranslatedFootnote represents a translated footnote.
 type TranslatedFootnote struct {
-	EntryNumber     int      `json:"entry_number"`
+	EntryNumbers    []int    `json:"entry_numbers"`
 	TranslatedText  string   `json:"translated_text"`
 	SourcesExpanded []string `json:"sources_expanded"`
 }

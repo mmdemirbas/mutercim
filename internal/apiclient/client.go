@@ -12,6 +12,7 @@ import (
 	"math/rand/v2"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -97,7 +98,7 @@ func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 			c.logger.Info("retrying request",
 				"attempt", attempt,
 				"backoff", backoff,
-				"url", req.URL,
+				"url", sanitizeURL(req.URL),
 			)
 			select {
 			case <-time.After(backoff):
@@ -200,6 +201,23 @@ func (c *Client) calculateBackoff(attempt int, lastErr error) time.Duration {
 	backoff := c.baseBackoff * (1 << (attempt - 1))
 	jitter := 0.5 + rand.Float64()
 	return time.Duration(float64(backoff) * jitter)
+}
+
+// sanitizeURL strips sensitive query parameters (API keys) from URLs before logging.
+func sanitizeURL(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	q := u.Query()
+	for key := range q {
+		lower := strings.ToLower(key)
+		if strings.Contains(lower, "key") || strings.Contains(lower, "token") || strings.Contains(lower, "secret") {
+			q.Set(key, "REDACTED")
+		}
+	}
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func truncate(s string, maxLen int) string {
