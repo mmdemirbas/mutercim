@@ -47,9 +47,16 @@ Create DEVIATIONS.md if it doesn't exist.
 
 ## Testing
 
+- NEVER skip writing tests. Every new function with logic MUST have tests before moving on.
+  This is a hard requirement, not optional. If you add code without tests, you are doing it wrong.
 - Write table-driven tests for any parsing logic (page ranges, config merging, JSON extraction,
   section lookup)
-- Write at least one test per public function in `apiclient/`, `config/`, `knowledge/`, `progress/`
+- Write at least one test per public function in every package
+- Cover both common cases and edge cases (empty input, nil, error paths, boundary values)
+- Tests must be fast and self-contained — no network calls, no external dependencies, no reliance
+  on specific file system state outside of `t.TempDir()`
+- Refactor functions to be testable: accept interfaces or data instead of hardcoded paths/globals.
+  For example, separate parsing logic from I/O so parsing can be unit tested independently.
 - Tests for provider implementations can use a local HTTP test server (`httptest.NewServer`) — do
   not make real API calls in tests
 - Name test files `*_test.go` in the same package (not `_test` package)

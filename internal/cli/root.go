@@ -160,14 +160,24 @@ func formatGroupedCommands(cmd *cobra.Command) string {
 }
 
 // loadEnvFile reads a .env or .envrc file and sets environment variables.
-// Supports KEY=VALUE and export KEY=VALUE lines. Skips comments and blank lines.
 // Does not override variables already set in the environment.
 func loadEnvFile(path string) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return // file not found is fine
 	}
-	for _, line := range strings.Split(string(data), "\n") {
+	for key, value := range parseEnvLines(string(data)) {
+		if os.Getenv(key) == "" {
+			os.Setenv(key, value)
+		}
+	}
+}
+
+// parseEnvLines parses KEY=VALUE and export KEY=VALUE lines from env file content.
+// Skips comments and blank lines. Strips surrounding quotes from values.
+func parseEnvLines(content string) map[string]string {
+	result := make(map[string]string)
+	for _, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || line[0] == '#' {
 			continue
@@ -183,11 +193,9 @@ func loadEnvFile(path string) {
 		if len(value) >= 2 && (value[0] == '"' && value[len(value)-1] == '"' || value[0] == '\'' && value[len(value)-1] == '\'') {
 			value = value[1 : len(value)-1]
 		}
-		// Don't override existing env vars
-		if os.Getenv(key) == "" {
-			os.Setenv(key, value)
-		}
+		result[key] = value
 	}
+	return result
 }
 
 var usageTemplate = `Usage:{{if .Runnable}}
