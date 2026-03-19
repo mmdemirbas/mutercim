@@ -10,6 +10,7 @@ import (
 	"sort"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/renderer"
@@ -23,6 +24,7 @@ type WriteOptions struct {
 	Tracker   *progress.Tracker
 	Pages     []int
 	Logger    *slog.Logger
+	Display   display.Display
 }
 
 // Write runs the Phase 4 compilation pipeline for all inputs and target languages.
@@ -112,6 +114,11 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 
 	phaseName := progress.PhaseName("write:" + targetLang + ":" + stem)
 
+	// Start progress display
+	if opts.Display != nil {
+		opts.Display.StartPhase(display.PhaseWrite, stem, len(pages), targetLang)
+	}
+
 	// Render each requested format
 	for _, format := range cfg.Write.Formats {
 		switch format {
@@ -138,6 +145,14 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 	}
 	if err := opts.Tracker.Save(); err != nil {
 		logger.Error("failed to save progress", "error", err)
+	}
+
+	if opts.Display != nil {
+		opts.Display.Update(display.PageResult{
+			Phase: display.PhaseWrite, Input: stem,
+			Total: len(pages), Completed: len(pages), Lang: targetLang,
+		})
+		opts.Display.FinishPhase(display.PhaseWrite, stem)
 	}
 
 	logger.Info("write complete", "input", stem, "pages", len(pages), "formats", cfg.Write.Formats)

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/progress"
@@ -27,6 +28,7 @@ type TranslateOptions struct {
 	Pages         []int
 	ContextWindow int // number of previous pages for context (default: 2)
 	Logger        *slog.Logger
+	Display       display.Display
 }
 
 // Translate runs the Phase 3 translation pipeline for all inputs and target languages.
@@ -131,11 +133,19 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	// Track translated pages for context window
 	var recentTranslated []*model.TranslatedPage
 
+	// Start progress display
+	if opts.Display != nil {
+		opts.Display.StartPhase(display.PhaseTranslate, stem, len(pages), targetLang)
+	}
+
 	completed := 0
 	failed := 0
 	skipped := 0
 
 	for _, pf := range pages {
+		if ctx.Err() != nil {
+			break
+		}
 		// Skip already completed — but only if the output file actually exists
 		outputPath := filepath.Join(translatedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
 		state := opts.Tracker.State()
@@ -187,6 +197,13 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			logger.Error("translation failed", "input", stem, "page", pf.pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pf.pageNum)
 			failed++
+			if opts.Display != nil {
+				opts.Display.Update(display.PageResult{
+					Phase: display.PhaseTranslate, Input: stem, PageNum: pf.pageNum,
+					Total: len(pages), Completed: completed, Failed: failed,
+					Lang: targetLang, Err: err,
+				})
+			}
 			continue
 		}
 
@@ -211,8 +228,19 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		recentTranslated = append(recentTranslated, translated)
 		completed++
 		logger.Info("page translated", "input", stem, "page", pf.pageNum, "completed", completed)
+		if opts.Display != nil {
+			opts.Display.Update(display.PageResult{
+				Phase: display.PhaseTranslate, Input: stem, PageNum: pf.pageNum,
+				Total: len(pages), Completed: completed, Failed: failed,
+				Lang: targetLang, Entries: len(translated.TranslatedEntries),
+				Footnotes: len(translated.TranslatedFootnotes),
+			})
+		}
 	}
 
+	if opts.Display != nil {
+		opts.Display.FinishPhase(display.PhaseTranslate, stem)
+	}
 	logger.Info("translation complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
@@ -107,6 +108,7 @@ func newTranslateCmd() *cobra.Command {
 				Pages:         pagesToProcess,
 				ContextWindow: contextWindow,
 				Logger:        logger,
+				Display:       display.FromContext(cmd.Context()),
 			})
 		},
 	}

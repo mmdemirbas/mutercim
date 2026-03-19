@@ -2,17 +2,22 @@ package cli
 
 import (
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
+	"os/signal"
+	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/mmdemirbas/mutercim/internal/display"
+	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
 
 var (
 	cfgFile  string
 	logLevel string
-	logFile  string
 	pages    string
 )
 
@@ -29,6 +34,34 @@ into Turkish, preserving layout, structure, and domain-specific terminology.`,
 			// Load .env and .envrc from current directory
 			loadEnvFile(".env")
 			loadEnvFile(".envrc")
+
+			// Parse log level
+			level := parseLogLevel(logLevel)
+
+			// Set up log file (non-fatal if workspace not found)
+			var fileLogger *slog.Logger
+			ws, wsErr := workspace.Discover(".")
+			if wsErr == nil {
+				logPath := filepath.Join(ws.Root, "mutercim.log")
+				f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+				if err == nil {
+					fileLogger = slog.New(slog.NewJSONHandler(f, &slog.HandlerOptions{Level: level}))
+				}
+			}
+			if fileLogger == nil {
+				fileLogger = slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{Level: level}))
+			}
+			slog.SetDefault(fileLogger)
+
+			// Create display (writes progress to stderr)
+			disp := display.New(os.Stderr, nil)
+			ctx := display.WithDisplay(cmd.Context(), disp)
+
+			// Set up Ctrl+C handling
+			ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+			_ = cancel // cancel is called when context is done
+			cmd.SetContext(ctx)
+
 			return nil
 		},
 	}
@@ -37,7 +70,6 @@ into Turkish, preserving layout, structure, and domain-specific terminology.`,
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "path to config file (default: ./mutercim.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&pages, "pages", "p", "", "page range: \"1-50\", \"1,5,10-20\", \"all\" (default: from config or all)")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "log verbosity: debug, info, warn, error")
-	rootCmd.PersistentFlags().StringVar(&logFile, "log-file", "", "also write logs to this file")
 
 	// Command groups
 	rootCmd.AddGroup(
@@ -158,6 +190,20 @@ func formatGroupedCommands(cmd *cobra.Command) string {
 	}
 
 	return b.String()
+}
+
+// parseLogLevel converts a string log level to slog.Level.
+func parseLogLevel(s string) slog.Level {
+	switch strings.ToLower(s) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }
 
 // loadEnvFile reads a .env or .envrc file and sets environment variables.

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
@@ -71,6 +72,7 @@ func newPagesCmd() *cobra.Command {
 				Config:    cfg,
 				Pages:     pagesToProcess,
 				Logger:    logger,
+				Display:   display.FromContext(cmd.Context()),
 			})
 		},
 	}

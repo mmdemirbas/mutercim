@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/progress"
@@ -90,6 +91,7 @@ func newWriteCmd() *cobra.Command {
 				Config:    cfg,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
+				Display:   display.FromContext(cmd.Context()),
 			})
 		},
 	}

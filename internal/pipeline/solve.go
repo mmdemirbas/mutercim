@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/progress"
@@ -22,6 +23,7 @@ type SolveOptions struct {
 	Tracker   *progress.Tracker
 	Pages     []int // specific pages to process; nil means all available
 	Logger    *slog.Logger
+	Display   display.Display
 }
 
 // Solve runs the Phase 2 solver pipeline for all inputs.
@@ -96,11 +98,19 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		allPages[pf.pageNum] = page
 	}
 
+	// Start progress display
+	if opts.Display != nil {
+		opts.Display.StartPhase(display.PhaseSolve, stem, len(pages), "")
+	}
+
 	completed := 0
 	failed := 0
 	skipped := 0
 
 	for _, pf := range pages {
+		if ctx.Err() != nil {
+			break
+		}
 		// Skip already completed — but only if the output file actually exists
 		outputPath := filepath.Join(solvedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
 		state := opts.Tracker.State()
@@ -140,6 +150,12 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 			logger.Error("failed to save solved page", "page", pf.pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pf.pageNum)
 			failed++
+			if opts.Display != nil {
+				opts.Display.Update(display.PageResult{
+					Phase: display.PhaseSolve, Input: stem, PageNum: pf.pageNum,
+					Total: len(pages), Completed: completed, Failed: failed, Err: err,
+				})
+			}
 			continue
 		}
 
@@ -148,8 +164,18 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 			logger.Error("failed to save progress", "error", err)
 		}
 		completed++
+		if opts.Display != nil {
+			opts.Display.Update(display.PageResult{
+				Phase: display.PhaseSolve, Input: stem, PageNum: pf.pageNum,
+				Total: len(pages), Completed: completed, Failed: failed,
+				Entries: len(solved.Entries), Footnotes: len(solved.Footnotes),
+			})
+		}
 	}
 
+	if opts.Display != nil {
+		opts.Display.FinishPhase(display.PhaseSolve, stem)
+	}
 	logger.Info("solve complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 	return nil
 }

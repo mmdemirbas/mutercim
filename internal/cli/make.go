@@ -7,6 +7,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -63,6 +64,10 @@ func newMakeCmd() *cobra.Command {
 			}
 
 			logger := slog.Default()
+			disp := display.FromContext(cmd.Context())
+			if disp != nil {
+				defer disp.Finish()
+			}
 
 			// Resolve page range
 			pageSpec := cfg.Pages
@@ -90,6 +95,7 @@ func newMakeCmd() *cobra.Command {
 				Config:    cfg,
 				Pages:     pagesToProcess,
 				Logger:    logger,
+				Display:   disp,
 			}); err != nil {
 				return fmt.Errorf("pages: %w", err)
 			}
@@ -120,6 +126,7 @@ func newMakeCmd() *cobra.Command {
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
+				Display:   disp,
 			}); err != nil {
 				return fmt.Errorf("read: %w", err)
 			}
@@ -138,6 +145,7 @@ func newMakeCmd() *cobra.Command {
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
+				Display:   disp,
 			}); err != nil {
 				return fmt.Errorf("solve: %w", err)
 			}
@@ -169,6 +177,7 @@ func newMakeCmd() *cobra.Command {
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
+				Display:   disp,
 			}); err != nil {
 				return fmt.Errorf("translate: %w", err)
 			}
@@ -181,6 +190,7 @@ func newMakeCmd() *cobra.Command {
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
+				Display:   disp,
 			}); err != nil {
 				return fmt.Errorf("write: %w", err)
 			}

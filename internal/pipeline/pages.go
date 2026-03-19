@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
@@ -19,6 +20,7 @@ type PagesOptions struct {
 	Config    *config.Config
 	Pages     []int // CLI override pages; nil means use per-input or global config
 	Logger    *slog.Logger
+	Display   display.Display
 }
 
 // Pages runs the pagination phase: converts PDF inputs to per-page images.
@@ -71,6 +73,11 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 		return fmt.Errorf("create images dir: %w", err)
 	}
 
+	// Start progress display
+	if opts.Display != nil {
+		opts.Display.StartPhase(display.PhasePages, stem, 1, "")
+	}
+
 	firstPage, lastPage := 0, 0
 	if len(pages) > 0 {
 		firstPage = pages[0]
@@ -78,6 +85,13 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 	}
 	logger.Info("converting PDF to images", "input", inputPath, "dpi", opts.Config.DPI, "first", firstPage, "last", lastPage)
 	if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, opts.Config.DPI, firstPage, lastPage); err != nil {
+		if opts.Display != nil {
+			opts.Display.Update(display.PageResult{
+				Phase: display.PhasePages, Input: stem,
+				Total: 1, Failed: 1, Err: err,
+			})
+			opts.Display.FinishPhase(display.PhasePages, stem)
+		}
 		return fmt.Errorf("convert PDF %s: %w", inputPath, err)
 	}
 
@@ -85,6 +99,14 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 	images, err := input.ListImages(imagesDir)
 	if err == nil {
 		logger.Info("pagination complete", "input", stem, "images", len(images))
+	}
+
+	if opts.Display != nil {
+		opts.Display.Update(display.PageResult{
+			Phase: display.PhasePages, Input: stem,
+			Total: 1, Completed: 1,
+		})
+		opts.Display.FinishPhase(display.PhasePages, stem)
 	}
 
 	return nil

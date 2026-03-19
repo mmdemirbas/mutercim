@@ -8,6 +8,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/progress"
@@ -105,6 +106,7 @@ func newReadCmd() *cobra.Command {
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
+				Display:   display.FromContext(cmd.Context()),
 			})
 		},
 	}

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/progress"
@@ -25,6 +26,7 @@ type ReadOptions struct {
 	Tracker   *progress.Tracker
 	Pages     []int // CLI override pages; nil means use per-input or global config
 	Logger    *slog.Logger
+	Display   display.Display
 }
 
 // Read runs the read (OCR) pipeline for all configured inputs.
@@ -134,11 +136,19 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	// Use compound phase name for per-input progress tracking
 	phaseName := progress.PhaseName("read:" + stem)
 
+	// Start progress display
+	if opts.Display != nil {
+		opts.Display.StartPhase(display.PhaseRead, stem, len(pagesToProcess), "")
+	}
+
 	// Process pages
 	completed := 0
 	failed := 0
 	skipped := 0
 	for _, pageNum := range pagesToProcess {
+		if ctx.Err() != nil {
+			break
+		}
 		// Skip already completed pages — but only if the output file actually exists
 		outputPath := filepath.Join(readDir, fmt.Sprintf("page_%03d.json", pageNum))
 		state := opts.Tracker.State()
@@ -187,6 +197,12 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			logger.Error("read failed", "input", stem, "page", pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pageNum)
 			failed++
+			if opts.Display != nil {
+				opts.Display.Update(display.PageResult{
+					Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
+					Total: len(pagesToProcess), Completed: completed, Failed: failed, Err: err,
+				})
+			}
 			continue
 		}
 
@@ -204,8 +220,18 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 		completed++
 		logger.Info("page read", "input", stem, "page", pageNum, "completed", completed)
+		if opts.Display != nil {
+			opts.Display.Update(display.PageResult{
+				Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
+				Total: len(pagesToProcess), Completed: completed, Failed: failed,
+				Warnings: len(page.ReadWarnings), Entries: len(page.Entries), Footnotes: len(page.Footnotes),
+			})
+		}
 	}
 
+	if opts.Display != nil {
+		opts.Display.FinishPhase(display.PhaseRead, stem)
+	}
 	logger.Info("input read complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 	return nil
 }
