@@ -36,18 +36,39 @@ sections: [ ]
 
 # Model configuration
 read:
-  provider: gemini
-  model: gemini-2.5-flash-lite
-  #  provider: ollama
-  #  model: qwen2.5vl:7b
-  concurrency: 1
+
+  # Maximum free throughput configuration
+  # Combined capacity: ~3,250+ pages/day for read, ~3,250+ for translate
+  models:
+    # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
+    - provider: gemini
+      model: gemini-2.5-flash-lite
+    # 2. Gemini Flash: higher quality, lower quota (250 RPD, 10 RPM)
+    - provider: gemini
+      model: gemini-2.5-flash
+    # 3. Groq: fast, vision via Llama (1,000 RPD, 30 RPM)
+    - provider: groq
+      model: llama-3.2-90b-vision-preview
+    # 4. xAI: $25 free credits, good vision
+    - provider: xai
+      model: grok-2-vision-latest
+    # 5. Local fallback: always available, slow
+    - provider: ollama
+      model: qwen2.5vl:7b
 
 translate:
-  provider: gemini
-  model: gemini-2.5-flash-lite
-  #  provider: ollama
-  #  model: qwen3:14b
-  context_window: 2
+  models:
+    - provider: gemini
+      model: gemini-2.5-flash-lite
+    # - provider: groq
+    #   model: llama-3.3-70b-versatile
+    #   rpm: 30
+    # - provider: mistral
+    #   model: mistral-small-latest
+    #   rpm: 60
+    # - provider: ollama
+    #   model: qwen3:14b
+  context_window: 2                  # Previous pages included for context (min: 0)
 
 write:
   formats: [ md, latex ]

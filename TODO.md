@@ -14,3 +14,5 @@
     * shorter system prompts
 
 - Depenedencies? Single-binary?
+
+- Flatten knowledge.dir config

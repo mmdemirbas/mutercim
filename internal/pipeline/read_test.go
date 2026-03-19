@@ -53,8 +53,7 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 		MidstateDir: "./midstate",
 		DPI:         300,
 		Read: config.ReadConfig{
-			Provider:    "mock",
-			Model:       "test-model",
+			Models:      []config.ModelSpec{{Provider: "mock", Model: "test-model"}},
 			Concurrency: 1,
 		},
 		Retry:     config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
@@ -284,8 +283,7 @@ func TestReadPipelineMultiInput(t *testing.T) {
 		MidstateDir: "./midstate",
 		DPI:         300,
 		Read: config.ReadConfig{
-			Provider:    "mock",
-			Model:       "test-model",
+			Models:      []config.ModelSpec{{Provider: "mock", Model: "test-model"}},
 			Concurrency: 1,
 		},
 		Retry:     config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},

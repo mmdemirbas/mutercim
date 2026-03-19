@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
@@ -43,39 +44,29 @@ func newReadCmd() *cobra.Command {
 				return fmt.Errorf("config: %w", err)
 			}
 
-			// Apply CLI flag overrides
-			if readProvider != "" {
-				cfg.Read.Provider = readProvider
-			}
-			if readModel != "" {
-				cfg.Read.Model = readModel
+			// Apply CLI flag overrides — override the models list
+			if readProvider != "" || readModel != "" {
+				p := readProvider
+				if p == "" && len(cfg.Read.Models) > 0 {
+					p = cfg.Read.Models[0].Provider
+				}
+				m := readModel
+				if m == "" && len(cfg.Read.Models) > 0 {
+					m = cfg.Read.Models[0].Model
+				}
+				cfg.Read.Models = []config.ModelSpec{{Provider: p, Model: m}}
 			}
 			if concurrency > 0 {
 				cfg.Read.Concurrency = concurrency
 			}
 
-			// Resolve API key
-			apiKey, err := resolveAPIKey(cfg.Read.Provider)
-			if err != nil {
-				return err
-			}
-
-			// Create API client
-			clientCfg := apiclient.ClientConfig{
-				Timeout:           clientTimeout(cfg.Read.Provider),
-				MaxRetries:        cfg.Retry.MaxAttempts,
-				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
-				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,
-			}
 			logger := slog.Default()
-			client := apiclient.NewClient(clientCfg, logger)
-			defer client.Close()
 
-			// Create provider
-			p, err := createProvider(cfg.Read.Provider, client, apiKey, cfg.Read.Model)
+			chain, err := createProviderChain(cfg.Read.Models, cfg.Retry, logger)
 			if err != nil {
 				return err
 			}
+			defer chain.Close()
 
 			// Determine page range: CLI flag > config > all
 			pageSpec := cfg.Pages
@@ -102,7 +93,7 @@ func newReadCmd() *cobra.Command {
 			_, err = pipeline.Read(cmd.Context(), pipeline.ReadOptions{
 				Workspace: ws,
 				Config:    cfg,
-				Provider:  p,
+				Provider:  chain,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
@@ -112,26 +103,18 @@ func newReadCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&readProvider, "read-provider", "", "provider: gemini, claude, openai, ollama, surya (default: from config)")
+	cmd.Flags().StringVar(&readProvider, "read-provider", "", "provider: gemini, claude, openai, groq, mistral, openrouter, xai, ollama (default: from config)")
 	cmd.Flags().StringVar(&readModel, "read-model", "", "model for reading (default: from config)")
 	cmd.Flags().IntVar(&concurrency, "concurrency", 0, "parallel read workers (default: from config)")
 
 	return cmd
 }
 
+// resolveAPIKey returns the API key for the given provider from environment variables.
 func resolveAPIKey(providerName string) (string, error) {
-	var envVar string
-	switch providerName {
-	case "gemini":
-		envVar = "GEMINI_API_KEY"
-	case "claude":
-		envVar = "ANTHROPIC_API_KEY"
-	case "openai":
-		envVar = "OPENAI_API_KEY"
-	case "ollama", "surya":
-		return "", nil // Local providers don't need an API key
-	default:
-		return "", fmt.Errorf("unknown provider %q", providerName)
+	envVar := apiKeyEnvVar(providerName)
+	if envVar == "" {
+		return "", nil // Local providers (ollama, surya) don't need a key
 	}
 
 	key := os.Getenv(envVar)
@@ -141,8 +124,32 @@ func resolveAPIKey(providerName string) (string, error) {
 	return key, nil
 }
 
+// apiKeyEnvVar returns the environment variable name for a provider's API key.
+// Returns empty string for providers that don't need a key.
+func apiKeyEnvVar(providerName string) string {
+	switch providerName {
+	case "gemini":
+		return "GEMINI_API_KEY"
+	case "claude":
+		return "ANTHROPIC_API_KEY"
+	case "openai":
+		return "OPENAI_API_KEY"
+	case "groq":
+		return "GROQ_API_KEY"
+	case "mistral":
+		return "MISTRAL_API_KEY"
+	case "openrouter":
+		return "OPENROUTER_API_KEY"
+	case "xai":
+		return "XAI_API_KEY"
+	case "ollama", "surya":
+		return ""
+	default:
+		return strings.ToUpper(providerName) + "_API_KEY"
+	}
+}
+
 // clientTimeout returns an appropriate HTTP timeout for the given provider.
-// Local models (ollama) need much longer timeouts for vision processing.
 func clientTimeout(providerName string) time.Duration {
 	if providerName == "ollama" {
 		return 10 * time.Minute
@@ -150,19 +157,111 @@ func clientTimeout(providerName string) time.Duration {
 	return 120 * time.Second
 }
 
-func createProvider(name string, client *apiclient.Client, apiKey, modelName string) (provider.Provider, error) {
-	reg := provider.NewRegistry()
-	reg.Register(provider.NewGeminiProvider(client, apiKey, modelName))
-	reg.Register(provider.NewClaudeProvider(client, apiKey, modelName))
-	reg.Register(provider.NewOpenAIProvider(client, apiKey, modelName))
-	reg.Register(provider.NewOllamaProvider(client, modelName))
-
-	p, err := reg.Get(name)
-	if err != nil {
-		if name == "surya" {
-			return nil, fmt.Errorf("surya provider is not yet implemented (planned for a future release)")
-		}
-		return nil, err
+// defaultRPM returns the default rate limit for a provider.
+func defaultRPM(providerName string) int {
+	switch providerName {
+	case "gemini":
+		return 10
+	case "claude":
+		return 50
+	case "openai":
+		return 500
+	case "groq":
+		return 30
+	case "mistral":
+		return 60
+	case "openrouter":
+		return 200
+	case "xai":
+		return 60
+	case "ollama":
+		return 1000 // local, effectively unlimited
+	default:
+		return 14
 	}
-	return p, nil
+}
+
+// defaultVision returns whether a provider supports vision by default.
+func defaultVision(providerName string) bool {
+	switch providerName {
+	case "gemini", "claude", "openai", "ollama":
+		return true
+	case "groq", "mistral", "openrouter", "xai":
+		return false
+	default:
+		return false
+	}
+}
+
+// createProviderChain builds a failover chain from a list of model specs.
+// Each model gets its own apiclient.Client with its own rate limiter.
+func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig, logger *slog.Logger) (*provider.FailoverChain, error) {
+	var providers []provider.Provider
+	var clients []*apiclient.Client
+
+	cleanup := func() {
+		for _, c := range clients {
+			c.Close()
+		}
+	}
+
+	for _, spec := range models {
+		apiKey, err := resolveAPIKey(spec.Provider)
+		if err != nil {
+			cleanup()
+			return nil, err
+		}
+
+		rpm := spec.RPM
+		if rpm == 0 {
+			rpm = defaultRPM(spec.Provider)
+		}
+
+		client := apiclient.NewClient(apiclient.ClientConfig{
+			Timeout:           clientTimeout(spec.Provider),
+			MaxRetries:        retryCfg.MaxAttempts,
+			BaseBackoff:       time.Duration(retryCfg.BackoffSeconds) * time.Second,
+			RequestsPerMinute: rpm,
+		}, logger)
+		clients = append(clients, client)
+
+		p, err := buildSingleProvider(spec, client, apiKey)
+		if err != nil {
+			cleanup()
+			return nil, err
+		}
+		providers = append(providers, p)
+	}
+
+	return provider.NewFailoverChain(providers, clients, 60*time.Second, logger), nil
+}
+
+// buildSingleProvider creates one provider from a ModelSpec.
+func buildSingleProvider(spec config.ModelSpec, client *apiclient.Client, apiKey string) (provider.Provider, error) {
+	vision := defaultVision(spec.Provider)
+	if spec.Vision != nil {
+		vision = *spec.Vision
+	}
+
+	switch spec.Provider {
+	case "gemini":
+		return provider.NewGeminiProvider(client, apiKey, spec.Model), nil
+	case "claude":
+		return provider.NewClaudeProvider(client, apiKey, spec.Model), nil
+	case "ollama":
+		return provider.NewOllamaProvider(client, spec.Model), nil
+	case "surya":
+		return nil, fmt.Errorf("surya provider is not yet implemented")
+	default:
+		// OpenAI-compatible providers
+		baseURL := spec.BaseURL
+		if baseURL == "" {
+			if preset, ok := provider.OpenAICompatPresets[spec.Provider]; ok {
+				baseURL = preset
+			} else {
+				return nil, fmt.Errorf("unknown provider %q (no base_url configured)", spec.Provider)
+			}
+		}
+		return provider.NewOpenAICompatProvider(client, spec.Provider, apiKey, spec.Model, baseURL, vision), nil
+	}
 }

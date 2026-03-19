@@ -23,11 +23,15 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DPI != 300 {
 		t.Errorf("DPI = %d, want 300", cfg.DPI)
 	}
-	if cfg.Read.Provider != "gemini" {
-		t.Errorf("Read.Provider = %q, want %q", cfg.Read.Provider, "gemini")
+	// Legacy provider/model fields are empty — defaults go into Models list
+	if len(cfg.Read.Models) == 0 {
+		t.Fatal("Read.Models should have default entries")
 	}
-	if cfg.Read.Model != "gemini-2.0-flash" {
-		t.Errorf("Read.Model = %q, want %q", cfg.Read.Model, "gemini-2.0-flash")
+	if cfg.Read.Models[0].Provider != "gemini" {
+		t.Errorf("Read.Models[0].Provider = %q, want %q", cfg.Read.Models[0].Provider, "gemini")
+	}
+	if cfg.Read.Models[0].Model != "gemini-2.0-flash" {
+		t.Errorf("Read.Models[0].Model = %q, want %q", cfg.Read.Models[0].Model, "gemini-2.0-flash")
 	}
 	if cfg.Translate.ContextWindow != 2 {
 		t.Errorf("Translate.ContextWindow = %d, want 2", cfg.Translate.ContextWindow)
@@ -43,6 +47,17 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.Book.PrimaryTargetLang() != "tr" {
 		t.Errorf("PrimaryTargetLang() = %q, want %q", cfg.Book.PrimaryTargetLang(), "tr")
+	}
+
+	// Verify models migration from legacy provider/model
+	if len(cfg.Read.Models) != 1 {
+		t.Fatalf("Read.Models len = %d, want 1", len(cfg.Read.Models))
+	}
+	if cfg.Read.Models[0].Provider != "gemini" || cfg.Read.Models[0].Model != "gemini-2.0-flash" {
+		t.Errorf("Read.Models[0] = %+v, want gemini/gemini-2.0-flash", cfg.Read.Models[0])
+	}
+	if len(cfg.Translate.Models) != 1 {
+		t.Fatalf("Translate.Models len = %d, want 1", len(cfg.Translate.Models))
 	}
 }
 
@@ -66,8 +81,9 @@ sections:
     type: scholarly_entries
     translate: true
 read:
-  provider: claude
-  model: claude-sonnet-4-20250514
+  models:
+    - provider: claude
+      model: claude-sonnet-4-20250514
 rate_limit:
   requests_per_minute: 50
 `
@@ -97,11 +113,8 @@ rate_limit:
 	if cfg.Sections[0].Type != model.SectionProse {
 		t.Errorf("Sections[0].Type = %q, want %q", cfg.Sections[0].Type, model.SectionProse)
 	}
-	if cfg.Read.Provider != "claude" {
-		t.Errorf("Read.Provider = %q, want %q", cfg.Read.Provider, "claude")
-	}
-	if cfg.Read.Model != "claude-sonnet-4-20250514" {
-		t.Errorf("Read.Model = %q, want %q", cfg.Read.Model, "claude-sonnet-4-20250514")
+	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "claude" || cfg.Read.Models[0].Model != "claude-sonnet-4-20250514" {
+		t.Errorf("Read.Models = %+v, want [{Provider:claude Model:claude-sonnet-4-20250514}]", cfg.Read.Models)
 	}
 	// Default should still apply for unset fields
 	if cfg.Read.Concurrency != 1 {
@@ -288,5 +301,84 @@ inputs:
 	// Plain string should have empty pages (uses global)
 	if cfg.Inputs[2].Path != "./input/vol3.pdf" || cfg.Inputs[2].Pages != "" {
 		t.Errorf("Inputs[2] = %+v, want {Path: ./input/vol3.pdf, Pages: }", cfg.Inputs[2])
+	}
+}
+
+func TestModelsFailoverChainConfig(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `
+read:
+  models:
+    - provider: gemini
+      model: gemini-2.5-flash-lite
+      rpm: 10
+    - provider: groq
+      model: llama-3.3-70b-versatile
+      rpm: 30
+      vision: false
+translate:
+  models:
+    - provider: gemini
+      model: gemini-2.5-flash-lite
+    - provider: mistral
+      model: mistral-small-latest
+      rpm: 60
+`
+	configPath := filepath.Join(dir, "mutercim.yaml")
+	os.WriteFile(configPath, []byte(yaml), 0644)
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	// Read models
+	if len(cfg.Read.Models) != 2 {
+		t.Fatalf("Read.Models len = %d, want 2", len(cfg.Read.Models))
+	}
+	if cfg.Read.Models[0].Provider != "gemini" || cfg.Read.Models[0].RPM != 10 {
+		t.Errorf("Read.Models[0] = %+v", cfg.Read.Models[0])
+	}
+	if cfg.Read.Models[1].Provider != "groq" || cfg.Read.Models[1].RPM != 30 {
+		t.Errorf("Read.Models[1] = %+v", cfg.Read.Models[1])
+	}
+	if cfg.Read.Models[1].Vision == nil || *cfg.Read.Models[1].Vision != false {
+		t.Errorf("Read.Models[1].Vision should be false, got %v", cfg.Read.Models[1].Vision)
+	}
+
+	// Translate models
+	if len(cfg.Translate.Models) != 2 {
+		t.Fatalf("Translate.Models len = %d, want 2", len(cfg.Translate.Models))
+	}
+	if cfg.Translate.Models[1].Provider != "mistral" || cfg.Translate.Models[1].RPM != 60 {
+		t.Errorf("Translate.Models[1] = %+v", cfg.Translate.Models[1])
+	}
+}
+
+func TestModelsDefaultWhenOmitted(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `
+dpi: 300
+`
+	configPath := filepath.Join(dir, "mutercim.yaml")
+	os.WriteFile(configPath, []byte(yaml), 0644)
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	// When models not specified, defaults to gemini
+	if len(cfg.Read.Models) != 1 {
+		t.Fatalf("Read.Models len = %d, want 1", len(cfg.Read.Models))
+	}
+	if cfg.Read.Models[0].Provider != "gemini" || cfg.Read.Models[0].Model != "gemini-2.0-flash" {
+		t.Errorf("Read.Models[0] = %+v, want gemini/gemini-2.0-flash", cfg.Read.Models[0])
+	}
+	if len(cfg.Translate.Models) != 1 {
+		t.Fatalf("Translate.Models len = %d, want 1", len(cfg.Translate.Models))
+	}
+	if cfg.Translate.Models[0].Provider != "gemini" || cfg.Translate.Models[0].Model != "gemini-2.0-flash" {
+		t.Errorf("Translate.Models[0] = %+v, want gemini/gemini-2.0-flash", cfg.Translate.Models[0])
 	}
 }

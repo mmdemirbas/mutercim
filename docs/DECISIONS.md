@@ -46,3 +46,22 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - `SetHeader(HeaderData)` added to Display interface; TTYDisplay includes header in every render cycle
 - Header labels use `%6s:` format for colon alignment (Book/Input/Langs colons at same column)
 - Page range shown as "pages X-Y of N" when configured, otherwise "N pages"
+
+## Model Failover Chains
+- `ReadConfig` and `TranslateConfig` gain `Models []ModelSpec` field (ordered failover list)
+- Legacy `provider`/`model` fields migrated to single-element `Models` list (backward compatible)
+- `FailoverChain` in `provider/failover.go` implements `Provider` interface, wraps multiple providers
+- On 429/quota: marks model exhausted, fails over to next in chain. 60s rolling recovery window
+- Non-vision models skipped for read phase; usable for translate
+- Each model gets its own `apiclient.Client` + `RateLimiter` (per-model RPM)
+
+## OpenAI-Compatible Provider
+- `openai.go` refactored to generic `NewOpenAICompatProvider(name, baseURL, vision)`
+- `OpenAICompatPresets` maps provider names to base URLs: openai, groq, mistral, openrouter, xai
+- All use the same `/v1/chat/completions` endpoint with Bearer auth
+- `NewOpenAIProvider()` preserved as convenience wrapper
+
+## Per-Provider Rate Limits
+- Default RPMs: gemini=10, groq=30, mistral=60, openrouter=200, openai=500, ollama=1000
+- Overridable per-model via `rpm` field in `ModelSpec`
+- Global `rate_limit` config kept for backward compat but per-model RPM takes precedence

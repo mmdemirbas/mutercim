@@ -64,16 +64,26 @@ var schemaAnnotations = map[string]schemaMeta{
 	"sections[].translate": {Description: "Whether to translate this section.", Default: true},
 
 	// read
-	"read":             {Description: "Read phase (OCR/vision) settings."},
-	"read.provider":    {Description: "AI provider for reading.", Default: "gemini", Enum: []string{"gemini", "claude", "openai", "ollama", "surya"}},
-	"read.model":       {Description: "Model name for reading.", Default: "gemini-2.0-flash"},
-	"read.concurrency": {Description: "Reserved for future parallel processing.", Default: 1, Minimum: intPtr(1)},
+	"read":                   {Description: "Read phase (OCR/vision) settings."},
+	"read.models":            {Description: "Ordered failover chain of models. First model is primary; on 429/quota exhaustion, fails over to next."},
+	"read.models[]":          {},
+	"read.models[].provider": {Description: "AI provider name.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
+	"read.models[].model":    {Description: "Model name."},
+	"read.models[].rpm":      {Description: "Requests per minute (0 = use provider default)."},
+	"read.models[].vision":   {Description: "Whether this model supports vision. Null = auto-detect from provider."},
+	"read.models[].base_url": {Description: "Override base URL for OpenAI-compatible providers."},
+	"read.concurrency":       {Description: "Reserved for future parallel processing.", Default: 1, Minimum: intPtr(1)},
 
 	// translate
-	"translate":                {Description: "Translation phase settings."},
-	"translate.provider":       {Description: "AI provider for translation.", Default: "gemini", Enum: []string{"gemini", "claude", "openai", "ollama"}},
-	"translate.model":          {Description: "Model name for translation.", Default: "gemini-2.0-flash"},
-	"translate.context_window": {Description: "Number of previous pages to include as context.", Default: 2, Minimum: intPtr(0)},
+	"translate":                   {Description: "Translation phase settings."},
+	"translate.models":            {Description: "Ordered failover chain of models for translation."},
+	"translate.models[]":          {},
+	"translate.models[].provider": {Description: "AI provider name.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
+	"translate.models[].model":    {Description: "Model name."},
+	"translate.models[].rpm":      {Description: "Requests per minute (0 = use provider default)."},
+	"translate.models[].vision":   {Description: "Whether this model supports vision."},
+	"translate.models[].base_url": {Description: "Override base URL for OpenAI-compatible providers."},
+	"translate.context_window":    {Description: "Number of previous pages to include as context.", Default: 2, Minimum: intPtr(0)},
 
 	// write
 	"write":                    {Description: "Write/compilation phase settings."},

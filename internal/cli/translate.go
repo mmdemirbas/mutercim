@@ -3,9 +3,7 @@ package cli
 import (
 	"fmt"
 	"log/slog"
-	"time"
 
-	"github.com/mmdemirbas/mutercim/internal/apiclient"
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
@@ -43,35 +41,25 @@ func newTranslateCmd() *cobra.Command {
 			}
 
 			// Apply CLI flag overrides
-			if translateProvider != "" {
-				cfg.Translate.Provider = translateProvider
-			}
-			if translateModel != "" {
-				cfg.Translate.Model = translateModel
+			if translateProvider != "" || translateModel != "" {
+				p := translateProvider
+				if p == "" && len(cfg.Translate.Models) > 0 {
+					p = cfg.Translate.Models[0].Provider
+				}
+				m := translateModel
+				if m == "" && len(cfg.Translate.Models) > 0 {
+					m = cfg.Translate.Models[0].Model
+				}
+				cfg.Translate.Models = []config.ModelSpec{{Provider: p, Model: m}}
 			}
 
-			// Resolve API key
-			apiKey, err := resolveAPIKey(cfg.Translate.Provider)
-			if err != nil {
-				return err
-			}
-
-			// Create API client
-			clientCfg := apiclient.ClientConfig{
-				Timeout:           clientTimeout(cfg.Translate.Provider),
-				MaxRetries:        cfg.Retry.MaxAttempts,
-				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
-				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,
-			}
 			logger := slog.Default()
-			client := apiclient.NewClient(clientCfg, logger)
-			defer client.Close()
 
-			// Create provider
-			p, err := createProvider(cfg.Translate.Provider, client, apiKey, cfg.Translate.Model)
+			chain, err := createProviderChain(cfg.Translate.Models, cfg.Retry, logger)
 			if err != nil {
 				return err
 			}
+			defer chain.Close()
 
 			// Load knowledge
 			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.Knowledge.Dir)
@@ -102,7 +90,7 @@ func newTranslateCmd() *cobra.Command {
 			_, err = pipeline.Translate(cmd.Context(), pipeline.TranslateOptions{
 				Workspace:     ws,
 				Config:        cfg,
-				Provider:      p,
+				Provider:      chain,
 				Knowledge:     k,
 				Tracker:       tracker,
 				Pages:         pagesToProcess,
@@ -114,7 +102,7 @@ func newTranslateCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&translateProvider, "translate-provider", "", "provider: gemini, claude, openai, ollama (default: from config)")
+	cmd.Flags().StringVar(&translateProvider, "translate-provider", "", "provider: gemini, claude, openai, groq, mistral, openrouter, xai, ollama (default: from config)")
 	cmd.Flags().StringVar(&translateModel, "translate-model", "", "model for translation (default: from config)")
 	cmd.Flags().IntVar(&contextWindow, "context-window", 0, "number of previous pages for context (default: from config)")
 

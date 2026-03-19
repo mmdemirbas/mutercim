@@ -144,22 +144,42 @@
           "minimum": 1,
           "type": "integer"
         },
-        "model": {
-          "default": "gemini-2.0-flash",
-          "description": "Model name for reading.",
-          "type": "string"
-        },
-        "provider": {
-          "default": "gemini",
-          "description": "AI provider for reading.",
-          "enum": [
-            "gemini",
-            "claude",
-            "openai",
-            "ollama",
-            "surya"
-          ],
-          "type": "string"
+        "models": {
+          "description": "Ordered failover chain of models. First model is primary; on 429/quota exhaustion, fails over to next.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "base_url": {
+                "description": "Override base URL for OpenAI-compatible providers.",
+                "type": "string"
+              },
+              "model": {
+                "description": "Model name.",
+                "type": "string"
+              },
+              "provider": {
+                "description": "AI provider name.",
+                "enum": [
+                  "gemini",
+                  "claude",
+                  "openai",
+                  "groq",
+                  "mistral",
+                  "openrouter",
+                  "xai",
+                  "ollama"
+                ],
+                "type": "string"
+              },
+              "rpm": {
+                "description": "Requests per minute (0 = use provider default).",
+                "type": "integer"
+              },
+              "vision": {}
+            },
+            "type": "object"
+          },
+          "type": "array"
         }
       },
       "type": "object"
@@ -235,21 +255,42 @@
           "minimum": 0,
           "type": "integer"
         },
-        "model": {
-          "default": "gemini-2.0-flash",
-          "description": "Model name for translation.",
-          "type": "string"
-        },
-        "provider": {
-          "default": "gemini",
-          "description": "AI provider for translation.",
-          "enum": [
-            "gemini",
-            "claude",
-            "openai",
-            "ollama"
-          ],
-          "type": "string"
+        "models": {
+          "description": "Ordered failover chain of models for translation.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "base_url": {
+                "description": "Override base URL for OpenAI-compatible providers.",
+                "type": "string"
+              },
+              "model": {
+                "description": "Model name.",
+                "type": "string"
+              },
+              "provider": {
+                "description": "AI provider name.",
+                "enum": [
+                  "gemini",
+                  "claude",
+                  "openai",
+                  "groq",
+                  "mistral",
+                  "openrouter",
+                  "xai",
+                  "ollama"
+                ],
+                "type": "string"
+              },
+              "rpm": {
+                "description": "Requests per minute (0 = use provider default).",
+                "type": "integer"
+              },
+              "vision": {}
+            },
+            "type": "object"
+          },
+          "type": "array"
         }
       },
       "type": "object"

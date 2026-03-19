@@ -202,7 +202,11 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		}
 
 		// Translate
-		translated, err := translator.TranslatePage(ctx, solved, contextSummaries, cfg.Translate.Model)
+		translateModel := ""
+		if len(cfg.Translate.Models) > 0 {
+			translateModel = cfg.Translate.Models[0].Provider + "/" + cfg.Translate.Models[0].Model
+		}
+		translated, err := translator.TranslatePage(ctx, solved, contextSummaries, translateModel)
 		if err != nil {
 			logger.Error("translation failed", "input", stem, "page", pf.pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pf.pageNum)

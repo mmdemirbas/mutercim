@@ -203,7 +203,11 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 
 		// Read page via AI
-		page, err := rdr.ReadPage(ctx, imageData, pageNum, sectionType, cfg.Read.Model)
+		readModel := ""
+		if len(cfg.Read.Models) > 0 {
+			readModel = cfg.Read.Models[0].Provider + "/" + cfg.Read.Models[0].Model
+		}
+		page, err := rdr.ReadPage(ctx, imageData, pageNum, sectionType, readModel)
 		if err != nil {
 			logger.Error("read failed", "input", stem, "page", pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pageNum)

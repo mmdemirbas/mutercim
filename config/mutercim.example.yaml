@@ -93,17 +93,48 @@ sections: []
 #     translate: false
 
 # ─── Read phase (OCR/vision) ─────────────────────────────────────────────────
+#
+# Models are tried in order. On 429 / quota exhaustion, fails over to next.
+# Models without vision support are automatically skipped for read phase.
+#
+# Providers:  gemini | claude | openai | groq | mistral | openrouter | xai | ollama
+# Default RPMs: gemini=10, groq=30, mistral=60, openrouter=200, openai=500, ollama=1000
+#
+# Per-model options:
+#   rpm:      Override default rate limit (requests per minute)
+#   vision:   Override vision auto-detection (true/false)
+#   base_url: Override API base URL (for custom/self-hosted endpoints)
 
 read:
-  provider: gemini                   # gemini | claude | openai | ollama | surya
-  model: gemini-2.0-flash           # Model name for reading page images
+  models:
+    - provider: gemini
+      model: gemini-2.5-flash-lite
+    # - provider: groq                 # groq has no vision — auto-skipped for read
+    #   model: llama-3.3-70b-versatile
+    #   rpm: 30
+    #   vision: false
+    # - provider: ollama
+    #   model: qwen2.5vl:7b
   concurrency: 1                     # Reserved for future parallel processing (min: 1)
+
+  # DEPRECATED single-provider format (still works, migrated to models internally):
+  # provider: gemini
+  # model: gemini-2.5-flash-lite
 
 # ─── Translation phase ───────────────────────────────────────────────────────
 
 translate:
-  provider: gemini                   # gemini | claude | openai | ollama
-  model: gemini-2.0-flash           # Model name for translation
+  models:
+    - provider: gemini
+      model: gemini-2.5-flash-lite
+    # - provider: groq
+    #   model: llama-3.3-70b-versatile
+    #   rpm: 30
+    # - provider: mistral
+    #   model: mistral-small-latest
+    #   rpm: 60
+    # - provider: ollama
+    #   model: qwen3:14b
   context_window: 2                  # Previous pages included for context (min: 0)
 
 # ─── Write/compilation phase ─────────────────────────────────────────────────
@@ -125,7 +156,8 @@ retry:
   max_attempts: 3                    # Maximum retry attempts (min: 0)
   backoff_seconds: 2                 # Base backoff in seconds, exponential: 2s, 4s, 8s (min: 1)
 
-# ─── Rate limiting ───────────────────────────────────────────────────────────
+# ─── Rate limiting (global fallback) ─────────────────────────────────────────
+# Per-model RPM in the models list takes precedence over this global setting.
 
 rate_limit:
   requests_per_minute: 14            # Max API requests per minute (min: 1)

@@ -233,23 +233,26 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 		t.Errorf("DPI = %d, want 300", cfg.DPI)
 	}
 
-	// Read config
-	if cfg.Read.Provider != "gemini" {
-		t.Errorf("Read.Provider = %q, want %q", cfg.Read.Provider, "gemini")
-	}
-	if cfg.Read.Model != "gemini-2.0-flash" {
-		t.Errorf("Read.Model = %q, want %q", cfg.Read.Model, "gemini-2.0-flash")
-	}
+	// Read config — legacy provider/model migrated to models list
 	if cfg.Read.Concurrency != 1 {
 		t.Errorf("Read.Concurrency = %d, want 1", cfg.Read.Concurrency)
 	}
+	if len(cfg.Read.Models) != 1 {
+		t.Fatalf("Read.Models len = %d, want 1", len(cfg.Read.Models))
+	}
+	if cfg.Read.Models[0].Provider != "gemini" {
+		t.Errorf("Read.Models[0].Provider = %q, want %q", cfg.Read.Models[0].Provider, "gemini")
+	}
+	if cfg.Read.Models[0].Model != "gemini-2.0-flash" {
+		t.Errorf("Read.Models[0].Model = %q, want %q", cfg.Read.Models[0].Model, "gemini-2.0-flash")
+	}
 
 	// Translate config
-	if cfg.Translate.Provider != "gemini" {
-		t.Errorf("Translate.Provider = %q, want %q", cfg.Translate.Provider, "gemini")
+	if len(cfg.Translate.Models) != 1 {
+		t.Fatalf("Translate.Models len = %d, want 1", len(cfg.Translate.Models))
 	}
-	if cfg.Translate.Model != "gemini-2.0-flash" {
-		t.Errorf("Translate.Model = %q, want %q", cfg.Translate.Model, "gemini-2.0-flash")
+	if cfg.Translate.Models[0].Provider != "gemini" {
+		t.Errorf("Translate.Models[0].Provider = %q, want %q", cfg.Translate.Models[0].Provider, "gemini")
 	}
 	if cfg.Translate.ContextWindow != 2 {
 		t.Errorf("Translate.ContextWindow = %d, want 2", cfg.Translate.ContextWindow)
@@ -288,8 +291,8 @@ func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 		MidstateDir: "/custom/midstate",
 		DPI:         600,
 		Inputs:      []InputSpec{{Path: "./custom.pdf"}},
-		Read:        ReadConfig{Provider: "claude", Model: "claude-sonnet-4-20250514", Concurrency: 4},
-		Translate:   TranslateConfig{Provider: "openai", Model: "gpt-4", ContextWindow: 5},
+		Read:        ReadConfig{Models: []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}}, Concurrency: 4},
+		Translate:   TranslateConfig{Models: []ModelSpec{{Provider: "openai", Model: "gpt-4"}}, ContextWindow: 5},
 		Write:       WriteConfig{Formats: []string{"docx"}, LaTeXDockerImage: "custom:latest"},
 		Knowledge:   KnowledgeConfig{Dir: "/custom/knowledge"},
 		Retry:       RetryConfig{MaxAttempts: 5, BackoffSeconds: 10},
@@ -307,14 +310,14 @@ func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	if cfg.DPI != 600 {
 		t.Errorf("DPI was overwritten: got %d", cfg.DPI)
 	}
-	if cfg.Read.Provider != "claude" {
-		t.Errorf("Read.Provider was overwritten: got %q", cfg.Read.Provider)
+	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "claude" {
+		t.Errorf("Read.Models was overwritten: got %+v", cfg.Read.Models)
 	}
 	if cfg.Read.Concurrency != 4 {
 		t.Errorf("Read.Concurrency was overwritten: got %d", cfg.Read.Concurrency)
 	}
-	if cfg.Translate.Provider != "openai" {
-		t.Errorf("Translate.Provider was overwritten: got %q", cfg.Translate.Provider)
+	if len(cfg.Translate.Models) != 1 || cfg.Translate.Models[0].Provider != "openai" {
+		t.Errorf("Translate.Models was overwritten: got %+v", cfg.Translate.Models)
 	}
 	if cfg.Translate.ContextWindow != 5 {
 		t.Errorf("Translate.ContextWindow was overwritten: got %d", cfg.Translate.ContextWindow)

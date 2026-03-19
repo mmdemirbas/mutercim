@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
-	"time"
 
-	"github.com/mmdemirbas/mutercim/internal/apiclient"
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/input"
@@ -122,27 +120,16 @@ func newMakeCmd() *cobra.Command {
 
 			// Phase 1: Read
 			logger.Info("=== Phase 1: READ ===")
-			readAPIKey, err := resolveAPIKey(cfg.Read.Provider)
+			readChain, err := createProviderChain(cfg.Read.Models, cfg.Retry, logger)
 			if err != nil {
-				return fmt.Errorf("read API key: %w", err)
+				return fmt.Errorf("create read providers: %w", err)
 			}
-			readClient := apiclient.NewClient(apiclient.ClientConfig{
-				Timeout:           clientTimeout(cfg.Read.Provider),
-				MaxRetries:        cfg.Retry.MaxAttempts,
-				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
-				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,
-			}, logger)
-			defer readClient.Close()
-
-			readProvider, err := createProvider(cfg.Read.Provider, readClient, readAPIKey, cfg.Read.Model)
-			if err != nil {
-				return fmt.Errorf("create read provider: %w", err)
-			}
+			defer readChain.Close()
 
 			readResult, err := pipeline.Read(cmd.Context(), pipeline.ReadOptions{
 				Workspace: ws,
 				Config:    cfg,
-				Provider:  readProvider,
+				Provider:  readChain,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
@@ -182,27 +169,16 @@ func newMakeCmd() *cobra.Command {
 
 			// Phase 3: Translate
 			logger.Info("=== Phase 3: TRANSLATE ===")
-			translateAPIKey, err := resolveAPIKey(cfg.Translate.Provider)
+			translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Retry, logger)
 			if err != nil {
-				return fmt.Errorf("translate API key: %w", err)
+				return fmt.Errorf("create translate providers: %w", err)
 			}
-			translateClient := apiclient.NewClient(apiclient.ClientConfig{
-				Timeout:           clientTimeout(cfg.Translate.Provider),
-				MaxRetries:        cfg.Retry.MaxAttempts,
-				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
-				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,
-			}, logger)
-			defer translateClient.Close()
-
-			translateProvider, err := createProvider(cfg.Translate.Provider, translateClient, translateAPIKey, cfg.Translate.Model)
-			if err != nil {
-				return fmt.Errorf("create translate provider: %w", err)
-			}
+			defer translateChain.Close()
 
 			translateResult, err := pipeline.Translate(cmd.Context(), pipeline.TranslateOptions{
 				Workspace: ws,
 				Config:    cfg,
-				Provider:  translateProvider,
+				Provider:  translateChain,
 				Knowledge: k,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,

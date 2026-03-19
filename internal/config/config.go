@@ -35,18 +35,25 @@ type Config struct {
 	RateLimit   RateLimitConfig `yaml:"rate_limit" mapstructure:"rate_limit" json:"rate_limit"`
 }
 
+// ModelSpec describes a single AI model in a failover chain.
+type ModelSpec struct {
+	Provider string `yaml:"provider" mapstructure:"provider" json:"provider"`
+	Model    string `yaml:"model" mapstructure:"model" json:"model"`
+	RPM      int    `yaml:"rpm,omitempty" mapstructure:"rpm" json:"rpm,omitempty"`                // requests per minute (0 = use provider default)
+	Vision   *bool  `yaml:"vision,omitempty" mapstructure:"vision" json:"vision,omitempty"`       // nil = auto-detect from provider
+	BaseURL  string `yaml:"base_url,omitempty" mapstructure:"base_url" json:"base_url,omitempty"` // override base URL
+}
+
 // ReadConfig holds read-phase settings.
 type ReadConfig struct {
-	Provider    string `yaml:"provider" mapstructure:"provider" json:"provider"`
-	Model       string `yaml:"model" mapstructure:"model" json:"model"`
-	Concurrency int    `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"` // reserved for future parallel processing
+	Models      []ModelSpec `yaml:"models" mapstructure:"models" json:"models"`
+	Concurrency int         `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"` // reserved for future parallel processing
 }
 
 // TranslateConfig holds translation-phase settings.
 type TranslateConfig struct {
-	Provider      string `yaml:"provider" mapstructure:"provider" json:"provider"`
-	Model         string `yaml:"model" mapstructure:"model" json:"model"`
-	ContextWindow int    `yaml:"context_window" mapstructure:"context_window" json:"context_window"`
+	Models        []ModelSpec `yaml:"models" mapstructure:"models" json:"models"`
+	ContextWindow int         `yaml:"context_window" mapstructure:"context_window" json:"context_window"`
 }
 
 // WriteConfig holds write-phase settings.
@@ -82,12 +89,8 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("midstate_dir", "./midstate")
 	v.SetDefault("dpi", 300)
 
-	v.SetDefault("read.provider", "gemini")
-	v.SetDefault("read.model", "gemini-2.0-flash")
 	v.SetDefault("read.concurrency", 1)
 
-	v.SetDefault("translate.provider", "gemini")
-	v.SetDefault("translate.model", "gemini-2.0-flash")
 	v.SetDefault("translate.context_window", 2)
 
 	v.SetDefault("write.formats", []string{"md", "latex"})
@@ -172,20 +175,14 @@ func applyDefaults(cfg *Config) {
 	if cfg.DPI == 0 {
 		cfg.DPI = 300
 	}
-	if cfg.Read.Provider == "" {
-		cfg.Read.Provider = "gemini"
-	}
-	if cfg.Read.Model == "" {
-		cfg.Read.Model = "gemini-2.0-flash"
+	if len(cfg.Read.Models) == 0 {
+		cfg.Read.Models = []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}
 	}
 	if cfg.Read.Concurrency == 0 {
 		cfg.Read.Concurrency = 1
 	}
-	if cfg.Translate.Provider == "" {
-		cfg.Translate.Provider = "gemini"
-	}
-	if cfg.Translate.Model == "" {
-		cfg.Translate.Model = "gemini-2.0-flash"
+	if len(cfg.Translate.Models) == 0 {
+		cfg.Translate.Models = []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}
 	}
 	if cfg.Translate.ContextWindow == 0 {
 		cfg.Translate.ContextWindow = 2

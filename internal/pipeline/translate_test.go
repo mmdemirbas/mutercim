@@ -46,8 +46,7 @@ func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.Sol
 			TargetLangs: []string{"tr"},
 		},
 		Translate: config.TranslateConfig{
-			Provider:      "mock",
-			Model:         "test-model",
+			Models:        []config.ModelSpec{{Provider: "mock", Model: "test-model"}},
 			ContextWindow: 2,
 		},
 		Write: config.WriteConfig{
@@ -126,8 +125,8 @@ func TestTranslatePipeline(t *testing.T) {
 	if translated.TranslatedEntries[0].TranslatedText != "test translation" {
 		t.Errorf("expected translated text %q, got %q", "test translation", translated.TranslatedEntries[0].TranslatedText)
 	}
-	if translated.TranslationModel != "test-model" {
-		t.Errorf("expected translation model %q, got %q", "test-model", translated.TranslationModel)
+	if translated.TranslationModel != "mock/test-model" {
+		t.Errorf("expected translation model %q, got %q", "mock/test-model", translated.TranslationModel)
 	}
 
 	// Verify incremental markdown output was written
