@@ -134,13 +134,17 @@ func extractOneInput(ctx context.Context, opts ExtractOptions, inputPath, stem s
 	failed := 0
 	skipped := 0
 	for _, pageNum := range pagesToProcess {
-		// Skip already completed pages
+		// Skip already completed pages — but only if the output file actually exists
+		outputPath := filepath.Join(extractedDir, fmt.Sprintf("page_%03d.json", pageNum))
 		state := opts.Tracker.State()
 		if phase := state.Phases[phaseName]; phase != nil {
 			if containsInt(phase.Completed, pageNum) {
-				logger.Debug("skipping already completed page", "input", stem, "page", pageNum)
-				skipped++
-				continue
+				if fileExists(outputPath) {
+					logger.Debug("skipping already completed page", "input", stem, "page", pageNum)
+					skipped++
+					continue
+				}
+				logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pageNum)
 			}
 		}
 

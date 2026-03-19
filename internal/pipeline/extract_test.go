@@ -132,16 +132,22 @@ func TestExtractPipeline(t *testing.T) {
 func TestExtractPipelineSkipsCompleted(t *testing.T) {
 	ws, cfg, tracker := setupTestWorkspace(t)
 
-	// Mark page as already completed using compound phase name
+	// Mark page as already completed AND create the output file
 	tracker.MarkCompleted("extract:testinput", 1)
 	if err := tracker.Save(); err != nil {
 		t.Fatalf("save tracker: %v", err)
 	}
 
+	// Create the output file so the skip logic sees it as truly complete
+	outputDir := filepath.Join(ws.ExtractedDir(), "testinput")
+	os.MkdirAll(outputDir, 0755)
+	outputPath := filepath.Join(outputDir, "page_001.json")
+	os.WriteFile(outputPath, []byte(`{"version":"1.0","page_number":1}`), 0644)
+
 	err := Extract(context.Background(), ExtractOptions{
 		Workspace: ws,
 		Config:    cfg,
-		Provider:  &mockProvider{response: "{}"},
+		Provider:  &mockProvider{response: `{"entries":[],"footnotes":[],"warnings":[]}`},
 		Tracker:   tracker,
 		Logger:    nil,
 	})
@@ -149,10 +155,13 @@ func TestExtractPipelineSkipsCompleted(t *testing.T) {
 		t.Fatalf("Extract() error: %v", err)
 	}
 
-	// Output file should NOT exist since we skipped it
-	outputPath := filepath.Join(ws.ExtractedDir(), "testinput", "page_001.json")
-	if _, err := os.Stat(outputPath); err == nil {
-		t.Error("expected no output file for already completed page")
+	// Output file should still contain the original content (not re-processed)
+	data, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatalf("read output: %v", err)
+	}
+	if string(data) != `{"version":"1.0","page_number":1}` {
+		t.Error("output was overwritten — page should have been skipped")
 	}
 }
 

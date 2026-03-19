@@ -71,6 +71,12 @@ func discoverSubdirs(dir string) ([]string, error) {
 	return stems, nil
 }
 
+// fileExists returns true if the path exists and is a regular file.
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
+}
+
 // containsInt returns true if s contains v.
 func containsInt(s []int, v int) bool {
 	for _, x := range s {

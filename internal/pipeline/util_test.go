@@ -131,6 +131,27 @@ func TestFileStem(t *testing.T) {
 	}
 }
 
+func TestFileExists(t *testing.T) {
+	dir := t.TempDir()
+
+	// File exists
+	path := filepath.Join(dir, "test.json")
+	os.WriteFile(path, []byte("{}"), 0644)
+	if !fileExists(path) {
+		t.Error("expected true for existing file")
+	}
+
+	// File doesn't exist
+	if fileExists(filepath.Join(dir, "nonexistent")) {
+		t.Error("expected false for missing file")
+	}
+
+	// Directory — not a file
+	if fileExists(dir) {
+		t.Error("expected false for directory")
+	}
+}
+
 func TestSaveExtractedPageAtomicWrite(t *testing.T) {
 	dir := t.TempDir()
 

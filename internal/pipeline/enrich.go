@@ -101,12 +101,16 @@ func enrichOneInput(ctx context.Context, opts EnrichOptions, enricher *enrichmen
 	skipped := 0
 
 	for _, pf := range pages {
-		// Skip already completed
+		// Skip already completed — but only if the output file actually exists
+		outputPath := filepath.Join(enrichedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
 		state := opts.Tracker.State()
 		if phase := state.Phases[phaseName]; phase != nil {
 			if containsInt(phase.Completed, pf.pageNum) {
-				skipped++
-				continue
+				if fileExists(outputPath) {
+					skipped++
+					continue
+				}
+				logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pf.pageNum)
 			}
 		}
 
