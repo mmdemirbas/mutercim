@@ -57,7 +57,7 @@ func newTranslateCmd() *cobra.Command {
 
 			// Create API client
 			clientCfg := apiclient.ClientConfig{
-				Timeout:           120 * time.Second,
+				Timeout:           clientTimeout(cfg.Translate.Provider),
 				MaxRetries:        cfg.Retry.MaxAttempts,
 				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
 				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,

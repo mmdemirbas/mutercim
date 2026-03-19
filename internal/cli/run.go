@@ -90,7 +90,7 @@ func newRunCmd() *cobra.Command {
 				return fmt.Errorf("extract API key: %w", err)
 			}
 			extractClient := apiclient.NewClient(apiclient.ClientConfig{
-				Timeout:           120 * time.Second,
+				Timeout:           clientTimeout(cfg.Extract.Provider),
 				MaxRetries:        cfg.Retry.MaxAttempts,
 				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
 				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,
@@ -138,7 +138,7 @@ func newRunCmd() *cobra.Command {
 				return fmt.Errorf("translate API key: %w", err)
 			}
 			translateClient := apiclient.NewClient(apiclient.ClientConfig{
-				Timeout:           120 * time.Second,
+				Timeout:           clientTimeout(cfg.Translate.Provider),
 				MaxRetries:        cfg.Retry.MaxAttempts,
 				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
 				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,

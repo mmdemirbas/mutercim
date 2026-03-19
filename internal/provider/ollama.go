@@ -9,18 +9,22 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
 )
 
-// Ollama API request/response types.
+// Ollama /api/chat request/response types.
 
-type ollamaRequest struct {
-	Model  string   `json:"model"`
-	Prompt string   `json:"prompt"`
-	System string   `json:"system,omitempty"`
-	Images []string `json:"images,omitempty"` // base64 encoded
-	Stream bool     `json:"stream"`
+type ollamaChatRequest struct {
+	Model    string          `json:"model"`
+	Messages []ollamaMessage `json:"messages"`
+	Stream   bool            `json:"stream"`
 }
 
-type ollamaResponse struct {
-	Response string `json:"response"`
+type ollamaMessage struct {
+	Role    string   `json:"role"`
+	Content string   `json:"content"`
+	Images  []string `json:"images,omitempty"` // base64 encoded, sibling of content
+}
+
+type ollamaChatResponse struct {
+	Message ollamaMessage `json:"message"`
 }
 
 // OllamaProvider implements Provider for local Ollama.
@@ -50,45 +54,48 @@ func (o *OllamaProvider) Name() string { return "ollama" }
 // SupportsVision returns true because Ollama vision models support image inputs.
 func (o *OllamaProvider) SupportsVision() bool { return true }
 
-// ExtractFromImage sends an image to Ollama and returns the text response.
+// ExtractFromImage sends an image to Ollama via /api/chat and returns the text response.
 func (o *OllamaProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
-	body := ollamaRequest{
-		Model:  o.model,
-		Prompt: userPrompt,
-		System: systemPrompt,
-		Images: []string{base64.StdEncoding.EncodeToString(image)},
+	body := ollamaChatRequest{
+		Model: o.model,
+		Messages: []ollamaMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userPrompt, Images: []string{base64.StdEncoding.EncodeToString(image)}},
+		},
 		Stream: false,
 	}
 
-	resp, err := apiclient.DoJSON[ollamaResponse](o.client, ctx, apiclient.Request{
+	resp, err := apiclient.DoJSON[ollamaChatResponse](o.client, ctx, apiclient.Request{
 		Method:  "POST",
-		URL:     o.baseURL + "/api/generate",
+		URL:     o.baseURL + "/api/chat",
 		Headers: map[string]string{"Content-Type": "application/json"},
 		Body:    body,
 	})
 	if err != nil {
 		return "", fmt.Errorf("ollama extract: %w", err)
 	}
-	return resp.Response, nil
+	return resp.Message.Content, nil
 }
 
-// Translate sends text to Ollama and returns the text response.
+// Translate sends text to Ollama via /api/chat and returns the text response.
 func (o *OllamaProvider) Translate(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
-	body := ollamaRequest{
-		Model:  o.model,
-		Prompt: userPrompt,
-		System: systemPrompt,
+	body := ollamaChatRequest{
+		Model: o.model,
+		Messages: []ollamaMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userPrompt},
+		},
 		Stream: false,
 	}
 
-	resp, err := apiclient.DoJSON[ollamaResponse](o.client, ctx, apiclient.Request{
+	resp, err := apiclient.DoJSON[ollamaChatResponse](o.client, ctx, apiclient.Request{
 		Method:  "POST",
-		URL:     o.baseURL + "/api/generate",
+		URL:     o.baseURL + "/api/chat",
 		Headers: map[string]string{"Content-Type": "application/json"},
 		Body:    body,
 	})
 	if err != nil {
 		return "", fmt.Errorf("ollama translate: %w", err)
 	}
-	return resp.Response, nil
+	return resp.Message.Content, nil
 }

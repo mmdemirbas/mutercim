@@ -14,6 +14,7 @@ CRITICAL RULES:
 5. Recognize footnote/commentary sections (usually separated by a line of asterisks or a horizontal rule from the main text).
 6. Extract source abbreviation codes from footnotes (usually single or double Arabic letters in parentheses).
 7. If the first entry on the page appears to start mid-sentence without a number, mark it as a continuation.
+8. Convert Arabic-Indic numerals (٠١٢٣٤٥٦٧٨٩) and Eastern Arabic-Indic numerals (۰۱۲۳۴۵۶۷۸۹) to Western digits (0123456789) for ALL numeric fields (page_number, entry number, entry_numbers in footnotes). Keep the original Arabic numeral forms only in arabic_text and page_footer string fields.
 
 Return a JSON object with this exact schema:
 {

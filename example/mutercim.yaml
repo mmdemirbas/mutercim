@@ -31,17 +31,17 @@ sections: [ ]
 
 # Model configuration
 extract:
-  #  provider: gemini
-  #  model: gemini-2.0-flash
-  provider: ollama
-  model: qwen2.5vl:7b
+  provider: gemini
+  model: gemini-2.5-flash-lite
+  #  provider: ollama
+  #  model: qwen2.5vl:7b
   concurrency: 1
 
 translate:
-  #  provider: gemini
-  #  model: gemini-2.0-flash
-  provider: ollama
-  model: qwen3:14b
+  provider: gemini
+  model: gemini-2.5-flash-lite
+#  provider: ollama
+#  model: qwen3:14b
   context_window: 2
 
 compile:

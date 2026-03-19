@@ -5,4 +5,6 @@
 
 - If input is a limited range of pages, then bare commands (extract etc.) should honor it unless it is explicitly overridden.
 - print live plan and progress
+- do we still need top-level defaualts?
+- add more tests
 - 

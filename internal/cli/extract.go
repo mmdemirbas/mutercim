@@ -79,7 +79,7 @@ func newExtractCmd() *cobra.Command {
 
 			// Create API client
 			clientCfg := apiclient.ClientConfig{
-				Timeout:           120 * time.Second,
+				Timeout:           clientTimeout(cfg.Extract.Provider),
 				MaxRetries:        cfg.Retry.MaxAttempts,
 				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
 				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,
@@ -155,6 +155,15 @@ func resolveAPIKey(providerName string) (string, error) {
 		return "", fmt.Errorf("%s environment variable is not set (required for %s provider)", envVar, providerName)
 	}
 	return key, nil
+}
+
+// clientTimeout returns an appropriate HTTP timeout for the given provider.
+// Local models (ollama) need much longer timeouts for vision processing.
+func clientTimeout(providerName string) time.Duration {
+	if providerName == "ollama" {
+		return 10 * time.Minute
+	}
+	return 120 * time.Second
 }
 
 func createProvider(name string, client *apiclient.Client, apiKey, modelName string) (provider.Provider, error) {

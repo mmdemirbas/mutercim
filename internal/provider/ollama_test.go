@@ -19,24 +19,42 @@ func newTestOllamaProvider(t *testing.T, serverURL string) *OllamaProvider {
 
 	return &OllamaProvider{
 		client:  client,
-		model:   "qwen2.5-vl:7b",
+		model:   "qwen2.5vl:7b",
 		baseURL: serverURL,
 	}
 }
 
 func TestOllamaProviderExtractFromImage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req ollamaRequest
+		// Verify endpoint
+		if r.URL.Path != "/api/chat" {
+			t.Errorf("expected /api/chat, got %s", r.URL.Path)
+		}
+
+		var req ollamaChatRequest
 		json.NewDecoder(r.Body).Decode(&req)
 
-		if len(req.Images) == 0 {
-			t.Error("expected images in request")
+		// Verify message structure
+		if len(req.Messages) < 2 {
+			t.Fatalf("expected at least 2 messages, got %d", len(req.Messages))
+		}
+		if req.Messages[0].Role != "system" {
+			t.Errorf("expected system message first, got %s", req.Messages[0].Role)
+		}
+		if req.Messages[1].Role != "user" {
+			t.Errorf("expected user message second, got %s", req.Messages[1].Role)
+		}
+		// Images should be a sibling of content in the user message
+		if len(req.Messages[1].Images) == 0 {
+			t.Error("expected images in user message")
 		}
 		if req.Stream {
 			t.Error("expected stream=false")
 		}
 
-		resp := ollamaResponse{Response: `{"page_number": 1}`}
+		resp := ollamaChatResponse{
+			Message: ollamaMessage{Role: "assistant", Content: `{"page_number": 1}`},
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}))
@@ -54,14 +72,23 @@ func TestOllamaProviderExtractFromImage(t *testing.T) {
 
 func TestOllamaProviderTranslate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req ollamaRequest
-		json.NewDecoder(r.Body).Decode(&req)
-
-		if len(req.Images) != 0 {
-			t.Error("translation should not have images")
+		if r.URL.Path != "/api/chat" {
+			t.Errorf("expected /api/chat, got %s", r.URL.Path)
 		}
 
-		resp := ollamaResponse{Response: `{"translated_entries": []}`}
+		var req ollamaChatRequest
+		json.NewDecoder(r.Body).Decode(&req)
+
+		// Translation should not have images
+		for _, msg := range req.Messages {
+			if len(msg.Images) != 0 {
+				t.Error("translation should not have images")
+			}
+		}
+
+		resp := ollamaChatResponse{
+			Message: ollamaMessage{Role: "assistant", Content: `{"translated_entries": []}`},
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}))
