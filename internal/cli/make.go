@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
@@ -204,6 +205,15 @@ func newMakeCmd() *cobra.Command {
 			}
 
 			logger.Info("=== All phases complete ===")
+
+			// Print completion summary to console
+			fmt.Fprintln(os.Stderr)
+			fmt.Fprintln(os.Stderr, "Done.")
+			fmt.Fprintf(os.Stderr, "  Read:      %d pages (%d failed)\n", readResult.Completed, readResult.Failed)
+			fmt.Fprintf(os.Stderr, "  Solve:     %d pages (%d failed)\n", solveResult.Completed, solveResult.Failed)
+			fmt.Fprintf(os.Stderr, "  Translate: %d pages (%d failed)\n", translateResult.Completed, translateResult.Failed)
+			fmt.Fprintf(os.Stderr, "  Output:    %s\n", filepath.Join(ws.Root, cfg.Output))
+			fmt.Fprintln(os.Stderr)
 			return nil
 		},
 	}

@@ -146,7 +146,7 @@ translate:
       model: qwen3:14b
   context_window: 2                  # Previous pages included for context (min: 0)
 
-# ─── Write/compilation phase ─────────────────────────────────────────────────
+# ─── Write phase ─────────────────────────────────────────────────────────────
 
 write:
   formats: [md, latex]               # Output formats: md | latex | docx

@@ -17,10 +17,10 @@ Thumbs.db
 desktop.ini
 
 # example
-/example/input
-/example/midstate
-/example/output
-/example/reports
+/example/**
+!/example/knowledge
+!/example/templates
+!/example/mutercim.yaml
 
 # Logs
 *.log

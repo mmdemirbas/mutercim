@@ -110,9 +110,16 @@ func CompilePDF(ctx context.Context, latexDir, dockerImage string) error {
 	)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("xelatex: %w: %s", err, output)
+		return fmt.Errorf("PDF compilation failed (docker image: %s):\n  %w\n  %s", dockerImage, err, truncateOutput(string(output), 500))
 	}
 	return nil
+}
+
+func truncateOutput(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[len(s)-maxLen:] + "\n  ... (truncated, see book.log for full output)"
 }
 
 // CheckDocker returns an error if docker is not available.

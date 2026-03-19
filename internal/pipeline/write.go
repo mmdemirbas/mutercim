@@ -114,22 +114,32 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 	}
 
 	// Render each requested format
+	var formatErrors []string
 	for _, format := range cfg.Write.Formats {
 		switch format {
 		case "md":
 			if err := compileMarkdown(ws, cfg, stem, targetLang, pages, logger); err != nil {
 				logger.Error("markdown compilation failed", "input", stem, "error", err)
+				formatErrors = append(formatErrors, fmt.Sprintf("md: %v", err))
 			}
 		case "latex":
 			if err := compileLatex(ctx, ws, cfg, stem, targetLang, pages, logger); err != nil {
-				logger.Error("latex compilation failed", "input", stem, "error", err)
+				logger.Error("latex/PDF compilation failed", "input", stem, "error", err)
+				formatErrors = append(formatErrors, fmt.Sprintf("latex: %v", err))
 			}
 		case "docx":
 			if err := compileDocx(ctx, ws, cfg, stem, targetLang, logger); err != nil {
 				logger.Error("docx compilation failed", "input", stem, "error", err)
+				formatErrors = append(formatErrors, fmt.Sprintf("docx: %v", err))
 			}
 		default:
 			logger.Warn("unknown format", "format", format)
+		}
+	}
+	if len(formatErrors) > 0 {
+		fmt.Fprintf(os.Stderr, "WARNING: some output formats failed for %s [%s]:\n", stem, targetLang)
+		for _, e := range formatErrors {
+			fmt.Fprintf(os.Stderr, "  - %s\n", e)
 		}
 	}
 
