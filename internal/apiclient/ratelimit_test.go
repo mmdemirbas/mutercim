@@ -6,16 +6,14 @@ import (
 	"time"
 )
 
-func TestRateLimiterWait(t *testing.T) {
-	rl := NewRateLimiter(60) // 60 RPM = 1 per second
+func TestRateLimiterFirstRequestImmediate(t *testing.T) {
+	rl := NewRateLimiter(60) // 60 RPM
 	defer rl.Close()
 
-	// Should be able to consume all initial tokens without blocking
+	// First request should succeed immediately (1 initial token)
 	ctx := context.Background()
-	for i := 0; i < 60; i++ {
-		if err := rl.Wait(ctx); err != nil {
-			t.Fatalf("Wait() returned error on token %d: %v", i, err)
-		}
+	if err := rl.Wait(ctx); err != nil {
+		t.Fatalf("Wait() returned error: %v", err)
 	}
 }
 
@@ -44,12 +42,10 @@ func TestRateLimiterRefill(t *testing.T) {
 	rl := NewRateLimiter(3600)
 	defer rl.Close()
 
-	// Drain all tokens
+	// Consume the initial token
 	ctx := context.Background()
-	for i := 0; i < 3600; i++ {
-		if err := rl.Wait(ctx); err != nil {
-			t.Fatalf("Wait() error draining token %d: %v", i, err)
-		}
+	if err := rl.Wait(ctx); err != nil {
+		t.Fatalf("Wait() error consuming initial token: %v", err)
 	}
 
 	// Wait for a refill (at 3600 RPM = 1 per ~16ms)
@@ -60,5 +56,29 @@ func TestRateLimiterRefill(t *testing.T) {
 	defer cancel()
 	if err := rl.Wait(ctx); err != nil {
 		t.Fatalf("Wait() after refill returned error: %v", err)
+	}
+}
+
+func TestRateLimiterPacing(t *testing.T) {
+	// 600 RPM = 1 per 100ms
+	rl := NewRateLimiter(600)
+	defer rl.Close()
+
+	ctx := context.Background()
+
+	// First request immediate
+	start := time.Now()
+	if err := rl.Wait(ctx); err != nil {
+		t.Fatalf("Wait() error: %v", err)
+	}
+
+	// Second request should wait ~100ms for refill
+	if err := rl.Wait(ctx); err != nil {
+		t.Fatalf("Wait() error: %v", err)
+	}
+	elapsed := time.Since(start)
+
+	if elapsed < 80*time.Millisecond {
+		t.Errorf("expected pacing delay, but only %v elapsed", elapsed)
 	}
 }

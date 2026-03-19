@@ -120,6 +120,10 @@ func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 			if !isRetryable(httpErr.StatusCode) {
 				return nil, err
 			}
+			c.logger.Warn("retryable error",
+				"status", httpErr.StatusCode,
+				"body", truncate(string(httpErr.Body), 200),
+			)
 			lastErr = err
 			continue
 		}
@@ -178,15 +182,31 @@ func (c *Client) doOnce(ctx context.Context, req Request) ([]byte, error) {
 }
 
 func (c *Client) calculateBackoff(attempt int, lastErr error) time.Duration {
-	// Check for Retry-After from previous error
 	var httpErr *HTTPError
-	if errors.As(lastErr, &httpErr) && httpErr.RetryAfter > 0 {
-		return httpErr.RetryAfter
+	if errors.As(lastErr, &httpErr) {
+		// Respect Retry-After header
+		if httpErr.RetryAfter > 0 {
+			return httpErr.RetryAfter
+		}
+		// For 429 (rate limit), use a minimum 60s backoff since
+		// API rate limits typically reset per-minute
+		if httpErr.StatusCode == 429 {
+			minBackoff := 60 * time.Second
+			jitter := 0.5 + rand.Float64()
+			return time.Duration(float64(minBackoff) * jitter)
+		}
 	}
 	// Exponential backoff: base * 2^(attempt-1) with jitter (0.5x to 1.5x)
 	backoff := c.baseBackoff * (1 << (attempt - 1))
 	jitter := 0.5 + rand.Float64()
 	return time.Duration(float64(backoff) * jitter)
+}
+
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 func isRetryable(statusCode int) bool {

@@ -17,10 +17,9 @@ func NewRateLimiter(requestsPerMinute int) *RateLimiter {
 		tokens:     make(chan struct{}, requestsPerMinute),
 		refillStop: make(chan struct{}),
 	}
-	// Fill initial tokens
-	for i := 0; i < requestsPerMinute; i++ {
-		rl.tokens <- struct{}{}
-	}
+	// Start with one token so the first request goes immediately,
+	// then pace subsequent requests via the refill ticker.
+	rl.tokens <- struct{}{}
 	// Start refill goroutine
 	interval := time.Minute / time.Duration(requestsPerMinute)
 	go func() {

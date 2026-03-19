@@ -72,8 +72,14 @@ func extractOneInput(ctx context.Context, opts ExtractOptions, inputPath, stem s
 		if err := os.MkdirAll(imagesDir, 0755); err != nil {
 			return fmt.Errorf("create images dir: %w", err)
 		}
-		logger.Info("converting PDF to images", "input", inputPath, "dpi", cfg.DPI)
-		if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, cfg.DPI, 0, 0); err != nil {
+		// Only convert requested pages, not the entire PDF
+		firstPage, lastPage := 0, 0
+		if len(opts.Pages) > 0 {
+			firstPage = opts.Pages[0]
+			lastPage = opts.Pages[len(opts.Pages)-1]
+		}
+		logger.Info("converting PDF to images", "input", inputPath, "dpi", cfg.DPI, "first", firstPage, "last", lastPage)
+		if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, cfg.DPI, firstPage, lastPage); err != nil {
 			return fmt.Errorf("convert PDF %s: %w", inputPath, err)
 		}
 	} else {
