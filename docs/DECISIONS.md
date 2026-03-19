@@ -66,6 +66,12 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Overridable per-model via `rpm` field in `ModelSpec`
 - Global `rate_limit` config kept for backward compat but per-model RPM takes precedence
 
+## Validate Merged into Status
+- Removed standalone `validate` CLI command; validation now runs as part of `mutercim status`
+- Core validation logic (`solver/validator.go`) unchanged — still used by solve phase
+- Status collects per-page validation warnings + cross-page entry number gap checks
+- Deleted `cli/validate.go` and `pipeline/export.go` (DiscoverSubdirs wrapper, no longer needed)
+
 ## Idempotent Pipeline with --force Override
 - Pipeline is idempotent by default: pages are skipped if progress tracker marks them completed AND output file exists
 - If output file is missing but progress says completed → re-processes automatically with a warning

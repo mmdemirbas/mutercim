@@ -26,6 +26,4 @@ FEATURES =======================================================================
 
 SIMPLIFICATION =====================================================================================
 
-- What does 'validate' do? How important is it? Should we remove it?
-
 - Dependencies? Single-binary?

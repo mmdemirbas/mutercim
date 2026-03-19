@@ -100,7 +100,6 @@ between languages, preserving layout, structure, and domain-specific terminology
 		ordered(4, newSolveCmd()),
 		ordered(5, newTranslateCmd()),
 		ordered(6, newWriteCmd()),
-		ordered(7, newValidateCmd()),
 	)
 
 	// Workspace commands

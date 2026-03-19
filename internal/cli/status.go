@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,7 +10,9 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
+	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/progress"
+	"github.com/mmdemirbas/mutercim/internal/solver"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +20,7 @@ import (
 func newStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
-		Short: "Show processing progress and any flagged issues",
+		Short: "Show processing progress, validation warnings, and flagged issues",
 		RunE:  runStatus,
 	}
 }
@@ -78,6 +81,9 @@ func runStatus(cmd *cobra.Command, args []string) error {
 			errors = append(errors, fmt.Sprintf("page %d — failed in %s", p, string(phaseName)))
 		}
 	}
+
+	// Run structural validation on read pages
+	warnings = append(warnings, collectValidationWarnings(ws, inputs)...)
 
 	// Log file info
 	logPath := "mutercim.log"
@@ -256,6 +262,75 @@ func countFiles(dir string) int {
 		}
 	}
 	return count
+}
+
+// collectValidationWarnings runs structural validation on read pages and returns warnings.
+func collectValidationWarnings(ws *workspace.Workspace, inputs []string) []string {
+	var warnings []string
+	for _, stem := range inputs {
+		readDir := filepath.Join(ws.ReadDir(), stem)
+		pages, err := loadReadPages(readDir)
+		if err != nil || len(pages) == 0 {
+			continue
+		}
+
+		// Per-page validation
+		for _, page := range pages {
+			v := solver.Validate(page)
+			for _, w := range v.Warnings {
+				warnings = append(warnings, fmt.Sprintf("%s page %d: %s", stem, page.PageNumber, w))
+			}
+		}
+
+		// Cross-page number continuity
+		var allNumbers []int
+		for _, page := range pages {
+			for _, e := range page.Entries {
+				if e.Number != nil && !e.IsContinuation {
+					allNumbers = append(allNumbers, *e.Number)
+				}
+			}
+		}
+		for i := 1; i < len(allNumbers); i++ {
+			if allNumbers[i] != allNumbers[i-1]+1 {
+				warnings = append(warnings, fmt.Sprintf("%s: cross-page entry gap %d → %d", stem, allNumbers[i-1], allNumbers[i]))
+			}
+		}
+	}
+	return warnings
+}
+
+// loadReadPages loads ReadPage JSON files from a directory, sorted by page number.
+func loadReadPages(dir string) ([]*model.ReadPage, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var pages []*model.ReadPage
+	for _, e := range entries {
+		if e.IsDir() || filepath.Ext(e.Name()) != ".json" {
+			continue
+		}
+		var num int
+		if _, err := fmt.Sscanf(e.Name(), "page_%03d.json", &num); err != nil {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		if err != nil {
+			continue
+		}
+		var page model.ReadPage
+		if err := json.Unmarshal(data, &page); err != nil {
+			continue
+		}
+		pages = append(pages, &page)
+	}
+
+	sort.Slice(pages, func(i, j int) bool {
+		return pages[i].PageNumber < pages[j].PageNumber
+	})
+	return pages, nil
 }
 
 func sortedPhaseNames(state progress.State) []progress.PhaseName {
