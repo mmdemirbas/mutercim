@@ -107,6 +107,7 @@ into Turkish, preserving layout, structure, and domain-specific terminology.`,
 	)
 
 	// Custom help template that respects our ordering
+	cobra.AddTemplateFunc("formatGroupedCommands", formatGroupedCommands)
 	rootCmd.SetUsageTemplate(usageTemplate)
 
 	return rootCmd
@@ -276,7 +277,3 @@ Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
 
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `
-
-func init() {
-	cobra.AddTemplateFunc("formatGroupedCommands", formatGroupedCommands)
-}

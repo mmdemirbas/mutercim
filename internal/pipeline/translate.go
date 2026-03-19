@@ -42,6 +42,10 @@ func Translate(ctx context.Context, opts TranslateOptions) error {
 	ws := opts.Workspace
 	cfg := opts.Config
 
+	if len(cfg.Book.TargetLangs) == 0 {
+		return fmt.Errorf("no target languages configured")
+	}
+
 	// Discover inputs from solved directory
 	inputs, err := discoverSubdirs(ws.SolvedDir())
 	if err != nil {
@@ -314,11 +318,13 @@ func writePageOutput(dir string, pageNum int, page *model.TranslatedPage) error 
 		}
 	}
 
-	content := ""
-	for _, l := range lines {
-		content += l + "\n"
-	}
+	content := strings.Join(lines, "\n")
 
 	filename := fmt.Sprintf("page_%03d.md", pageNum)
-	return os.WriteFile(filepath.Join(dir, filename), []byte(content), 0644)
+	tmpPath := filepath.Join(dir, filename+".tmp")
+	finalPath := filepath.Join(dir, filename)
+	if err := os.WriteFile(tmpPath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("write page %d md tmp: %w", pageNum, err)
+	}
+	return os.Rename(tmpPath, finalPath)
 }

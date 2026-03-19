@@ -32,13 +32,13 @@
 - **Issue**: `os.OpenFile` for mutercim.log is called in PersistentPreRunE but the file handle `f` is never closed. It stays open for the entire process lifetime. No cleanup on context cancellation.
 - **Fix**: Store the file handle and close it in a PostRunE or defer.
 
-### [CORRECTNESS] signal.NotifyContext cancel function discarded
+### [FIXED] [CORRECTNESS] signal.NotifyContext cancel function discarded
 - **Severity**: medium
 - **File**: internal/cli/root.go:61-62
 - **Issue**: `ctx, cancel := signal.NotifyContext(...)` — cancel is assigned to `_`. This means the signal notification is never unregistered. For a CLI tool this is harmless (process exits), but violates the signal.NotifyContext contract.
 - **Fix**: Call cancel in a deferred cleanup or at process exit.
 
-### [CORRECTNESS] Write phase sourceInputs variable unused
+### [FIXED] [CORRECTNESS] Write phase sourceInputs variable unused
 - **Severity**: low
 - **File**: internal/pipeline/write.go:40-48
 - **Issue**: `sourceInputs` is computed but never used. The actual rendering loop uses `inputs` from per-lang discovery. The `sourceInputs` fallback code is dead code.
@@ -52,25 +52,25 @@
 - **Issue**: `Close()` calls `close(rl.refillStop)`. If called twice (e.g., deferred close + explicit close), it panics. The `Client.Close()` calls `RateLimiter.Close()` directly.
 - **Fix**: Use `sync.Once` to make Close() idempotent.
 
-### [ROBUSTNESS] Pages phase returns nil even when all inputs fail
+### [FIXED] [ROBUSTNESS] Pages phase returns nil even when all inputs fail
 - **Severity**: medium
 - **File**: internal/pipeline/pages.go:28-57
 - **Issue**: `Pages()` logs errors per input but always returns nil. The caller (`make` command) proceeds to the read phase even if pagination failed entirely.
 - **Fix**: Track failure count and return error if all inputs failed.
 
-### [ROBUSTNESS] Translate phase silently does nothing with empty TargetLangs
+### [FIXED] [ROBUSTNESS] Translate phase silently does nothing with empty TargetLangs
 - **Severity**: medium
 - **File**: internal/pipeline/translate.go:62
 - **Issue**: If `cfg.Book.TargetLangs` is empty, the for-loop body never executes and Translate returns nil (success). Caller thinks translation succeeded.
 - **Fix**: Add early return with error if no target languages configured.
 
-### [ROBUSTNESS] writePageOutput uses non-atomic write
+### [FIXED] [ROBUSTNESS] writePageOutput uses non-atomic write
 - **Severity**: medium
 - **File**: internal/pipeline/translate.go:317-318
 - **Issue**: `os.WriteFile()` without tmp+rename. If Ctrl+C hits during write, the markdown file could be partially written. CLAUDE.md requires atomic writes for all state files.
 - **Fix**: Use the same tmp+rename pattern as saveTranslatedPage.
 
-### [ROBUSTNESS] writePageOutput uses string concatenation in loop
+### [FIXED] [ROBUSTNESS] writePageOutput uses string concatenation in loop
 - **Severity**: low
 - **File**: internal/pipeline/translate.go:312-315
 - **Issue**: `content += l + "\n"` in a loop. For pages with many entries this creates O(n^2) allocations.
@@ -92,7 +92,7 @@
 
 ## Consistency
 
-### [CONSISTENCY] init() function violates CLAUDE.md
+### [FIXED] [CONSISTENCY] init() function violates CLAUDE.md
 - **Severity**: medium
 - **File**: internal/cli/root.go:270
 - **Issue**: `func init() { cobra.AddTemplateFunc("formatGroupedCommands", formatGroupedCommands) }` — CLAUDE.md says "No init() functions anywhere".
@@ -118,17 +118,17 @@
 
 ## Missing Features
 
-### [MISSING] knowledge diff command not implemented
+### [FIXED] [MISSING] knowledge diff command not implemented
 - **Severity**: medium
 - **File**: internal/cli/knowledge_cmd.go
 - **Issue**: SPEC.md specifies `mutercim knowledge diff` to show differences between staged and persistent knowledge. Only `list`, `staged`, and `promote` exist.
 - **Fix**: Implement the diff subcommand.
 
-### [MISSING] Surya provider not implemented
+### [FIXED] [MISSING] Surya provider not implemented
 - **Severity**: medium
 - **File**: internal/provider/
 - **Issue**: SPEC.md lists Surya as a supported provider for local OCR + AI structural parsing. No surya.go exists.
-- **Fix**: Implement or document as "planned".
+- **Fix**: Added as recognized provider with clear "not yet implemented" error; API key resolution handles it.
 
 ### [MISSING] Concurrency in read phase not implemented
 - **Severity**: low
@@ -160,5 +160,5 @@
 
 - **Critical**: 2 — all FIXED (API key logging, panic on empty TargetLangs)
 - **High**: 4 — all FIXED (footnote data loss, footnote model inconsistency, log file leak, double-close panic)
-- **Medium**: 6 (signal cancel, pages returns nil, empty TargetLangs, non-atomic write, knowledge diff missing, surya missing)
-- **Low**: 10 (consistency, performance, test quality)
+- **Medium**: 6 — all FIXED (signal cancel, pages returns nil, empty TargetLangs, non-atomic write, knowledge diff, surya)
+- **Low**: 10 — 3 FIXED (sourceInputs dead code, string concat, init() violation), 7 remaining

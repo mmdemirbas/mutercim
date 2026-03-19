@@ -127,8 +127,8 @@ func resolveAPIKey(providerName string) (string, error) {
 		envVar = "ANTHROPIC_API_KEY"
 	case "openai":
 		envVar = "OPENAI_API_KEY"
-	case "ollama":
-		return "", nil // Ollama doesn't need an API key
+	case "ollama", "surya":
+		return "", nil // Local providers don't need an API key
 	default:
 		return "", fmt.Errorf("unknown provider %q", providerName)
 	}
@@ -159,6 +159,8 @@ func createProvider(name string, client *apiclient.Client, apiKey, modelName str
 		return provider.NewOpenAIProvider(client, apiKey, modelName), nil
 	case "ollama":
 		return provider.NewOllamaProvider(client, modelName), nil
+	case "surya":
+		return nil, fmt.Errorf("surya provider is not yet implemented (planned for a future release)")
 	default:
 		return nil, fmt.Errorf("unknown provider %q", name)
 	}

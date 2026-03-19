@@ -36,6 +36,7 @@ func Pages(ctx context.Context, opts PagesOptions) error {
 		return fmt.Errorf("no inputs configured")
 	}
 
+	var failures int
 	for _, inp := range inputs {
 		resolved := opts.Config.ResolvePath(opts.Workspace.Root, inp.Path)
 		stem := fileStem(inp.Path)
@@ -50,9 +51,13 @@ func Pages(ctx context.Context, opts PagesOptions) error {
 
 		if err := pagesOneInput(ctx, opts, resolved, stem, pages); err != nil {
 			logger.Error("pagination failed", "input", inp.Path, "error", err)
+			failures++
 		}
 	}
 
+	if failures == len(inputs) {
+		return fmt.Errorf("all %d inputs failed pagination", failures)
+	}
 	return nil
 }
 

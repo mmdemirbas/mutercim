@@ -19,6 +19,7 @@ func newKnowledgeCmd() *cobra.Command {
 
 	cmd.AddCommand(newKnowledgeListCmd())
 	cmd.AddCommand(newKnowledgeStagedCmd())
+	cmd.AddCommand(newKnowledgeDiffCmd())
 	cmd.AddCommand(newKnowledgePromoteCmd())
 
 	return cmd
@@ -106,6 +107,85 @@ func newKnowledgeStagedCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func newKnowledgeDiffCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "diff",
+		Short: "Show what staged knowledge adds or overrides on top of persistent knowledge",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ws, err := workspace.Discover(".")
+			if err != nil {
+				return fmt.Errorf("workspace: %w", err)
+			}
+
+			configPath := cfgFile
+			if configPath == "" {
+				configPath = ws.ConfigPath()
+			}
+			cfg, err := config.Load(configPath)
+			if err != nil {
+				return fmt.Errorf("config: %w", err)
+			}
+
+			// Load persistent knowledge only (embedded + workspace, no staged)
+			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.Knowledge.Dir)
+			persistent, err := knowledge.Load(knowledgeDir, "")
+			if err != nil {
+				return fmt.Errorf("load persistent knowledge: %w", err)
+			}
+
+			// Load all three layers (including staged)
+			merged, err := knowledge.Load(knowledgeDir, ws.StagedDir())
+			if err != nil {
+				return fmt.Errorf("load merged knowledge: %w", err)
+			}
+
+			// Diff sources
+			newSources, overriddenSources := diffSources(persistent.Sources, merged.Sources)
+
+			if len(newSources) == 0 && len(overriddenSources) == 0 {
+				fmt.Println("No differences. Staged knowledge is empty or identical to persistent.")
+				return nil
+			}
+
+			if len(newSources) > 0 {
+				fmt.Printf("New sources from staging (%d):\n", len(newSources))
+				for _, s := range newSources {
+					fmt.Printf("  + %s = %s (%s)\n", s.Code, s.NameTr, s.NameAr)
+				}
+			}
+
+			if len(overriddenSources) > 0 {
+				fmt.Printf("Overridden sources (%d):\n", len(overriddenSources))
+				for _, s := range overriddenSources {
+					fmt.Printf("  ~ %s = %s (%s) [was: layer %s]\n", s.Code, s.NameTr, s.NameAr, s.Layer)
+				}
+			}
+
+			return nil
+		},
+	}
+}
+
+// diffSources compares persistent and merged source lists, returning new and overridden entries.
+func diffSources(persistent, merged []knowledge.Source) (newEntries, overridden []knowledge.Source) {
+	persistentSet := make(map[string]knowledge.Source)
+	for _, s := range persistent {
+		persistentSet[s.Code] = s
+	}
+
+	for _, s := range merged {
+		if s.Layer != "staged" {
+			continue
+		}
+		if _, exists := persistentSet[s.Code]; exists {
+			overridden = append(overridden, s)
+		} else {
+			newEntries = append(newEntries, s)
+		}
+	}
+	return
 }
 
 func newKnowledgePromoteCmd() *cobra.Command {
