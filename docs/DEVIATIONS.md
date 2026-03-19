@@ -28,6 +28,9 @@
 - **What**: `source_lang`/`target_lang` → `source_langs`/`target_langs` (plural, `[]string`); translate/write run per target language; prompt is language-parameterized; `TurkishText` → `TranslatedText`
 - **Why**: Support multiple source languages (e.g., Arabic with Persian fragments) and multiple target languages (e.g., Turkish + English), producing separate output per target.
 
+- **What**: Rewrote `mutercim status` as a dashboard with progress bars, ANSI colors (green/yellow/red/dim), NO_COLOR support, per-language translate rows, cascading totals from previous phases, and warning/error detail sections
+- **Why**: Original status output was raw progress.json dump; dashboard gives at-a-glance understanding of workspace state.
+
 - **What**: Added `internal/display` package with live ANSI progress bars (TTY) and line-per-page fallback (non-TTY); always-on structured JSON logging to `<workspace>/mutercim.log`; removed `--log-file` flag; added Ctrl+C signal handling
 - **Why**: Pipeline phases process hundreds of pages — users need live feedback on progress, rate, and ETA. Structured log file enables post-run analysis without cluttering terminal.
 

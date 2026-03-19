@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/mmdemirbas/mutercim/internal/model"
+)
 
 func TestResolvePath(t *testing.T) {
 	cfg := &Config{}
@@ -30,5 +34,333 @@ func TestValidatePages(t *testing.T) {
 	cfg = &Config{Pages: "abc"}
 	if err := cfg.Validate(); err == nil {
 		t.Error("expected error for invalid pages")
+	}
+}
+
+func TestInputPaths(t *testing.T) {
+	tests := []struct {
+		name   string
+		inputs []InputSpec
+		want   []string
+	}{
+		{
+			name:   "multiple inputs",
+			inputs: []InputSpec{{Path: "./vol1.pdf"}, {Path: "./vol2.pdf"}, {Path: "./vol3.pdf"}},
+			want:   []string{"./vol1.pdf", "./vol2.pdf", "./vol3.pdf"},
+		},
+		{
+			name:   "single input",
+			inputs: []InputSpec{{Path: "/data/book.pdf"}},
+			want:   []string{"/data/book.pdf"},
+		},
+		{
+			name:   "empty inputs",
+			inputs: []InputSpec{},
+			want:   []string{},
+		},
+		{
+			name:   "inputs with pages ignored in paths",
+			inputs: []InputSpec{{Path: "./a.pdf", Pages: "1-10"}, {Path: "./b.pdf", Pages: "20-30"}},
+			want:   []string{"./a.pdf", "./b.pdf"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{Inputs: tt.inputs}
+			got := cfg.InputPaths()
+			if len(got) != len(tt.want) {
+				t.Fatalf("InputPaths() len = %d, want %d", len(got), len(tt.want))
+			}
+			for i, p := range got {
+				if p != tt.want[i] {
+					t.Errorf("InputPaths()[%d] = %q, want %q", i, p, tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestInputIsPDF(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		inputs []InputSpec
+		want   bool
+	}{
+		{
+			name:   "PDF in inputs",
+			inputs: []InputSpec{{Path: "./book.pdf"}},
+			want:   true,
+		},
+		{
+			name:   "non-PDF in inputs",
+			inputs: []InputSpec{{Path: "./images"}},
+			want:   false,
+		},
+		{
+			name:   "multiple inputs, first is PDF",
+			inputs: []InputSpec{{Path: "./vol1.pdf"}, {Path: "./images"}},
+			want:   true,
+		},
+		{
+			name:   "multiple inputs, first is not PDF",
+			inputs: []InputSpec{{Path: "./images"}, {Path: "./vol1.pdf"}},
+			want:   false,
+		},
+		{
+			name:  "fallback to Input field when Inputs is empty",
+			input: "./book.pdf",
+			want:  true,
+		},
+		{
+			name:  "fallback to non-PDF Input field",
+			input: "./images",
+			want:  false,
+		},
+		{
+			name: "empty inputs and empty input",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{Input: tt.input, Inputs: tt.inputs}
+			got := cfg.InputIsPDF()
+			if got != tt.want {
+				t.Errorf("InputIsPDF() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidate_PerInputPages(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     Config
+		wantErr bool
+	}{
+		{
+			name: "valid per-input pages",
+			cfg: Config{
+				Inputs: []InputSpec{
+					{Path: "./vol1.pdf", Pages: "1-50"},
+					{Path: "./vol2.pdf", Pages: "10,20-30"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid per-input pages",
+			cfg: Config{
+				Inputs: []InputSpec{
+					{Path: "./vol1.pdf", Pages: "abc"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty per-input pages is valid",
+			cfg: Config{
+				Inputs: []InputSpec{
+					{Path: "./vol1.pdf", Pages: ""},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "mix of valid and invalid per-input pages",
+			cfg: Config{
+				Inputs: []InputSpec{
+					{Path: "./vol1.pdf", Pages: "1-10"},
+					{Path: "./vol2.pdf", Pages: "not-a-range"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid sections combined with valid per-input pages",
+			cfg: Config{
+				Sections: []model.Section{
+					{Name: "intro", Pages: "1-5", Type: model.SectionProse},
+				},
+				Inputs: []InputSpec{
+					{Path: "./vol1.pdf", Pages: "1-50"},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cfg.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
+	cfg := &Config{}
+	applyDefaults(cfg)
+
+	// Book defaults
+	if len(cfg.Book.SourceLangs) != 1 || cfg.Book.SourceLangs[0] != "ar" {
+		t.Errorf("Book.SourceLangs = %v, want [ar]", cfg.Book.SourceLangs)
+	}
+	if len(cfg.Book.TargetLangs) != 1 || cfg.Book.TargetLangs[0] != "tr" {
+		t.Errorf("Book.TargetLangs = %v, want [tr]", cfg.Book.TargetLangs)
+	}
+
+	// Inputs default
+	if len(cfg.Inputs) != 1 || cfg.Inputs[0].Path != "./input" {
+		t.Errorf("Inputs = %v, want [{Path: ./input}]", cfg.Inputs)
+	}
+
+	// Output & MidstateDir
+	if cfg.Output != "./output" {
+		t.Errorf("Output = %q, want %q", cfg.Output, "./output")
+	}
+	if cfg.MidstateDir != "./midstate" {
+		t.Errorf("MidstateDir = %q, want %q", cfg.MidstateDir, "./midstate")
+	}
+
+	// DPI
+	if cfg.DPI != 300 {
+		t.Errorf("DPI = %d, want 300", cfg.DPI)
+	}
+
+	// Read config
+	if cfg.Read.Provider != "gemini" {
+		t.Errorf("Read.Provider = %q, want %q", cfg.Read.Provider, "gemini")
+	}
+	if cfg.Read.Model != "gemini-2.0-flash" {
+		t.Errorf("Read.Model = %q, want %q", cfg.Read.Model, "gemini-2.0-flash")
+	}
+	if cfg.Read.Concurrency != 1 {
+		t.Errorf("Read.Concurrency = %d, want 1", cfg.Read.Concurrency)
+	}
+
+	// Translate config
+	if cfg.Translate.Provider != "gemini" {
+		t.Errorf("Translate.Provider = %q, want %q", cfg.Translate.Provider, "gemini")
+	}
+	if cfg.Translate.Model != "gemini-2.0-flash" {
+		t.Errorf("Translate.Model = %q, want %q", cfg.Translate.Model, "gemini-2.0-flash")
+	}
+	if cfg.Translate.ContextWindow != 2 {
+		t.Errorf("Translate.ContextWindow = %d, want 2", cfg.Translate.ContextWindow)
+	}
+
+	// Write config
+	if len(cfg.Write.Formats) != 2 || cfg.Write.Formats[0] != "md" || cfg.Write.Formats[1] != "latex" {
+		t.Errorf("Write.Formats = %v, want [md latex]", cfg.Write.Formats)
+	}
+	if cfg.Write.LaTeXDockerImage != "mutercim/xelatex:latest" {
+		t.Errorf("Write.LaTeXDockerImage = %q, want %q", cfg.Write.LaTeXDockerImage, "mutercim/xelatex:latest")
+	}
+
+	// Knowledge
+	if cfg.Knowledge.Dir != "./knowledge" {
+		t.Errorf("Knowledge.Dir = %q, want %q", cfg.Knowledge.Dir, "./knowledge")
+	}
+
+	// Retry
+	if cfg.Retry.MaxAttempts != 3 {
+		t.Errorf("Retry.MaxAttempts = %d, want 3", cfg.Retry.MaxAttempts)
+	}
+	if cfg.Retry.BackoffSeconds != 2 {
+		t.Errorf("Retry.BackoffSeconds = %d, want 2", cfg.Retry.BackoffSeconds)
+	}
+
+	// RateLimit
+	if cfg.RateLimit.RequestsPerMinute != 14 {
+		t.Errorf("RateLimit.RequestsPerMinute = %d, want 14", cfg.RateLimit.RequestsPerMinute)
+	}
+}
+
+func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
+	cfg := &Config{
+		Output:      "/custom/output",
+		MidstateDir: "/custom/midstate",
+		DPI:         600,
+		Inputs:      []InputSpec{{Path: "./custom.pdf"}},
+		Read:        ReadConfig{Provider: "claude", Model: "claude-sonnet-4-20250514", Concurrency: 4},
+		Translate:   TranslateConfig{Provider: "openai", Model: "gpt-4", ContextWindow: 5},
+		Write:       WriteConfig{Formats: []string{"docx"}, LaTeXDockerImage: "custom:latest"},
+		Knowledge:   KnowledgeConfig{Dir: "/custom/knowledge"},
+		Retry:       RetryConfig{MaxAttempts: 5, BackoffSeconds: 10},
+		RateLimit:   RateLimitConfig{RequestsPerMinute: 100},
+		Book:        model.Book{SourceLangs: []string{"fa"}, TargetLangs: []string{"en"}},
+	}
+	applyDefaults(cfg)
+
+	if cfg.Output != "/custom/output" {
+		t.Errorf("Output was overwritten: got %q", cfg.Output)
+	}
+	if cfg.MidstateDir != "/custom/midstate" {
+		t.Errorf("MidstateDir was overwritten: got %q", cfg.MidstateDir)
+	}
+	if cfg.DPI != 600 {
+		t.Errorf("DPI was overwritten: got %d", cfg.DPI)
+	}
+	if cfg.Read.Provider != "claude" {
+		t.Errorf("Read.Provider was overwritten: got %q", cfg.Read.Provider)
+	}
+	if cfg.Read.Concurrency != 4 {
+		t.Errorf("Read.Concurrency was overwritten: got %d", cfg.Read.Concurrency)
+	}
+	if cfg.Translate.Provider != "openai" {
+		t.Errorf("Translate.Provider was overwritten: got %q", cfg.Translate.Provider)
+	}
+	if cfg.Translate.ContextWindow != 5 {
+		t.Errorf("Translate.ContextWindow was overwritten: got %d", cfg.Translate.ContextWindow)
+	}
+	if len(cfg.Write.Formats) != 1 || cfg.Write.Formats[0] != "docx" {
+		t.Errorf("Write.Formats was overwritten: got %v", cfg.Write.Formats)
+	}
+	if cfg.Knowledge.Dir != "/custom/knowledge" {
+		t.Errorf("Knowledge.Dir was overwritten: got %q", cfg.Knowledge.Dir)
+	}
+	if cfg.Retry.MaxAttempts != 5 {
+		t.Errorf("Retry.MaxAttempts was overwritten: got %d", cfg.Retry.MaxAttempts)
+	}
+	if cfg.RateLimit.RequestsPerMinute != 100 {
+		t.Errorf("RateLimit.RequestsPerMinute was overwritten: got %d", cfg.RateLimit.RequestsPerMinute)
+	}
+	if cfg.Book.SourceLangs[0] != "fa" {
+		t.Errorf("Book.SourceLangs was overwritten: got %v", cfg.Book.SourceLangs)
+	}
+}
+
+func TestApplyDefaults_SingularLangMigration(t *testing.T) {
+	// When SourceLangs is empty but SourceLang is set, should migrate
+	cfg := &Config{
+		Book: model.Book{
+			SourceLang: "fa",
+			TargetLang: "en",
+		},
+	}
+	applyDefaults(cfg)
+
+	if len(cfg.Book.SourceLangs) != 1 || cfg.Book.SourceLangs[0] != "fa" {
+		t.Errorf("SourceLangs = %v, want [fa]", cfg.Book.SourceLangs)
+	}
+	if len(cfg.Book.TargetLangs) != 1 || cfg.Book.TargetLangs[0] != "en" {
+		t.Errorf("TargetLangs = %v, want [en]", cfg.Book.TargetLangs)
+	}
+}
+
+func TestApplyDefaults_SingularInputMigration(t *testing.T) {
+	cfg := &Config{
+		Input: "./custom/book.pdf",
+	}
+	applyDefaults(cfg)
+
+	if len(cfg.Inputs) != 1 || cfg.Inputs[0].Path != "./custom/book.pdf" {
+		t.Errorf("Inputs = %v, want [{Path: ./custom/book.pdf}]", cfg.Inputs)
 	}
 }

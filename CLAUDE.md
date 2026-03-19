@@ -20,6 +20,27 @@ After implementing any phase or making any significant change:
 
 Do NOT proceed to the next task if any of these fail. Fix the issue first.
 
+## Testing Discipline
+
+Every implementation must include tests. No exceptions.
+
+- Every new public function gets at least one test
+- Every new package gets a _test.go file
+- Table-driven tests for all parsing, formatting, and transformation logic
+- httptest.NewServer for any HTTP client code
+- t.TempDir() for any file I/O tests
+- After implementing any feature, run `go test ./...` before declaring done
+- If any test fails, fix it before moving on
+- When modifying existing code, verify existing tests still pass
+- When fixing a bug, add a test that reproduces it first
+
+Test quality matters:
+
+- Test names describe the scenario, not the function: "TestParsePageRange_overlapping_ranges"
+- Test edge cases: empty input, nil, zero, single item, malformed data
+- Tests must not depend on network, real API keys, or external services
+- Tests must not use time.Sleep — use channels or sync primitives
+
 ## Deviation Tracking
 
 If you make a design choice that differs from SPEC.md (different function signature, renamed

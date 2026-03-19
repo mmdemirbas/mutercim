@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
@@ -22,14 +23,10 @@ func newStatusCmd() *cobra.Command {
 }
 
 func runStatus(cmd *cobra.Command, args []string) error {
-	cwd, err := os.Getwd()
+	ws, err := workspace.Discover(".")
 	if err != nil {
-		return fmt.Errorf("get working directory: %w", err)
-	}
-
-	ws, err := workspace.Discover(cwd)
-	if err != nil {
-		return fmt.Errorf("not in a workspace: %w", err)
+		fmt.Fprintln(os.Stderr, "No workspace found. Run 'mutercim init' first.")
+		return nil
 	}
 
 	configPath := cfgFile
@@ -47,106 +44,167 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 	state := tracker.State()
 
-	// Print book info
-	if cfg.Book.Title != "" {
-		fmt.Printf("Book:   %s\n", cfg.Book.Title)
-	}
-	if cfg.Book.Author != "" {
-		fmt.Printf("Author: %s\n", cfg.Book.Author)
-	}
-	if cfg.Pages != "" {
-		fmt.Printf("Pages:  %s\n", cfg.Pages)
-	}
-
-	// Discover inputs from filesystem
+	// Discover inputs
 	inputs := discoverInputs(ws)
 	if len(inputs) == 0 && len(cfg.Inputs) > 0 {
-		// No files on disk yet, show configured inputs
 		for _, inp := range cfg.Inputs {
 			inputs = append(inputs, filepath.Base(strings.TrimSuffix(inp.Path, filepath.Ext(inp.Path))))
 		}
 	}
 
-	if len(inputs) == 0 {
-		fmt.Println("\nNo inputs found.")
-		return nil
-	}
-
-	// Phase directories to scan
-	type phaseDir struct {
-		label string
-		dir   string
-	}
-	phaseDirs := []phaseDir{
-		{"images", ws.ImagesDir()},
-		{"read", ws.ReadDir()},
-		{"solved", ws.SolvedDir()},
-		{"translated", ws.TranslatedDir()},
-	}
-
-	// Print per-input status
+	// Count total images
+	totalImages := 0
 	for _, stem := range inputs {
-		fmt.Printf("\n%s:\n", stem)
+		totalImages += countFiles(filepath.Join(ws.ImagesDir(), stem))
+	}
 
-		// Count files on disk per phase
-		for _, pd := range phaseDirs {
-			subdir := filepath.Join(pd.dir, stem)
-			count := countFiles(subdir)
-			if count > 0 {
-				fmt.Printf("  %-12s %d files\n", pd.label+":", count)
-			}
-		}
-
-		// Show progress tracker data for all matching phases
-		for _, phaseName := range sortedPhaseNames(state) {
-			name := string(phaseName)
-			// Match "read:Anfas1" to input "Anfas1"
-			if !strings.HasSuffix(name, ":"+stem) {
-				continue
-			}
-			prefix := strings.TrimSuffix(name, ":"+stem)
-			ps := state.Phases[phaseName]
-			printPhaseProgress(prefix, ps)
+	// Build input name from config
+	inputName := ""
+	if len(cfg.Inputs) > 0 {
+		inputName = filepath.Base(cfg.Inputs[0].Path)
+		if len(cfg.Inputs) > 1 {
+			inputName += fmt.Sprintf(" (+%d more)", len(cfg.Inputs)-1)
 		}
 	}
 
-	// Show any phases not tied to a specific input (legacy or global)
-	orphanPhases := findOrphanPhases(state, inputs)
-	if len(orphanPhases) > 0 {
-		fmt.Println()
-		for _, name := range orphanPhases {
-			ps := state.Phases[progress.PhaseName(name)]
-			fmt.Printf("%s:\n", name)
-			printPhaseProgress("", ps)
+	// Build phase rows
+	rows := buildPhaseRows(state, inputs, totalImages, cfg.Book.TargetLangs)
+
+	// Collect warnings and errors from failed pages
+	var warnings, errors []string
+	for _, phaseName := range sortedPhaseNames(state) {
+		ps := state.Phases[phaseName]
+		for _, p := range ps.Failed {
+			errors = append(errors, fmt.Sprintf("page %d — failed in %s", p, string(phaseName)))
 		}
 	}
 
+	// Log file info
+	logPath := "mutercim.log"
+	var logSize int64
+	if info, err := os.Stat(filepath.Join(ws.Root, logPath)); err == nil {
+		logSize = info.Size()
+	}
+
+	data := display.StatusData{
+		BookTitle:   cfg.Book.Title,
+		BookAuthor:  cfg.Book.Author,
+		InputName:   inputName,
+		InputPages:  totalImages,
+		SourceLangs: cfg.Book.SourceLangs,
+		TargetLangs: cfg.Book.TargetLangs,
+		Phases:      rows,
+		Warnings:    warnings,
+		Errors:      errors,
+		LogPath:     logPath,
+		LogSize:     logSize,
+	}
+
+	colors := display.NewStatusColors(os.Stdout)
+	display.RenderStatus(os.Stdout, data, colors)
 	return nil
 }
 
-func printPhaseProgress(label string, ps *progress.PhaseState) {
-	if label != "" {
-		label += ": "
-	}
-	prefix := "  "
+// buildPhaseRows creates the status table rows from progress state.
+func buildPhaseRows(state progress.State, inputs []string, totalImages int, targetLangs []string) []display.PhaseRow {
+	var rows []display.PhaseRow
 
-	fmt.Printf("%s%scompleted: %d", prefix, label, len(ps.Completed))
-	if len(ps.Failed) > 0 {
-		fmt.Printf(", failed: %d %v", len(ps.Failed), ps.Failed)
+	// Aggregate across all inputs for each phase
+	pagesCompleted := aggregateCompleted(state, "pages", inputs)
+	readCompleted, readFailed, readWarnings := aggregateAll(state, "read", inputs)
+	solveCompleted, solveFailed, _ := aggregateAll(state, "solve", inputs)
+
+	// Pages row
+	pagesTotal := totalImages
+	if pagesTotal == 0 {
+		pagesTotal = pagesCompleted // fallback
 	}
-	if len(ps.Pending) > 0 {
-		fmt.Printf(", pending: %d", len(ps.Pending))
+	rows = append(rows, display.PhaseRow{
+		Name: "pages", Completed: pagesCompleted, Total: pagesTotal,
+		Done: pagesCompleted > 0 && pagesCompleted >= pagesTotal,
+	})
+
+	// Read row
+	readTotal := totalImages
+	rows = append(rows, display.PhaseRow{
+		Name: "read", Completed: readCompleted, Failed: readFailed,
+		Total: readTotal, Warnings: readWarnings,
+		Done: readTotal > 0 && readCompleted+readFailed >= readTotal,
+	})
+
+	// Solve row — total is based on successful reads
+	solveTotal := readCompleted
+	rows = append(rows, display.PhaseRow{
+		Name: "solve", Completed: solveCompleted, Failed: solveFailed,
+		Total: solveTotal,
+		Done:  solveTotal > 0 && solveCompleted+solveFailed >= solveTotal,
+	})
+
+	// Translate/write rows — per target language
+	for _, lang := range targetLangs {
+		transCompleted, transFailed, _ := aggregateAllLang(state, "translate", lang, inputs)
+		transTotal := solveCompleted
+		rows = append(rows, display.PhaseRow{
+			Name: "translate", Completed: transCompleted, Failed: transFailed,
+			Total: transTotal, Lang: lang,
+			Done: transTotal > 0 && transCompleted+transFailed >= transTotal,
+		})
 	}
-	fmt.Println()
-	if ps.LastRun != "" {
-		fmt.Printf("%s%slast run: %s\n", prefix, label, ps.LastRun)
+
+	for _, lang := range targetLangs {
+		writeCompleted, writeFailed, _ := aggregateAllLang(state, "write", lang, inputs)
+		transCompleted, _, _ := aggregateAllLang(state, "translate", lang, inputs)
+		writeTotal := transCompleted
+		rows = append(rows, display.PhaseRow{
+			Name: "write", Completed: writeCompleted, Failed: writeFailed,
+			Total: writeTotal, Lang: lang,
+			Done: writeTotal > 0 && writeCompleted+writeFailed >= writeTotal,
+		})
 	}
+
+	return rows
 }
 
-// discoverInputs finds input stems by scanning cache subdirectories for per-input folders.
+// aggregateCompleted sums completed pages across all inputs for a phase prefix.
+func aggregateCompleted(state progress.State, prefix string, inputs []string) int {
+	total := 0
+	for _, stem := range inputs {
+		name := progress.PhaseName(prefix + ":" + stem)
+		if ps, ok := state.Phases[name]; ok {
+			total += len(ps.Completed)
+		}
+	}
+	return total
+}
+
+// aggregateAll sums completed, failed, and warning counts across inputs.
+func aggregateAll(state progress.State, prefix string, inputs []string) (completed, failed, warnings int) {
+	for _, stem := range inputs {
+		name := progress.PhaseName(prefix + ":" + stem)
+		if ps, ok := state.Phases[name]; ok {
+			completed += len(ps.Completed)
+			failed += len(ps.Failed)
+		}
+	}
+	return
+}
+
+// aggregateAllLang sums across inputs for a lang-specific phase (translate:lang:stem, write:lang:stem).
+func aggregateAllLang(state progress.State, prefix, lang string, inputs []string) (completed, failed, warnings int) {
+	for _, stem := range inputs {
+		name := progress.PhaseName(prefix + ":" + lang + ":" + stem)
+		if ps, ok := state.Phases[name]; ok {
+			completed += len(ps.Completed)
+			failed += len(ps.Failed)
+		}
+	}
+	return
+}
+
+// discoverInputs finds input stems by scanning midstate subdirectories.
 func discoverInputs(ws *workspace.Workspace) []string {
 	seen := make(map[string]bool)
-	for _, dir := range []string{ws.ImagesDir(), ws.ReadDir(), ws.SolvedDir(), ws.TranslatedDir()} {
+	for _, dir := range []string{ws.ImagesDir(), ws.ReadDir(), ws.SolvedDir()} {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue
@@ -154,6 +212,24 @@ func discoverInputs(ws *workspace.Workspace) []string {
 		for _, e := range entries {
 			if e.IsDir() {
 				seen[e.Name()] = true
+			}
+		}
+	}
+	// Also check translated dir (has per-lang subdirs)
+	entries, err := os.ReadDir(ws.TranslatedDir())
+	if err == nil {
+		for _, langDir := range entries {
+			if !langDir.IsDir() {
+				continue
+			}
+			subEntries, err := os.ReadDir(filepath.Join(ws.TranslatedDir(), langDir.Name()))
+			if err != nil {
+				continue
+			}
+			for _, e := range subEntries {
+				if e.IsDir() {
+					seen[e.Name()] = true
+				}
 			}
 		}
 	}
@@ -190,27 +266,4 @@ func sortedPhaseNames(state progress.State) []progress.PhaseName {
 		return string(names[i]) < string(names[j])
 	})
 	return names
-}
-
-// findOrphanPhases returns phase names that don't match any known input stem.
-func findOrphanPhases(state progress.State, inputs []string) []string {
-	inputSet := make(map[string]bool)
-	for _, stem := range inputs {
-		inputSet[stem] = true
-	}
-
-	var orphans []string
-	for name := range state.Phases {
-		s := string(name)
-		if idx := strings.LastIndex(s, ":"); idx >= 0 {
-			stem := s[idx+1:]
-			if inputSet[stem] {
-				continue
-			}
-		}
-		// Phase without ":" or with unknown stem
-		orphans = append(orphans, s)
-	}
-	sort.Strings(orphans)
-	return orphans
 }

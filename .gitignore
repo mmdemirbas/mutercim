@@ -21,3 +21,6 @@ desktop.ini
 /example/midstate
 /example/output
 /example/reports
+
+# Logs
+*.log
