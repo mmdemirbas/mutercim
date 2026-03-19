@@ -37,7 +37,7 @@ func Load(workspaceKnowledgeDir, stagedDir string) (*Knowledge, error) {
 }
 
 func loadFromFS(k *Knowledge, fsys fs.FS, root, layer string) error {
-	if err := loadYAML(k, fsys, filepath.Join(root, "honorifics.yaml"), layer, loadHonorifics); err != nil {
+	if err := loadYAML(k, fsys, filepath.Join(root, "phrases.yaml"), layer, loadHonorifics); err != nil {
 		return err
 	}
 	if err := loadYAML(k, fsys, filepath.Join(root, "sources.yaml"), layer, loadSources); err != nil {
@@ -46,7 +46,7 @@ func loadFromFS(k *Knowledge, fsys fs.FS, root, layer string) error {
 	if err := loadYAML(k, fsys, filepath.Join(root, "people.yaml"), layer, loadPeople); err != nil {
 		return err
 	}
-	if err := loadYAML(k, fsys, filepath.Join(root, "terminology.yaml"), layer, loadTerminology); err != nil {
+	if err := loadYAML(k, fsys, filepath.Join(root, "terms.yaml"), layer, loadTerminology); err != nil {
 		return err
 	}
 	if err := loadYAML(k, fsys, filepath.Join(root, "places.yaml"), layer, loadPlaces); err != nil {
