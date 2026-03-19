@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -26,7 +27,11 @@ func newConfigCmd() *cobra.Command {
 			case "json":
 				data, err = json.MarshalIndent(cfg, "", "  ")
 			case "yaml":
-				data, err = yaml.Marshal(cfg)
+				var buf bytes.Buffer
+				enc := yaml.NewEncoder(&buf)
+				enc.SetIndent(2)
+				err = enc.Encode(cfg)
+				data = buf.Bytes()
 			default:
 				return fmt.Errorf("unsupported format %q (use json or yaml)", format)
 			}
