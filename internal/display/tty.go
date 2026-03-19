@@ -74,7 +74,8 @@ func (d *TTYDisplay) SetStatus(status StatusLine) {
 }
 
 func (d *TTYDisplay) startStatusTicker() {
-	d.statusStop = make(chan struct{})
+	stop := make(chan struct{})
+	d.statusStop = stop
 	go func() {
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
@@ -86,7 +87,7 @@ func (d *TTYDisplay) startStatusTicker() {
 					d.render()
 				}
 				d.mu.Unlock()
-			case <-d.statusStop:
+			case <-stop:
 				return
 			}
 		}
