@@ -193,6 +193,12 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			logger.Error("failed to load image", "input", stem, "page", pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pageNum)
 			failed++
+			if opts.Display != nil {
+				opts.Display.Update(display.PageResult{
+					Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
+					Total: len(pagesToProcess), Completed: completed, Failed: failed, Err: err,
+				})
+			}
 			continue
 		}
 
@@ -216,6 +222,12 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			logger.Error("failed to save read page", "input", stem, "page", pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pageNum)
 			failed++
+			if opts.Display != nil {
+				opts.Display.Update(display.PageResult{
+					Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
+					Total: len(pagesToProcess), Completed: completed, Failed: failed, Err: err,
+				})
+			}
 			continue
 		}
 

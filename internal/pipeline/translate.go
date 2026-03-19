@@ -222,6 +222,13 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			logger.Error("failed to save translated page", "input", stem, "page", pf.pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pf.pageNum)
 			failed++
+			if opts.Display != nil {
+				opts.Display.Update(display.PageResult{
+					Phase: display.PhaseTranslate, Input: stem, PageNum: pf.pageNum,
+					Total: len(pages), Completed: completed, Failed: failed,
+					Lang: targetLang, Err: err,
+				})
+			}
 			continue
 		}
 
