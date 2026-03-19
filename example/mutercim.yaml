@@ -1,0 +1,63 @@
+book:
+  title: "Test Book"
+  author: "Unknown Author"
+  source_lang: ar
+  target_lang: tr
+
+# Input files (relative to workspace root)
+inputs:
+  - ./input/Anfas1.pdf
+
+# Page range to process: "1-50", "1,5,10-20", "all"
+pages: "1-5"
+
+output: ./output
+cache_dir: ./cache
+dpi: 300
+
+# Sections define the book's internal layout structure.
+# Pages not covered by any section default to type: auto.
+# If no sections are defined at all, entire book is type: auto.
+#
+# Section types:
+#   skip              - Don't process these pages
+#   prose             - Continuous paragraphs (introductions, prefaces)
+#   scholarly_entries  - Numbered entries + footnotes with source codes (hadith, athar)
+#   reference_table   - Key-value reference data (abbreviation keys → auto-staged)
+#   toc               - Table of contents
+#   index             - Alphabetical index
+#   auto              - AI detects layout (default for unconfigured pages)
+sections: [ ]
+
+# Model configuration
+extract:
+  #  provider: gemini
+  #  model: gemini-2.0-flash
+  provider: ollama
+  model: qwen2.5vl:7b
+  concurrency: 1
+
+translate:
+  #  provider: gemini
+  #  model: gemini-2.0-flash
+  provider: ollama
+  model: qwen3:14b
+  context_window: 2
+
+compile:
+  formats: [ md, latex ]
+  expand_sources: true
+  latex_docker_image: mutercim/xelatex:latest
+  skip_pdf: false
+
+# Knowledge paths (relative to workspace root)
+knowledge:
+  dir: ./knowledge
+
+# Processing behavior
+retry:
+  max_attempts: 3
+  backoff_seconds: 2
+
+rate_limit:
+  requests_per_minute: 14
