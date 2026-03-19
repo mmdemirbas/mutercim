@@ -5,11 +5,14 @@ book:
   target_lang: tr
 
 # Input files (relative to workspace root)
+# Simple form: inputs: [./input/book.pdf]
+# With per-input pages: "1-50", "1,5,10-20", "all"
 inputs:
-  - ./input/Anfas1.pdf
+  - path: ./input/Anfas1.pdf
+    pages: "155"
 
-# Page range to process: "1-50", "1,5,10-20", "all"
-pages: "155"
+# Global page range (fallback for inputs without their own pages)
+# pages: all
 
 output: ./output
 midstate_dir: ./midstate

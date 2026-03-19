@@ -4,17 +4,25 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/spf13/viper"
 )
+
+// InputSpec describes a single input file with optional per-input page range.
+type InputSpec struct {
+	Path  string `yaml:"path" mapstructure:"path" json:"path"`
+	Pages string `yaml:"pages,omitempty" mapstructure:"pages" json:"pages,omitempty"`
+}
 
 // Config represents the full workspace configuration.
 type Config struct {
 	Book        model.Book      `yaml:"book" mapstructure:"book" json:"book"`
 	Input       string          `yaml:"input" mapstructure:"input" json:"input,omitempty"`    // single input (backward compat)
-	Inputs      []string        `yaml:"inputs" mapstructure:"inputs" json:"inputs,omitempty"` // multiple inputs
-	Pages       string          `yaml:"pages" mapstructure:"pages" json:"pages,omitempty"`
+	Inputs      []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs,omitempty"` // input files with optional per-input pages
+	Pages       string          `yaml:"pages" mapstructure:"pages" json:"pages,omitempty"`    // global page range (fallback)
 	Output      string          `yaml:"output" mapstructure:"output" json:"output"`
 	MidstateDir string          `yaml:"midstate_dir" mapstructure:"midstate_dir" json:"midstate_dir"`
 	DPI         int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
@@ -118,7 +126,12 @@ func Load(configPath string) (*Config, error) {
 	}
 
 	var cfg Config
-	if err := v.Unmarshal(&cfg); err != nil {
+	decodeHook := mapstructure.ComposeDecodeHookFunc(
+		mapstructure.StringToTimeDurationHookFunc(),
+		mapstructure.StringToSliceHookFunc(","),
+		inputSpecDecodeHook(),
+	)
+	if err := v.Unmarshal(&cfg, viper.DecodeHook(decodeHook)); err != nil {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
 
@@ -138,10 +151,10 @@ func applyDefaults(cfg *Config) {
 	}
 	// Migrate singular input to inputs list
 	if len(cfg.Inputs) == 0 && cfg.Input != "" {
-		cfg.Inputs = []string{cfg.Input}
+		cfg.Inputs = []InputSpec{{Path: cfg.Input}}
 	}
 	if len(cfg.Inputs) == 0 {
-		cfg.Inputs = []string{"./input"}
+		cfg.Inputs = []InputSpec{{Path: "./input"}}
 	}
 	if cfg.Output == "" {
 		cfg.Output = "./output"
@@ -190,6 +203,33 @@ func applyDefaults(cfg *Config) {
 	}
 }
 
+// inputSpecDecodeHook returns a mapstructure decode hook that converts plain
+// strings to InputSpec values, allowing both forms in YAML:
+//
+//	inputs: ["./vol1.pdf"]                              # simple
+//	inputs: [{path: ./vol1.pdf, pages: "1-50"}]         # structured
+//	inputs: ["./vol1.pdf", {path: ./vol2.pdf, pages: "1-50"}]  # mixed
+func inputSpecDecodeHook() mapstructure.DecodeHookFunc {
+	return func(from reflect.Type, to reflect.Type, data interface{}) (interface{}, error) {
+		if to != reflect.TypeOf(InputSpec{}) {
+			return data, nil
+		}
+		if from.Kind() == reflect.String {
+			return InputSpec{Path: data.(string)}, nil
+		}
+		return data, nil
+	}
+}
+
+// InputPaths returns just the paths from all input specs.
+func (c *Config) InputPaths() []string {
+	paths := make([]string, len(c.Inputs))
+	for i, inp := range c.Inputs {
+		paths[i] = inp.Path
+	}
+	return paths
+}
+
 // IsPDF returns true if the given path points to a PDF file.
 func IsPDF(path string) bool {
 	return filepath.Ext(path) == ".pdf"
@@ -199,7 +239,7 @@ func IsPDF(path string) bool {
 // Deprecated: use IsPDF with individual paths from Inputs instead.
 func (c *Config) InputIsPDF() bool {
 	if len(c.Inputs) > 0 {
-		return IsPDF(c.Inputs[0])
+		return IsPDF(c.Inputs[0].Path)
 	}
 	return IsPDF(c.Input)
 }
@@ -242,10 +282,15 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Check input paths exist
-	for _, inp := range c.Inputs {
-		if _, err := os.Stat(inp); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("input path %q: %w", inp, err)
+	// Check input paths exist and validate per-input pages
+	for i, inp := range c.Inputs {
+		if _, err := os.Stat(inp.Path); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("input %d path %q: %w", i, inp.Path, err)
+		}
+		if inp.Pages != "" {
+			if _, err := model.ParsePageRanges(inp.Pages); err != nil {
+				return fmt.Errorf("input %d (%s) pages: %w", i, inp.Path, err)
+			}
 		}
 	}
 

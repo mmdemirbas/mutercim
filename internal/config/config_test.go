@@ -225,8 +225,8 @@ func TestInputsMigration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if len(cfg.Inputs) != 1 || cfg.Inputs[0] != "./input/book.pdf" {
-		t.Errorf("Inputs = %v, want [./input/book.pdf]", cfg.Inputs)
+	if len(cfg.Inputs) != 1 || cfg.Inputs[0].Path != "./input/book.pdf" {
+		t.Errorf("Inputs = %v, want [{Path: ./input/book.pdf}]", cfg.Inputs)
 	}
 }
 
@@ -248,13 +248,45 @@ pages: "1-5"
 	if len(cfg.Inputs) != 2 {
 		t.Fatalf("len(Inputs) = %d, want 2", len(cfg.Inputs))
 	}
-	if cfg.Inputs[0] != "./input/vol1.pdf" {
-		t.Errorf("Inputs[0] = %q, want %q", cfg.Inputs[0], "./input/vol1.pdf")
+	if cfg.Inputs[0].Path != "./input/vol1.pdf" {
+		t.Errorf("Inputs[0].Path = %q, want %q", cfg.Inputs[0].Path, "./input/vol1.pdf")
 	}
-	if cfg.Inputs[1] != "./input/vol2.pdf" {
-		t.Errorf("Inputs[1] = %q, want %q", cfg.Inputs[1], "./input/vol2.pdf")
+	if cfg.Inputs[1].Path != "./input/vol2.pdf" {
+		t.Errorf("Inputs[1].Path = %q, want %q", cfg.Inputs[1].Path, "./input/vol2.pdf")
 	}
 	if cfg.Pages != "1-5" {
 		t.Errorf("Pages = %q, want %q", cfg.Pages, "1-5")
+	}
+}
+
+func TestInputsWithPerInputPages(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `
+inputs:
+  - path: ./input/vol1.pdf
+    pages: "1-50"
+  - path: ./input/vol2.pdf
+    pages: "10-20"
+  - ./input/vol3.pdf
+`
+	configPath := filepath.Join(dir, "mutercim.yaml")
+	os.WriteFile(configPath, []byte(yaml), 0644)
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(cfg.Inputs) != 3 {
+		t.Fatalf("len(Inputs) = %d, want 3", len(cfg.Inputs))
+	}
+	if cfg.Inputs[0].Path != "./input/vol1.pdf" || cfg.Inputs[0].Pages != "1-50" {
+		t.Errorf("Inputs[0] = %+v, want {Path: ./input/vol1.pdf, Pages: 1-50}", cfg.Inputs[0])
+	}
+	if cfg.Inputs[1].Path != "./input/vol2.pdf" || cfg.Inputs[1].Pages != "10-20" {
+		t.Errorf("Inputs[1] = %+v, want {Path: ./input/vol2.pdf, Pages: 10-20}", cfg.Inputs[1])
+	}
+	// Plain string should have empty pages (uses global)
+	if cfg.Inputs[2].Path != "./input/vol3.pdf" || cfg.Inputs[2].Pages != "" {
+		t.Errorf("Inputs[2] = %+v, want {Path: ./input/vol3.pdf, Pages: }", cfg.Inputs[2])
 	}
 }

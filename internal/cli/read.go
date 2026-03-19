@@ -62,7 +62,7 @@ func newReadCmd() *cobra.Command {
 
 			// Preflight: check pdftoppm if any input is PDF
 			for _, inp := range cfg.Inputs {
-				resolved := cfg.ResolvePath(ws.Root, inp)
+				resolved := cfg.ResolvePath(ws.Root, inp.Path)
 				if config.IsPDF(resolved) {
 					if err := input.CheckPdftoppm(); err != nil {
 						return err

@@ -59,7 +59,7 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Inputs:      []string{imagesDir},
+		Inputs:      []config.InputSpec{{Path: imagesDir}},
 		MidstateDir: "./midstate",
 		DPI:         300,
 		Read: config.ReadConfig{
@@ -175,7 +175,7 @@ func TestReadPipelineNoImages(t *testing.T) {
 	}
 
 	ws := &workspace.Workspace{Root: dir}
-	cfg := &config.Config{Inputs: []string{emptyDir}}
+	cfg := &config.Config{Inputs: []config.InputSpec{{Path: emptyDir}}}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
 	err := Read(context.Background(), ReadOptions{
@@ -193,6 +193,106 @@ func TestReadPipelineNoImages(t *testing.T) {
 	outputPath := filepath.Join(ws.ReadDir(), "empty", "page_001.json")
 	if _, err := os.Stat(outputPath); err == nil {
 		t.Error("expected no output files for empty input")
+	}
+}
+
+func TestReadPipelinePerInputPages(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create workspace with two images (page 1 and page 2)
+	imagesDir := filepath.Join(dir, "midstate/images/testinput")
+	os.MkdirAll(imagesDir, 0755)
+	os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake"), 0644)
+	os.WriteFile(filepath.Join(imagesDir, "page-02.png"), []byte("fake"), 0644)
+	os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644)
+
+	ws := &workspace.Workspace{Root: dir}
+	cfg := &config.Config{
+		// Per-input pages: only process page 1
+		Inputs:      []config.InputSpec{{Path: imagesDir, Pages: "1"}},
+		MidstateDir: "./midstate",
+		DPI:         300,
+		Read:        config.ReadConfig{Provider: "mock", Model: "test", Concurrency: 1},
+		Retry:       config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
+		RateLimit:   config.RateLimitConfig{RequestsPerMinute: 100},
+	}
+
+	tracker := progress.NewTracker(ws.ProgressPath())
+	tracker.Load()
+
+	response := `{"page_number": 1, "entries": [], "footnotes": [], "warnings": []}`
+
+	err := Read(context.Background(), ReadOptions{
+		Workspace: ws,
+		Config:    cfg,
+		Provider:  &mockProvider{response: response},
+		Tracker:   tracker,
+	})
+	if err != nil {
+		t.Fatalf("Read() error: %v", err)
+	}
+
+	// Page 1 should be processed
+	page1 := filepath.Join(ws.ReadDir(), "testinput", "page_001.json")
+	if _, err := os.Stat(page1); err != nil {
+		t.Errorf("expected page 1 output, got error: %v", err)
+	}
+
+	// Page 2 should NOT be processed (filtered by per-input pages)
+	page2 := filepath.Join(ws.ReadDir(), "testinput", "page_002.json")
+	if _, err := os.Stat(page2); err == nil {
+		t.Error("page 2 should not be processed when per-input pages is '1'")
+	}
+}
+
+func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create workspace with two images
+	imagesDir := filepath.Join(dir, "midstate/images/testinput")
+	os.MkdirAll(imagesDir, 0755)
+	os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake"), 0644)
+	os.WriteFile(filepath.Join(imagesDir, "page-02.png"), []byte("fake"), 0644)
+	os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644)
+
+	ws := &workspace.Workspace{Root: dir}
+	cfg := &config.Config{
+		// Per-input pages says "1" only
+		Inputs:      []config.InputSpec{{Path: imagesDir, Pages: "1"}},
+		MidstateDir: "./midstate",
+		DPI:         300,
+		Read:        config.ReadConfig{Provider: "mock", Model: "test", Concurrency: 1},
+		Retry:       config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
+		RateLimit:   config.RateLimitConfig{RequestsPerMinute: 100},
+	}
+
+	tracker := progress.NewTracker(ws.ProgressPath())
+	tracker.Load()
+
+	response := `{"page_number": 2, "entries": [], "footnotes": [], "warnings": []}`
+
+	// CLI override: process page 2 only (should override per-input "1")
+	err := Read(context.Background(), ReadOptions{
+		Workspace: ws,
+		Config:    cfg,
+		Provider:  &mockProvider{response: response},
+		Tracker:   tracker,
+		Pages:     []int{2},
+	})
+	if err != nil {
+		t.Fatalf("Read() error: %v", err)
+	}
+
+	// Page 1 should NOT be processed (CLI override says page 2 only)
+	page1 := filepath.Join(ws.ReadDir(), "testinput", "page_001.json")
+	if _, err := os.Stat(page1); err == nil {
+		t.Error("page 1 should not be processed when CLI pages override is [2]")
+	}
+
+	// Page 2 should be processed (CLI override)
+	page2 := filepath.Join(ws.ReadDir(), "testinput", "page_002.json")
+	if _, err := os.Stat(page2); err != nil {
+		t.Errorf("expected page 2 output, got error: %v", err)
 	}
 }
 

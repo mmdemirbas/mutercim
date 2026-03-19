@@ -39,7 +39,7 @@ func newMakeCmd() *cobra.Command {
 
 			// Preflight: check all dependencies upfront
 			for _, inp := range cfg.Inputs {
-				resolved := cfg.ResolvePath(ws.Root, inp)
+				resolved := cfg.ResolvePath(ws.Root, inp.Path)
 				if config.IsPDF(resolved) {
 					if err := input.CheckPdftoppm(); err != nil {
 						return err

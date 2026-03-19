@@ -97,9 +97,13 @@ func generateConfig(opts InitOptions) string {
   target_lang: %s
 
 # Input files or directories (relative to workspace root)
-# Single PDF:   inputs: [./input/book.pdf]
-# Multiple:     inputs: [./input/vol1.pdf, ./input/vol2.pdf]
-# Image dir:    inputs: [./input]
+# Simple:       inputs: [./input/book.pdf]
+# Per-input pages:
+#   inputs:
+#     - path: ./input/vol1.pdf
+#       pages: "1-50"
+#     - path: ./input/vol2.pdf
+#       pages: "10-20"
 inputs: [./input]
 
 # Page range to process: "1-50", "1,5,10-20", "all"

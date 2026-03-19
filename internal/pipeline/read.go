@@ -24,7 +24,7 @@ type ReadOptions struct {
 	Config    *config.Config
 	Provider  provider.Provider
 	Tracker   *progress.Tracker
-	Pages     []int // specific pages to process; nil means all available
+	Pages     []int // CLI override pages; nil means use per-input or global config
 	Logger    *slog.Logger
 }
 
@@ -40,13 +40,21 @@ func Read(ctx context.Context, opts ReadOptions) error {
 		return fmt.Errorf("no inputs configured")
 	}
 
-	for _, inputPath := range inputs {
-		resolved := opts.Config.ResolvePath(opts.Workspace.Root, inputPath)
-		stem := fileStem(inputPath)
-		logger.Info("processing input", "input", inputPath, "stem", stem)
+	for _, inp := range inputs {
+		resolved := opts.Config.ResolvePath(opts.Workspace.Root, inp.Path)
+		stem := fileStem(inp.Path)
+		logger.Info("processing input", "input", inp.Path, "stem", stem)
 
-		if err := readOneInput(ctx, opts, resolved, stem); err != nil {
-			logger.Error("input failed", "input", inputPath, "error", err)
+		// Determine effective pages: CLI override > per-input > global config > all
+		pages := opts.Pages
+		if len(pages) == 0 && inp.Pages != "" {
+			if ranges, err := model.ParsePageRanges(inp.Pages); err == nil {
+				pages = model.ExpandPages(ranges)
+			}
+		}
+
+		if err := readOneInput(ctx, opts, resolved, stem, pages); err != nil {
+			logger.Error("input failed", "input", inp.Path, "error", err)
 			// Continue to next input — don't abort the whole run
 		}
 	}
@@ -54,7 +62,7 @@ func Read(ctx context.Context, opts ReadOptions) error {
 	return nil
 }
 
-func readOneInput(ctx context.Context, opts ReadOptions, inputPath, stem string) error {
+func readOneInput(ctx context.Context, opts ReadOptions, inputPath, stem string, pages []int) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -105,7 +113,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, inputPath, stem string)
 	}
 
 	// Determine pages to process
-	pagesToProcess := opts.Pages
+	pagesToProcess := pages
 	if len(pagesToProcess) == 0 {
 		for _, img := range images {
 			pagesToProcess = append(pagesToProcess, img.PageNumber)

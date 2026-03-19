@@ -63,7 +63,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	if len(inputs) == 0 && len(cfg.Inputs) > 0 {
 		// No files on disk yet, show configured inputs
 		for _, inp := range cfg.Inputs {
-			inputs = append(inputs, filepath.Base(strings.TrimSuffix(inp, filepath.Ext(inp))))
+			inputs = append(inputs, filepath.Base(strings.TrimSuffix(inp.Path, filepath.Ext(inp.Path))))
 		}
 	}
 
