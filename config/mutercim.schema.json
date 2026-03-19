@@ -12,11 +12,6 @@
           "description": "Book author.",
           "type": "string"
         },
-        "source_lang": {
-          "deprecated": true,
-          "description": "Deprecated: use source_langs instead.",
-          "type": "string"
-        },
         "source_langs": {
           "default": [
             "ar"
@@ -26,11 +21,6 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "target_lang": {
-          "deprecated": true,
-          "description": "Deprecated: use target_langs instead.",
-          "type": "string"
         },
         "target_langs": {
           "default": [
@@ -55,11 +45,6 @@
       "minimum": 72,
       "type": "integer"
     },
-    "input": {
-      "deprecated": true,
-      "description": "Deprecated: use inputs instead. Single input path (backward compat).",
-      "type": "string"
-    },
     "inputs": {
       "default": [
         {
@@ -68,44 +53,28 @@
       ],
       "description": "Input files with optional per-input page ranges.",
       "items": {
-        "oneOf": [
-          {
-            "description": "Simple form: just a file path.",
+        "additionalProperties": false,
+        "properties": {
+          "pages": {
+            "description": "Page range for this input (e.g. \"1-50\", \"1,5,10-20\", \"all\").",
             "type": "string"
           },
-          {
-            "additionalProperties": false,
-            "description": "Structured form with optional page range.",
-            "properties": {
-              "pages": {
-                "description": "Page range for this input (e.g. \"1-50\", \"1,5,10-20\", \"all\").",
-                "type": "string"
-              },
-              "path": {
-                "description": "Path to the input file (relative to workspace root).",
-                "type": "string"
-              }
-            },
-            "required": [
-              "path"
-            ],
-            "type": "object"
+          "path": {
+            "description": "Path to the input file (relative to workspace root).",
+            "type": "string"
           }
-        ]
+        },
+        "required": [
+          "path"
+        ],
+        "type": "object"
       },
       "type": "array"
     },
-    "knowledge": {
-      "additionalProperties": false,
-      "description": "Knowledge base settings.",
-      "properties": {
-        "dir": {
-          "default": "./knowledge",
-          "description": "Knowledge directory (relative to workspace root).",
-          "type": "string"
-        }
-      },
-      "type": "object"
+    "knowledge_dir": {
+      "default": "./knowledge",
+      "description": "Knowledge YAML files directory (relative to workspace root).",
+      "type": "string"
     },
     "midstate_dir": {
       "default": "./midstate",
@@ -115,10 +84,6 @@
     "output": {
       "default": "./output",
       "description": "Output directory (relative to workspace root).",
-      "type": "string"
-    },
-    "pages": {
-      "description": "Global page range — fallback for inputs without their own pages (e.g. \"1-50\", \"all\").",
       "type": "string"
     },
     "rate_limit": {

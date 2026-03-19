@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 
-	"github.com/go-viper/mapstructure/v2"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/spf13/viper"
 )
@@ -19,20 +17,18 @@ type InputSpec struct {
 
 // Config represents the full workspace configuration.
 type Config struct {
-	Book        model.Book      `yaml:"book" mapstructure:"book" json:"book"`
-	Input       string          `yaml:"input" mapstructure:"input" json:"input,omitempty"`    // single input (backward compat)
-	Inputs      []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs,omitempty"` // input files with optional per-input pages
-	Pages       string          `yaml:"pages" mapstructure:"pages" json:"pages,omitempty"`    // global page range (fallback)
-	Output      string          `yaml:"output" mapstructure:"output" json:"output"`
-	MidstateDir string          `yaml:"midstate_dir" mapstructure:"midstate_dir" json:"midstate_dir"`
-	DPI         int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
-	Sections    []model.Section `yaml:"sections" mapstructure:"sections" json:"sections"`
-	Read        ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
-	Translate   TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
-	Write       WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
-	Knowledge   KnowledgeConfig `yaml:"knowledge" mapstructure:"knowledge" json:"knowledge"`
-	Retry       RetryConfig     `yaml:"retry" mapstructure:"retry" json:"retry"`
-	RateLimit   RateLimitConfig `yaml:"rate_limit" mapstructure:"rate_limit" json:"rate_limit"`
+	Book         model.Book      `yaml:"book" mapstructure:"book" json:"book"`
+	Inputs       []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
+	Output       string          `yaml:"output" mapstructure:"output" json:"output"`
+	MidstateDir  string          `yaml:"midstate_dir" mapstructure:"midstate_dir" json:"midstate_dir"`
+	DPI          int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
+	Sections     []model.Section `yaml:"sections" mapstructure:"sections" json:"sections"`
+	Read         ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
+	Translate    TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
+	Write        WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
+	KnowledgeDir string          `yaml:"knowledge_dir" mapstructure:"knowledge_dir" json:"knowledge_dir"`
+	Retry        RetryConfig     `yaml:"retry" mapstructure:"retry" json:"retry"`
+	RateLimit    RateLimitConfig `yaml:"rate_limit" mapstructure:"rate_limit" json:"rate_limit"`
 }
 
 // ModelSpec describes a single AI model in a failover chain.
@@ -64,11 +60,6 @@ type WriteConfig struct {
 	SkipPDF          bool     `yaml:"skip_pdf" mapstructure:"skip_pdf" json:"skip_pdf"`
 }
 
-// KnowledgeConfig holds knowledge directory settings.
-type KnowledgeConfig struct {
-	Dir string `yaml:"dir" mapstructure:"dir" json:"dir"`
-}
-
 // RetryConfig holds retry settings.
 type RetryConfig struct {
 	MaxAttempts    int `yaml:"max_attempts" mapstructure:"max_attempts" json:"max_attempts"`
@@ -84,7 +75,6 @@ type RateLimitConfig struct {
 func SetDefaults(v *viper.Viper) {
 	v.SetDefault("book.source_langs", []string{"ar"})
 	v.SetDefault("book.target_langs", []string{"tr"})
-	v.SetDefault("input", "./input")
 	v.SetDefault("output", "./output")
 	v.SetDefault("midstate_dir", "./midstate")
 	v.SetDefault("dpi", 300)
@@ -98,7 +88,7 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("write.latex_docker_image", "mutercim/xelatex:latest")
 	v.SetDefault("write.skip_pdf", false)
 
-	v.SetDefault("knowledge.dir", "./knowledge")
+	v.SetDefault("knowledge_dir", "./knowledge")
 
 	v.SetDefault("retry.max_attempts", 3)
 	v.SetDefault("retry.backoff_seconds", 2)
@@ -129,12 +119,7 @@ func Load(configPath string) (*Config, error) {
 	}
 
 	var cfg Config
-	decodeHook := mapstructure.ComposeDecodeHookFunc(
-		mapstructure.StringToTimeDurationHookFunc(),
-		mapstructure.StringToSliceHookFunc(","),
-		inputSpecDecodeHook(),
-	)
-	if err := v.Unmarshal(&cfg, viper.DecodeHook(decodeHook)); err != nil {
+	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
 
@@ -146,22 +131,11 @@ func Load(configPath string) (*Config, error) {
 
 // applyDefaults fills in zero-valued fields with their defaults.
 func applyDefaults(cfg *Config) {
-	// Migrate singular lang fields to plural
-	if len(cfg.Book.SourceLangs) == 0 && cfg.Book.SourceLang != "" {
-		cfg.Book.SourceLangs = []string{cfg.Book.SourceLang}
-	}
-	if len(cfg.Book.TargetLangs) == 0 && cfg.Book.TargetLang != "" {
-		cfg.Book.TargetLangs = []string{cfg.Book.TargetLang}
-	}
 	if len(cfg.Book.SourceLangs) == 0 {
 		cfg.Book.SourceLangs = []string{"ar"}
 	}
 	if len(cfg.Book.TargetLangs) == 0 {
 		cfg.Book.TargetLangs = []string{"tr"}
-	}
-	// Migrate singular input to inputs list
-	if len(cfg.Inputs) == 0 && cfg.Input != "" {
-		cfg.Inputs = []InputSpec{{Path: cfg.Input}}
 	}
 	if len(cfg.Inputs) == 0 {
 		cfg.Inputs = []InputSpec{{Path: "./input"}}
@@ -193,8 +167,8 @@ func applyDefaults(cfg *Config) {
 	if cfg.Write.LaTeXDockerImage == "" {
 		cfg.Write.LaTeXDockerImage = "mutercim/xelatex:latest"
 	}
-	if cfg.Knowledge.Dir == "" {
-		cfg.Knowledge.Dir = "./knowledge"
+	if cfg.KnowledgeDir == "" {
+		cfg.KnowledgeDir = "./knowledge"
 	}
 	if cfg.Retry.MaxAttempts == 0 {
 		cfg.Retry.MaxAttempts = 3
@@ -204,24 +178,6 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.RateLimit.RequestsPerMinute == 0 {
 		cfg.RateLimit.RequestsPerMinute = 14
-	}
-}
-
-// inputSpecDecodeHook returns a mapstructure decode hook that converts plain
-// strings to InputSpec values, allowing both forms in YAML:
-//
-//	inputs: ["./vol1.pdf"]                              # simple
-//	inputs: [{path: ./vol1.pdf, pages: "1-50"}]         # structured
-//	inputs: ["./vol1.pdf", {path: ./vol2.pdf, pages: "1-50"}]  # mixed
-func inputSpecDecodeHook() mapstructure.DecodeHookFunc {
-	return func(from reflect.Type, to reflect.Type, data interface{}) (interface{}, error) {
-		if to != reflect.TypeOf(InputSpec{}) {
-			return data, nil
-		}
-		if from.Kind() == reflect.String {
-			return InputSpec{Path: data.(string)}, nil
-		}
-		return data, nil
 	}
 }
 
@@ -237,15 +193,6 @@ func (c *Config) InputPaths() []string {
 // IsPDF returns true if the given path points to a PDF file.
 func IsPDF(path string) bool {
 	return filepath.Ext(path) == ".pdf"
-}
-
-// InputIsPDF returns true if the first input path points to a PDF file.
-// Deprecated: use IsPDF with individual paths from Inputs instead.
-func (c *Config) InputIsPDF() bool {
-	if len(c.Inputs) > 0 {
-		return IsPDF(c.Inputs[0].Path)
-	}
-	return IsPDF(c.Input)
 }
 
 // ResolvePath resolves a relative path against the workspace root.
@@ -295,13 +242,6 @@ func (c *Config) Validate() error {
 			if _, err := model.ParsePageRanges(inp.Pages); err != nil {
 				return fmt.Errorf("input %d (%s) pages: %w", i, inp.Path, err)
 			}
-		}
-	}
-
-	// Validate pages if set
-	if c.Pages != "" {
-		if _, err := model.ParsePageRanges(c.Pages); err != nil {
-			return fmt.Errorf("pages: %w", err)
 		}
 	}
 

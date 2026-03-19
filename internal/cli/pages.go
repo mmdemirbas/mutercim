@@ -50,11 +50,8 @@ func newPagesCmd() *cobra.Command {
 				}
 			}
 
-			// Determine page range: CLI flag > config > all
-			pageSpec := cfg.Pages
-			if pages != "" {
-				pageSpec = pages
-			}
+			// Determine page range: CLI flag > all
+			pageSpec := pages
 
 			var pagesToProcess []int
 			if pageSpec != "" && pageSpec != "all" {

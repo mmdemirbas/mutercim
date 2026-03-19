@@ -68,11 +68,8 @@ func newReadCmd() *cobra.Command {
 			}
 			defer chain.Close()
 
-			// Determine page range: CLI flag > config > all
-			pageSpec := cfg.Pages
-			if pages != "" {
-				pageSpec = pages
-			}
+			// Determine page range from --pages CLI flag
+			pageSpec := pages
 
 			var pagesToProcess []int
 			if pageSpec != "" && pageSpec != "all" {

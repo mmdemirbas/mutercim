@@ -91,7 +91,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		BookAuthor:  cfg.Book.Author,
 		InputName:   inputName,
 		InputPages:  totalImages,
-		PageRange:   cfg.Pages,
+		PageRange:   "",
 		SourceLangs: cfg.Book.SourceLangs,
 		TargetLangs: cfg.Book.TargetLangs,
 		Phases:      rows,

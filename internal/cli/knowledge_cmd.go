@@ -44,7 +44,7 @@ func newKnowledgeListCmd() *cobra.Command {
 				return fmt.Errorf("config: %w", err)
 			}
 
-			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.Knowledge.Dir)
+			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
 			k, err := knowledge.Load(knowledgeDir, ws.StagedDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
@@ -129,7 +129,7 @@ func newKnowledgeDiffCmd() *cobra.Command {
 			}
 
 			// Load persistent knowledge only (embedded + workspace, no staged)
-			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.Knowledge.Dir)
+			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
 			persistent, err := knowledge.Load(knowledgeDir, "")
 			if err != nil {
 				return fmt.Errorf("load persistent knowledge: %w", err)

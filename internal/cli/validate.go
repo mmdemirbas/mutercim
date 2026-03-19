@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/solver"
@@ -26,20 +25,8 @@ func newValidateCmd() *cobra.Command {
 				return fmt.Errorf("workspace: %w", err)
 			}
 
-			configPath := cfgFile
-			if configPath == "" {
-				configPath = ws.ConfigPath()
-			}
-			cfg, err := config.Load(configPath)
-			if err != nil {
-				return fmt.Errorf("config: %w", err)
-			}
-
 			// Determine page range
-			pageSpec := cfg.Pages
-			if pages != "" {
-				pageSpec = pages
-			}
+			pageSpec := pages
 			var pagesToProcess []int
 			if pageSpec != "" && pageSpec != "all" {
 				ranges, err := model.ParsePageRanges(pageSpec)

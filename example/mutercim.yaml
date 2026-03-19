@@ -1,44 +1,105 @@
 # yaml-language-server: $schema=../config/mutercim.schema.json
+#
+# mutercim — full configuration reference
+#
+# All keys shown below with their default values and allowed options.
+# Copy this file to your workspace root as "mutercim.yaml" and customize.
+
+# ─── Book metadata ───────────────────────────────────────────────────────────
 
 book:
-  title: "Test Book"
-  author: "Unknown Author"
-  source_langs: [ ar ]
-  target_langs: [ tr ]
+  title: "Test Book"                 # Book title (shown in dashboard and output)
+  author: "Unknown Author"           # Book author
+  source_langs: [ ar ]               # Source language codes
+  target_langs: [ tr ]               # Target language codes
 
-# Input files (relative to workspace root)
-# Simple form: inputs: [./input/book.pdf]
-# With per-input pages: "1-50", "1,5,10-20", "all"
+# ─── Inputs ──────────────────────────────────────────────────────────────────
+#
+# Input files to process. Each entry has a path and optional page range.
+#
+#   inputs:
+#     - path: ./input/vol1.pdf
+#       pages: "1-50"
+#     - path: ./input/vol2.pdf
+#       pages: "10-20,30-40"
+#     - path: ./input/vol3.pdf       # all pages (default when pages omitted)
+
 inputs:
-  - path: ./input/Anfas1.pdf
+  - path: ./input/Anfas1.pdf                    # Path relative to workspace root
     pages: "155-160"
 
-# Global page range (fallback for inputs without their own pages)
-# pages: all
+# ─── Directories ─────────────────────────────────────────────────────────────
 
-output: ./output
-midstate_dir: ./midstate
-dpi: 300
+output: ./output                     # Final output directory
+midstate_dir: ./midstate             # Intermediate state (images, JSONs, progress)
+knowledge_dir: ./knowledge           # Knowledge YAML files directory
 
-# Sections define the book's internal layout structure.
+# ─── PDF conversion ──────────────────────────────────────────────────────────
+
+dpi: 300                             # DPI for PDF-to-image conversion (min: 72)
+
+# ─── Sections ────────────────────────────────────────────────────────────────
+#
+# Define the book's internal layout structure.
 # Pages not covered by any section default to type: auto.
-# If no sections are defined at all, entire book is type: auto.
+# If no sections are defined, the entire book is type: auto.
 #
 # Section types:
-#   skip              - Don't process these pages
-#   prose             - Continuous paragraphs (introductions, prefaces)
-#   scholarly_entries  - Numbered entries + footnotes with source codes (hadith, athar)
-#   reference_table   - Key-value reference data (abbreviation keys → auto-staged)
-#   toc               - Table of contents
-#   index             - Alphabetical index
-#   auto              - AI detects layout (default for unconfigured pages)
-sections: [ ]
+#   skip              — Don't process these pages
+#   prose             — Continuous paragraphs (introductions, prefaces)
+#   scholarly_entries  — Numbered entries + footnotes with source codes
+#   reference_table   — Key-value reference data (auto-staged to knowledge)
+#   toc               — Table of contents
+#   index             — Alphabetical index
+#   auto              — AI detects layout (default)
 
-# Model configuration
+sections: []
+# sections:
+#   - name: Front matter
+#     pages: "1-10"
+#     type: skip
+#     translate: false
+#   - name: Introduction
+#     pages: "11-20"
+#     type: prose
+#     translate: true                # default: true
+#   - name: Main content
+#     pages: "21-600"
+#     type: scholarly_entries
+#     translate: true
+#   - name: Abbreviations
+#     pages: "601-605"
+#     type: reference_table
+#     translate: false
+#   - name: Index
+#     pages: "606-612"
+#     type: index
+#     translate: false
+
+# ─── Read phase (OCR/vision) ─────────────────────────────────────────────────
+#
+# Models are tried in order. On 429 / quota exhaustion, fails over to next.
+# Models without vision support are automatically skipped for read phase.
+#
+# Providers:  gemini | claude | openai | groq | mistral | openrouter | xai | ollama
+# Default RPMs: gemini=10, groq=30, mistral=60, openrouter=200, openai=500, ollama=1000
+#
+# Per-model options:
+#   rpm:      Override default rate limit (requests per minute)
+#   vision:   Override vision auto-detection (true/false)
+#   base_url: Override API base URL (for custom/self-hosted endpoints)
+#
+# Maximum free throughput configuration
+# Combined capacity: ~3,250+ pages/day for read, ~3,250+ for translate
+#
+# Sign up for API keys:
+#   Gemini: aistudio.google.com
+#   Groq: console.groq.com — instant, no credit card
+#   Mistral: console.mistral.ai — no credit card for free tier
+#   xAI: console.x.ai — $25 free credits on signup
+#   OpenRouter: openrouter.ai — free models available immediately
+
 read:
-
-  # Maximum free throughput configuration
-  # Combined capacity: ~3,250+ pages/day for read, ~3,250+ for translate
   models:
     # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
     - provider: gemini
@@ -55,35 +116,51 @@ read:
     # 5. Local fallback: always available, slow
     - provider: ollama
       model: qwen2.5vl:7b
+  concurrency: 1                     # Reserved for future parallel processing (min: 1)
+
+# ─── Translation phase ───────────────────────────────────────────────────────
 
 translate:
   models:
+    # 1. Groq: fastest inference, good Arabic (1,000 RPD, 30 RPM)
+    - provider: groq
+      model: llama-3.3-70b-versatile
+    # 2. Gemini Flash-Lite: good quality (1,000 RPD, 15 RPM)
     - provider: gemini
       model: gemini-2.5-flash-lite
-    # - provider: groq
-    #   model: llama-3.3-70b-versatile
-    #   rpm: 30
-    # - provider: mistral
-    #   model: mistral-small-latest
-    #   rpm: 60
-    # - provider: ollama
-    #   model: qwen3:14b
+    # 3. Mistral: massive free quota (~1B tokens/month)
+    - provider: mistral
+      model: mistral-small-latest
+    # 4. Gemini Flash: higher quality fallback (250 RPD)
+    - provider: gemini
+      model: gemini-2.5-flash
+    # 5. xAI: $25 free credits
+    - provider: xai
+      model: grok-2-latest
+    # 6. OpenRouter: community-funded free models
+    - provider: openrouter
+      model: meta-llama/llama-3.1-8b-instruct:free
+    # 7. Local fallback
+    - provider: ollama
+      model: qwen3:14b
   context_window: 2                  # Previous pages included for context (min: 0)
 
+# ─── Write/compilation phase ─────────────────────────────────────────────────
+
 write:
-  formats: [ md, latex ]
-  expand_sources: true
-  latex_docker_image: mutercim/xelatex:latest
-  skip_pdf: false
+  formats: [md, latex]               # Output formats: md | latex | docx
+  expand_sources: true               # Expand source abbreviations in output
+  latex_docker_image: mutercim/xelatex:latest  # Docker image for PDF compilation
+  skip_pdf: false                    # Skip PDF compilation from LaTeX
 
-# Knowledge paths (relative to workspace root)
-knowledge:
-  dir: ./knowledge
+# ─── Retry settings ──────────────────────────────────────────────────────────
 
-# Processing behavior
 retry:
-  max_attempts: 3
-  backoff_seconds: 2
+  max_attempts: 3                    # Maximum retry attempts (min: 0)
+  backoff_seconds: 2                 # Base backoff in seconds, exponential: 2s, 4s, 8s (min: 1)
+
+# ─── Rate limiting (global fallback) ─────────────────────────────────────────
+# Per-model RPM in the models list takes precedence over this global setting.
 
 rate_limit:
-  requests_per_minute: 14
+  requests_per_minute: 14            # Max API requests per minute (min: 1)

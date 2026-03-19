@@ -40,17 +40,14 @@ var schemaAnnotations = map[string]schemaMeta{
 	"book.author":       {Description: "Book author."},
 	"book.source_langs": {Description: `Source language codes (e.g. ["ar"]).`, Default: []string{"ar"}},
 	"book.target_langs": {Description: `Target language codes (e.g. ["tr"]).`, Default: []string{"tr"}},
-	"book.source_lang":  {Description: "Deprecated: use source_langs instead.", Deprecated: true},
-	"book.target_lang":  {Description: "Deprecated: use target_langs instead.", Deprecated: true},
 
 	// inputs
-	"input":          {Description: "Deprecated: use inputs instead. Single input path (backward compat).", Deprecated: true},
 	"inputs":         {Description: "Input files with optional per-input page ranges.", Default: []map[string]string{{"path": "./input"}}},
+	"inputs[]":       {Required: []string{"path"}},
 	"inputs[].path":  {Description: "Path to the input file (relative to workspace root)."},
 	"inputs[].pages": {Description: `Page range for this input (e.g. "1-50", "1,5,10-20", "all").`},
 
 	// top-level
-	"pages":        {Description: `Global page range — fallback for inputs without their own pages (e.g. "1-50", "all").`},
 	"output":       {Description: "Output directory (relative to workspace root).", Default: "./output"},
 	"midstate_dir": {Description: "Intermediate state directory (relative to workspace root).", Default: "./midstate"},
 	"dpi":          {Description: "DPI for PDF-to-image conversion.", Default: 300, Minimum: intPtr(72)},
@@ -93,8 +90,7 @@ var schemaAnnotations = map[string]schemaMeta{
 	"write.skip_pdf":           {Description: "Skip PDF compilation from LaTeX.", Default: false},
 
 	// knowledge
-	"knowledge":     {Description: "Knowledge base settings."},
-	"knowledge.dir": {Description: "Knowledge directory (relative to workspace root).", Default: "./knowledge"},
+	"knowledge_dir": {Description: "Knowledge YAML files directory (relative to workspace root).", Default: "./knowledge"},
 
 	// retry
 	"retry":                 {Description: "Retry settings for API calls."},
@@ -169,11 +165,6 @@ func buildSchemaType(t reflect.Type, path string) map[string]any {
 func buildSchemaSlice(t reflect.Type, path string) map[string]any {
 	elem := t.Elem()
 
-	// Special case: []InputSpec produces oneOf (string | object)
-	if elem == reflect.TypeOf(InputSpec{}) {
-		return buildInputsSchema(path)
-	}
-
 	items := buildSchemaType(elem, path+"[]")
 
 	// Apply item-level enum from parent annotation
@@ -184,27 +175,6 @@ func buildSchemaSlice(t reflect.Type, path string) map[string]any {
 	s := map[string]any{
 		"type":  "array",
 		"items": items,
-	}
-	applyAnnotations(s, path)
-	return s
-}
-
-func buildInputsSchema(path string) map[string]any {
-	objSchema := buildSchemaObject(reflect.TypeOf(InputSpec{}), path+"[]")
-	objSchema["description"] = "Structured form with optional page range."
-	objSchema["required"] = []string{"path"}
-
-	s := map[string]any{
-		"type": "array",
-		"items": map[string]any{
-			"oneOf": []any{
-				map[string]any{
-					"type":        "string",
-					"description": "Simple form: just a file path.",
-				},
-				objSchema,
-			},
-		},
 	}
 	applyAnnotations(s, path)
 	return s

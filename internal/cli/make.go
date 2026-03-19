@@ -68,11 +68,8 @@ func newMakeCmd() *cobra.Command {
 				defer disp.Finish()
 			}
 
-			// Resolve page range
-			pageSpec := cfg.Pages
-			if pages != "" {
-				pageSpec = pages
-			}
+			// Resolve page range (from --pages CLI flag)
+			pageSpec := pages
 
 			// Set header on live display
 			if disp != nil {
@@ -145,7 +142,7 @@ func newMakeCmd() *cobra.Command {
 
 			// Phase 2: Solve
 			logger.Info("=== Phase 2: SOLVE ===")
-			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.Knowledge.Dir)
+			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
 			k, err := knowledge.Load(knowledgeDir, ws.StagedDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)

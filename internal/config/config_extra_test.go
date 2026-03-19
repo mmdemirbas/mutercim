@@ -25,15 +25,21 @@ func TestResolvePath(t *testing.T) {
 	}
 }
 
-func TestValidatePages(t *testing.T) {
-	cfg := &Config{Pages: "1-5,10"}
-	if err := cfg.Validate(); err != nil {
-		t.Errorf("valid pages should not error: %v", err)
+func TestValidatePerInputPages_Valid(t *testing.T) {
+	cfg := &Config{
+		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "1-5,10"}},
 	}
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("valid per-input pages should not error: %v", err)
+	}
+}
 
-	cfg = &Config{Pages: "abc"}
+func TestValidatePerInputPages_Invalid(t *testing.T) {
+	cfg := &Config{
+		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "abc"}},
+	}
 	if err := cfg.Validate(); err == nil {
-		t.Error("expected error for invalid pages")
+		t.Error("expected error for invalid per-input pages")
 	}
 }
 
@@ -81,57 +87,20 @@ func TestInputPaths(t *testing.T) {
 	}
 }
 
-func TestInputIsPDF(t *testing.T) {
+func TestIsPDFFunction(t *testing.T) {
 	tests := []struct {
-		name   string
-		input  string
-		inputs []InputSpec
-		want   bool
+		path string
+		want bool
 	}{
-		{
-			name:   "PDF in inputs",
-			inputs: []InputSpec{{Path: "./book.pdf"}},
-			want:   true,
-		},
-		{
-			name:   "non-PDF in inputs",
-			inputs: []InputSpec{{Path: "./images"}},
-			want:   false,
-		},
-		{
-			name:   "multiple inputs, first is PDF",
-			inputs: []InputSpec{{Path: "./vol1.pdf"}, {Path: "./images"}},
-			want:   true,
-		},
-		{
-			name:   "multiple inputs, first is not PDF",
-			inputs: []InputSpec{{Path: "./images"}, {Path: "./vol1.pdf"}},
-			want:   false,
-		},
-		{
-			name:  "fallback to Input field when Inputs is empty",
-			input: "./book.pdf",
-			want:  true,
-		},
-		{
-			name:  "fallback to non-PDF Input field",
-			input: "./images",
-			want:  false,
-		},
-		{
-			name: "empty inputs and empty input",
-			want: false,
-		},
+		{"./book.pdf", true},
+		{"./images", false},
+		{"./vol1.PDF", false}, // case-sensitive
+		{"", false},
 	}
-
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cfg := &Config{Input: tt.input, Inputs: tt.inputs}
-			got := cfg.InputIsPDF()
-			if got != tt.want {
-				t.Errorf("InputIsPDF() = %v, want %v", got, tt.want)
-			}
-		})
+		if got := IsPDF(tt.path); got != tt.want {
+			t.Errorf("IsPDF(%q) = %v, want %v", tt.path, got, tt.want)
+		}
 	}
 }
 
@@ -266,9 +235,9 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 		t.Errorf("Write.LaTeXDockerImage = %q, want %q", cfg.Write.LaTeXDockerImage, "mutercim/xelatex:latest")
 	}
 
-	// Knowledge
-	if cfg.Knowledge.Dir != "./knowledge" {
-		t.Errorf("Knowledge.Dir = %q, want %q", cfg.Knowledge.Dir, "./knowledge")
+	// KnowledgeDir
+	if cfg.KnowledgeDir != "./knowledge" {
+		t.Errorf("KnowledgeDir = %q, want %q", cfg.KnowledgeDir, "./knowledge")
 	}
 
 	// Retry
@@ -287,17 +256,17 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 
 func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	cfg := &Config{
-		Output:      "/custom/output",
-		MidstateDir: "/custom/midstate",
-		DPI:         600,
-		Inputs:      []InputSpec{{Path: "./custom.pdf"}},
-		Read:        ReadConfig{Models: []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}}, Concurrency: 4},
-		Translate:   TranslateConfig{Models: []ModelSpec{{Provider: "openai", Model: "gpt-4"}}, ContextWindow: 5},
-		Write:       WriteConfig{Formats: []string{"docx"}, LaTeXDockerImage: "custom:latest"},
-		Knowledge:   KnowledgeConfig{Dir: "/custom/knowledge"},
-		Retry:       RetryConfig{MaxAttempts: 5, BackoffSeconds: 10},
-		RateLimit:   RateLimitConfig{RequestsPerMinute: 100},
-		Book:        model.Book{SourceLangs: []string{"fa"}, TargetLangs: []string{"en"}},
+		Output:       "/custom/output",
+		MidstateDir:  "/custom/midstate",
+		DPI:          600,
+		Inputs:       []InputSpec{{Path: "./custom.pdf"}},
+		Read:         ReadConfig{Models: []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}}, Concurrency: 4},
+		Translate:    TranslateConfig{Models: []ModelSpec{{Provider: "openai", Model: "gpt-4"}}, ContextWindow: 5},
+		Write:        WriteConfig{Formats: []string{"docx"}, LaTeXDockerImage: "custom:latest"},
+		KnowledgeDir: "/custom/knowledge",
+		Retry:        RetryConfig{MaxAttempts: 5, BackoffSeconds: 10},
+		RateLimit:    RateLimitConfig{RequestsPerMinute: 100},
+		Book:         model.Book{SourceLangs: []string{"fa"}, TargetLangs: []string{"en"}},
 	}
 	applyDefaults(cfg)
 
@@ -325,8 +294,8 @@ func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	if len(cfg.Write.Formats) != 1 || cfg.Write.Formats[0] != "docx" {
 		t.Errorf("Write.Formats was overwritten: got %v", cfg.Write.Formats)
 	}
-	if cfg.Knowledge.Dir != "/custom/knowledge" {
-		t.Errorf("Knowledge.Dir was overwritten: got %q", cfg.Knowledge.Dir)
+	if cfg.KnowledgeDir != "/custom/knowledge" {
+		t.Errorf("KnowledgeDir was overwritten: got %q", cfg.KnowledgeDir)
 	}
 	if cfg.Retry.MaxAttempts != 5 {
 		t.Errorf("Retry.MaxAttempts was overwritten: got %d", cfg.Retry.MaxAttempts)
@@ -339,31 +308,23 @@ func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	}
 }
 
-func TestApplyDefaults_SingularLangMigration(t *testing.T) {
-	// When SourceLangs is empty but SourceLang is set, should migrate
-	cfg := &Config{
-		Book: model.Book{
-			SourceLang: "fa",
-			TargetLang: "en",
-		},
-	}
+func TestApplyDefaults_LangDefaults(t *testing.T) {
+	cfg := &Config{}
 	applyDefaults(cfg)
 
-	if len(cfg.Book.SourceLangs) != 1 || cfg.Book.SourceLangs[0] != "fa" {
-		t.Errorf("SourceLangs = %v, want [fa]", cfg.Book.SourceLangs)
+	if len(cfg.Book.SourceLangs) != 1 || cfg.Book.SourceLangs[0] != "ar" {
+		t.Errorf("SourceLangs = %v, want [ar]", cfg.Book.SourceLangs)
 	}
-	if len(cfg.Book.TargetLangs) != 1 || cfg.Book.TargetLangs[0] != "en" {
-		t.Errorf("TargetLangs = %v, want [en]", cfg.Book.TargetLangs)
+	if len(cfg.Book.TargetLangs) != 1 || cfg.Book.TargetLangs[0] != "tr" {
+		t.Errorf("TargetLangs = %v, want [tr]", cfg.Book.TargetLangs)
 	}
 }
 
-func TestApplyDefaults_SingularInputMigration(t *testing.T) {
-	cfg := &Config{
-		Input: "./custom/book.pdf",
-	}
+func TestApplyDefaults_InputsDefault(t *testing.T) {
+	cfg := &Config{}
 	applyDefaults(cfg)
 
-	if len(cfg.Inputs) != 1 || cfg.Inputs[0].Path != "./custom/book.pdf" {
-		t.Errorf("Inputs = %v, want [{Path: ./custom/book.pdf}]", cfg.Inputs)
+	if len(cfg.Inputs) != 1 || cfg.Inputs[0].Path != "./input" {
+		t.Errorf("Inputs = %v, want [{Path: ./input}]", cfg.Inputs)
 	}
 }

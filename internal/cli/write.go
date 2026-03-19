@@ -68,10 +68,7 @@ func newWriteCmd() *cobra.Command {
 			}
 
 			// Determine page range
-			pageSpec := cfg.Pages
-			if pages != "" {
-				pageSpec = pages
-			}
+			pageSpec := pages
 			var pagesToProcess []int
 			if pageSpec != "" && pageSpec != "all" {
 				ranges, err := model.ParsePageRanges(pageSpec)

@@ -93,7 +93,7 @@ func TestGenerateSchema_SectionTypeEnumsFromModel(t *testing.T) {
 	}
 }
 
-func TestGenerateSchema_InputsOneOf(t *testing.T) {
+func TestGenerateSchema_InputsRequiredPath(t *testing.T) {
 	data, err := GenerateSchema()
 	if err != nil {
 		t.Fatalf("GenerateSchema: %v", err)
@@ -105,28 +105,16 @@ func TestGenerateSchema_InputsOneOf(t *testing.T) {
 	props := obj["properties"].(map[string]any)
 	inputs := props["inputs"].(map[string]any)
 	items := inputs["items"].(map[string]any)
-	oneOf, ok := items["oneOf"].([]any)
+
+	if items["type"] != "object" {
+		t.Errorf("inputs items should be object type, got %v", items["type"])
+	}
+	required, ok := items["required"].([]any)
 	if !ok {
-		t.Fatal("inputs.items should have oneOf")
+		t.Fatal("inputs items should have required")
 	}
-	if len(oneOf) != 2 {
-		t.Fatalf("inputs oneOf should have 2 entries, got %d", len(oneOf))
-	}
-
-	// First: string form
-	strForm := oneOf[0].(map[string]any)
-	if strForm["type"] != "string" {
-		t.Error("first oneOf should be string type")
-	}
-
-	// Second: object form with required path
-	objForm := oneOf[1].(map[string]any)
-	if objForm["type"] != "object" {
-		t.Error("second oneOf should be object type")
-	}
-	required := objForm["required"].([]any)
 	if len(required) != 1 || required[0] != "path" {
-		t.Errorf("object form should require 'path', got %v", required)
+		t.Errorf("inputs items should require 'path', got %v", required)
 	}
 }
 

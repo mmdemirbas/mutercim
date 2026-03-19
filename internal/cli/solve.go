@@ -34,17 +34,14 @@ func newSolveCmd() *cobra.Command {
 			}
 
 			// Load knowledge from all three layers
-			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.Knowledge.Dir)
+			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
 			k, err := knowledge.Load(knowledgeDir, ws.StagedDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
 			}
 
 			// Determine page range
-			pageSpec := cfg.Pages
-			if pages != "" {
-				pageSpec = pages
-			}
+			pageSpec := pages
 
 			var pagesToProcess []int
 			if pageSpec != "" && pageSpec != "all" {

@@ -68,8 +68,8 @@ func TestLoadFromFile(t *testing.T) {
 book:
   title: "Test Book"
   author: "Test Author"
-  source_lang: ar
-  target_lang: tr
+  source_langs: [ar]
+  target_langs: [tr]
 dpi: 600
 sections:
   - name: intro
@@ -227,29 +227,12 @@ func TestIsPDF(t *testing.T) {
 	}
 }
 
-func TestInputsMigration(t *testing.T) {
-	// When only Input (singular) is set, Inputs should be populated
-	dir := t.TempDir()
-	yaml := `input: ./input/book.pdf`
-	configPath := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(configPath, []byte(yaml), 0644)
-
-	cfg, err := Load(configPath)
-	if err != nil {
-		t.Fatalf("Load() error = %v", err)
-	}
-	if len(cfg.Inputs) != 1 || cfg.Inputs[0].Path != "./input/book.pdf" {
-		t.Errorf("Inputs = %v, want [{Path: ./input/book.pdf}]", cfg.Inputs)
-	}
-}
-
 func TestInputsList(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
 inputs:
-  - ./input/vol1.pdf
-  - ./input/vol2.pdf
-pages: "1-5"
+  - path: ./input/vol1.pdf
+  - path: ./input/vol2.pdf
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
 	os.WriteFile(configPath, []byte(yaml), 0644)
@@ -267,9 +250,6 @@ pages: "1-5"
 	if cfg.Inputs[1].Path != "./input/vol2.pdf" {
 		t.Errorf("Inputs[1].Path = %q, want %q", cfg.Inputs[1].Path, "./input/vol2.pdf")
 	}
-	if cfg.Pages != "1-5" {
-		t.Errorf("Pages = %q, want %q", cfg.Pages, "1-5")
-	}
 }
 
 func TestInputsWithPerInputPages(t *testing.T) {
@@ -280,7 +260,7 @@ inputs:
     pages: "1-50"
   - path: ./input/vol2.pdf
     pages: "10-20"
-  - ./input/vol3.pdf
+  - path: ./input/vol3.pdf
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
 	os.WriteFile(configPath, []byte(yaml), 0644)
@@ -298,7 +278,6 @@ inputs:
 	if cfg.Inputs[1].Path != "./input/vol2.pdf" || cfg.Inputs[1].Pages != "10-20" {
 		t.Errorf("Inputs[1] = %+v, want {Path: ./input/vol2.pdf, Pages: 10-20}", cfg.Inputs[1])
 	}
-	// Plain string should have empty pages (uses global)
 	if cfg.Inputs[2].Path != "./input/vol3.pdf" || cfg.Inputs[2].Pages != "" {
 		t.Errorf("Inputs[2] = %+v, want {Path: ./input/vol3.pdf, Pages: }", cfg.Inputs[2])
 	}
