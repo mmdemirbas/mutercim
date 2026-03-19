@@ -35,6 +35,8 @@ type PageResult struct {
 
 // Display controls terminal progress output.
 type Display interface {
+	// SetHeader sets the metadata header (book, input, langs) shown above progress bars.
+	SetHeader(header HeaderData)
 	// StartPhase begins tracking a new phase.
 	StartPhase(phase Phase, input string, total int, lang string)
 	// Update records one page's result and refreshes the display.

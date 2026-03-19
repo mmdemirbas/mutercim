@@ -78,11 +78,6 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 		return fmt.Errorf("create images dir: %w", err)
 	}
 
-	// Start progress display
-	if opts.Display != nil {
-		opts.Display.StartPhase(display.PhasePages, stem, 1, "")
-	}
-
 	firstPage, lastPage := 0, 0
 	if len(pages) > 0 {
 		firstPage = pages[0]
@@ -91,6 +86,7 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 	logger.Info("converting PDF to images", "input", inputPath, "dpi", opts.Config.DPI, "first", firstPage, "last", lastPage)
 	if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, opts.Config.DPI, firstPage, lastPage); err != nil {
 		if opts.Display != nil {
+			opts.Display.StartPhase(display.PhasePages, stem, 1, "")
 			opts.Display.Update(display.PageResult{
 				Phase: display.PhasePages, Input: stem,
 				Total: 1, Failed: 1, Err: err,
@@ -105,11 +101,13 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 	if err == nil {
 		logger.Info("pagination complete", "input", stem, "images", len(images))
 	}
+	imageCount := len(images)
 
 	if opts.Display != nil {
+		opts.Display.StartPhase(display.PhasePages, stem, imageCount, "")
 		opts.Display.Update(display.PageResult{
 			Phase: display.PhasePages, Input: stem,
-			Total: 1, Completed: 1,
+			Total: imageCount, Completed: imageCount,
 		})
 		opts.Display.FinishPhase(display.PhasePages, stem)
 	}

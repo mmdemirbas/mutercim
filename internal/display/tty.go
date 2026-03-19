@@ -18,6 +18,7 @@ type TTYDisplay struct {
 	currentLines int
 	colors       StatusColors
 	logBuffer    *RingBuffer
+	header       HeaderData
 }
 
 type phaseKey struct {
@@ -49,6 +50,14 @@ func newTTYDisplay(out io.Writer, nowFunc func() time.Time) *TTYDisplay {
 		colors:    NewStatusColors(out),
 		logBuffer: NewRingBuffer(5),
 	}
+}
+
+// SetHeader sets the metadata header shown above progress bars.
+func (d *TTYDisplay) SetHeader(header HeaderData) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.header = header
+	d.render()
 }
 
 // StartPhase begins tracking a new phase.
@@ -119,6 +128,7 @@ func (d *TTYDisplay) Finish() {
 	defer d.mu.Unlock()
 
 	d.clearLines()
+	RenderHeader(d.out, d.header, d.colors)
 	for _, key := range d.phaseOrder {
 		ps := d.phases[key]
 		row := d.buildFinishRow(key, ps)
@@ -133,7 +143,7 @@ func (d *TTYDisplay) Finish() {
 func (d *TTYDisplay) render() {
 	d.clearLines()
 
-	lines := 0
+	lines := RenderHeader(d.out, d.header, d.colors)
 	for _, key := range d.phaseOrder {
 		ps := d.phases[key]
 		row := d.buildLiveRow(key, ps)

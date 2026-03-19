@@ -3,7 +3,6 @@ package display
 import (
 	"fmt"
 	"io"
-	"strings"
 )
 
 // StatusData holds all data needed to render the status dashboard.
@@ -12,6 +11,7 @@ type StatusData struct {
 	BookAuthor  string
 	InputName   string
 	InputPages  int // total pages from images dir
+	PageRange   string
 	SourceLangs []string
 	TargetLangs []string
 	Phases      []ProgressRow
@@ -25,27 +25,16 @@ type StatusData struct {
 func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 	fmt.Fprintln(w)
 
-	// Book info
-	if data.BookTitle != "" {
-		title := data.BookTitle
-		if data.BookAuthor != "" {
-			title += " \u2014 " + data.BookAuthor
-		}
-		fmt.Fprintf(w, "  Book:  %s\n", title)
-	}
-	if data.InputName != "" {
-		pages := ""
-		if data.InputPages > 0 {
-			pages = fmt.Sprintf(" (%d pages)", data.InputPages)
-		}
-		fmt.Fprintf(w, "  Input: %s%s\n", data.InputName, pages)
-	}
-	if len(data.SourceLangs) > 0 && len(data.TargetLangs) > 0 {
-		fmt.Fprintf(w, "  Langs: %s \u2192 %s\n",
-			strings.Join(data.SourceLangs, ", "),
-			strings.Join(data.TargetLangs, ", "))
-	}
-	fmt.Fprintln(w)
+	// Header — uses same shared renderer as live dashboard
+	RenderHeader(w, HeaderData{
+		BookTitle:   data.BookTitle,
+		BookAuthor:  data.BookAuthor,
+		InputName:   data.InputName,
+		InputPages:  data.InputPages,
+		PageRange:   data.PageRange,
+		SourceLangs: data.SourceLangs,
+		TargetLangs: data.TargetLangs,
+	}, colors)
 
 	// Phase rows — uses same shared renderer as live dashboard
 	for _, row := range data.Phases {

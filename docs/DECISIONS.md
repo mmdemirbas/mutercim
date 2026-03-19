@@ -40,3 +40,9 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 ## URL Redaction
 - `sanitizeURL` renamed to exported `RedactURL` in apiclient package
 - Strips query params containing "key", "token", or "secret" (case-insensitive)
+
+## Shared Header Rendering
+- `HeaderData` struct + `RenderHeader()` used by both status command and live dashboard
+- `SetHeader(HeaderData)` added to Display interface; TTYDisplay includes header in every render cycle
+- Header labels use `%6s:` format for colon alignment (Book/Input/Langs colons at same column)
+- Page range shown as "pages X-Y of N" when configured, otherwise "N pages"

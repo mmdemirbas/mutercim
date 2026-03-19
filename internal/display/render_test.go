@@ -267,3 +267,91 @@ func TestFormatDuration(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderHeader_ColonAlignment(t *testing.T) {
+	var buf bytes.Buffer
+	RenderHeader(&buf, HeaderData{
+		BookTitle:   "Test Book",
+		BookAuthor:  "Author",
+		InputName:   "vol1.pdf",
+		InputPages:  100,
+		SourceLangs: []string{"ar"},
+		TargetLangs: []string{"tr"},
+	}, StatusColors{Enabled: false})
+
+	lines := strings.Split(buf.String(), "\n")
+	// Find colon positions in non-empty lines
+	var colonPositions []int
+	for _, line := range lines {
+		if idx := strings.Index(line, ":"); idx >= 0 && strings.TrimSpace(line) != "" {
+			colonPositions = append(colonPositions, idx)
+		}
+	}
+	if len(colonPositions) < 3 {
+		t.Fatalf("expected at least 3 lines with colons, got %d", len(colonPositions))
+	}
+	for i := 1; i < len(colonPositions); i++ {
+		if colonPositions[i] != colonPositions[0] {
+			t.Errorf("colon alignment mismatch: line 0 at col %d, line %d at col %d\noutput:\n%s",
+				colonPositions[0], i, colonPositions[i], buf.String())
+		}
+	}
+}
+
+func TestRenderHeader_WithPageRange(t *testing.T) {
+	var buf bytes.Buffer
+	RenderHeader(&buf, HeaderData{
+		InputName:  "vol1.pdf",
+		InputPages: 612,
+		PageRange:  "1-50",
+	}, StatusColors{Enabled: false})
+
+	out := buf.String()
+	if !strings.Contains(out, "pages 1-50 of 612") {
+		t.Errorf("should show page range, got:\n%s", out)
+	}
+}
+
+func TestRenderHeader_AllPagesNoRange(t *testing.T) {
+	var buf bytes.Buffer
+	RenderHeader(&buf, HeaderData{
+		InputName:  "vol1.pdf",
+		InputPages: 612,
+	}, StatusColors{Enabled: false})
+
+	out := buf.String()
+	if !strings.Contains(out, "612 pages") {
+		t.Errorf("should show total pages when no range, got:\n%s", out)
+	}
+	if strings.Contains(out, "of 612") {
+		t.Errorf("should not show 'of N' format when no range, got:\n%s", out)
+	}
+}
+
+func TestRenderHeader_Empty(t *testing.T) {
+	var buf bytes.Buffer
+	lines := RenderHeader(&buf, HeaderData{}, StatusColors{Enabled: false})
+
+	if lines != 0 {
+		t.Errorf("empty header should produce 0 lines, got %d", lines)
+	}
+	if buf.Len() != 0 {
+		t.Errorf("empty header should produce no output, got: %q", buf.String())
+	}
+}
+
+func TestRenderHeader_LineCount(t *testing.T) {
+	var buf bytes.Buffer
+	lines := RenderHeader(&buf, HeaderData{
+		BookTitle:   "Book",
+		InputName:   "input.pdf",
+		InputPages:  10,
+		SourceLangs: []string{"ar"},
+		TargetLangs: []string{"tr"},
+	}, StatusColors{Enabled: false})
+
+	// 3 content lines + 1 blank separator = 4
+	if lines != 4 {
+		t.Errorf("expected 4 lines (3 content + 1 blank), got %d\noutput:\n%s", lines, buf.String())
+	}
+}

@@ -30,6 +30,13 @@ func newLineDisplay(out io.Writer) *LineDisplay {
 	return &LineDisplay{out: out}
 }
 
+// SetHeader prints the metadata header once.
+func (d *LineDisplay) SetHeader(header HeaderData) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	RenderHeader(d.out, header, StatusColors{Enabled: false})
+}
+
 // StartPhase records that a phase has started.
 func (d *LineDisplay) StartPhase(phase Phase, input string, total int, lang string) {
 	d.mu.Lock()

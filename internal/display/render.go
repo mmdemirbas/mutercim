@@ -10,6 +10,51 @@ import (
 
 const barWidth = 20
 
+// HeaderData holds metadata shown in the header section of both live and status displays.
+type HeaderData struct {
+	BookTitle   string
+	BookAuthor  string
+	InputName   string
+	InputPages  int    // total pages available
+	PageRange   string // e.g. "1-50", empty means all
+	SourceLangs []string
+	TargetLangs []string
+}
+
+// RenderHeader writes the header section (book, input, langs) and returns the number of lines written.
+func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
+	lines := 0
+	if h.BookTitle != "" {
+		title := h.BookTitle
+		if h.BookAuthor != "" {
+			title += " \u2014 " + h.BookAuthor
+		}
+		fmt.Fprintf(w, "%6s: %s\n", "Book", title)
+		lines++
+	}
+	if h.InputName != "" {
+		info := h.InputName
+		if h.PageRange != "" && h.InputPages > 0 {
+			info += fmt.Sprintf(" (pages %s of %d)", h.PageRange, h.InputPages)
+		} else if h.InputPages > 0 {
+			info += fmt.Sprintf(" (%d pages)", h.InputPages)
+		}
+		fmt.Fprintf(w, "%6s: %s\n", "Input", info)
+		lines++
+	}
+	if len(h.SourceLangs) > 0 && len(h.TargetLangs) > 0 {
+		fmt.Fprintf(w, "%6s: %s \u2192 %s\n", "Langs",
+			strings.Join(h.SourceLangs, ", "),
+			strings.Join(h.TargetLangs, ", "))
+		lines++
+	}
+	if lines > 0 {
+		fmt.Fprintln(w)
+		lines++
+	}
+	return lines
+}
+
 // ProgressRow holds the data needed to render one phase progress line.
 // Used by both the live dashboard and the status command.
 type ProgressRow struct {

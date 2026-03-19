@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
@@ -73,6 +74,25 @@ func newMakeCmd() *cobra.Command {
 			pageSpec := cfg.Pages
 			if pages != "" {
 				pageSpec = pages
+			}
+
+			// Set header on live display
+			if disp != nil {
+				inputName := ""
+				if len(cfg.Inputs) > 0 {
+					inputName = filepath.Base(cfg.Inputs[0].Path)
+					if len(cfg.Inputs) > 1 {
+						inputName += fmt.Sprintf(" (+%d more)", len(cfg.Inputs)-1)
+					}
+				}
+				disp.SetHeader(display.HeaderData{
+					BookTitle:   cfg.Book.Title,
+					BookAuthor:  cfg.Book.Author,
+					InputName:   inputName,
+					PageRange:   pageSpec,
+					SourceLangs: cfg.Book.SourceLangs,
+					TargetLangs: cfg.Book.TargetLangs,
+				})
 			}
 			var pagesToProcess []int
 			if pageSpec != "" && pageSpec != "all" {
