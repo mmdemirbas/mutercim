@@ -5,7 +5,7 @@ Read SPEC.md sections: "Knowledge Module Format", "Knowledge Layering",
 "Staging Area", "Phase 2: SOLVE".
 
 Implement:
-1. defaults/ directory with embedded YAML files
+1. internal/knowledge/defaults/ directory with embedded YAML files
 2. internal/knowledge/ — loader.go, embedded.go, types.go, glossary.go
 3. internal/workspace/staging.go
 4. internal/solver/ — solver.go, abbreviation.go, continuation.go,
@@ -37,7 +37,7 @@ Before declaring this phase complete, execute these commands and verify they pas
 - `embedded.go` — `go:embed defaults` for built-in knowledge YAML files
 - `loader.go` — Three-layer loading (embedded → workspace → staged) with merge-by-key logic
 - `glossary.go` — `BuildGlossary()` and per-section builders for prompt injection
-- `defaults/` — Copies of honorifics, people, terminology, places YAML for embedding
+- `internal/knowledge/defaults/` — Embedded honorifics, people, terminology, places YAML files
 - `loader_test.go` — Embedded loading, workspace overrides, staged overrides, layer tracking
 
 **Solver package** (`internal/solver/`):
@@ -60,4 +60,4 @@ Before declaring this phase complete, execute these commands and verify they pas
 
 ### Deviations
 
-- Embedded YAML files in `internal/knowledge/defaults/` instead of project-root `defaults/` (go:embed limitation)
+- Embedded YAML files live only in `internal/knowledge/defaults/` (go:embed requires files within package directory)

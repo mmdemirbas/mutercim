@@ -1,5 +1,3 @@
-- Do we still need top-level defaults folder? Maybe we should put it under the example dir and version control them.
-
 - Allow specifying pages per input file
 - Allow translating to multiple languages in parallel
 

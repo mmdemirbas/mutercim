@@ -8,7 +8,7 @@ Implement:
 2. internal/pipeline/write.go
 3. internal/cli/write.go
 4. docker/xelatex/Dockerfile
-5. templates in defaults/templates/
+5. templates in example/defaults/templates/
 
 The result should: generate Markdown and LaTeX from translated JSON.
 
@@ -44,7 +44,7 @@ Before declaring this phase complete, execute these commands and verify they pas
 **Docker** (`docker/xelatex/`):
 - `Dockerfile` — XeLaTeX container with polyglossia, bidi, arabxetex, Amiri font
 
-**Templates** (`defaults/templates/`):
+**Templates** (`example/defaults/templates/`):
 - `book.tex` — Master LaTeX document template
 - `page.tex` — Per-page LaTeX template fragment
 

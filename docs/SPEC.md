@@ -742,7 +742,7 @@ mutercim/                            # Go project root (github.com/mmdemirbas/mu
 │   │   └── prompts.go               # Translation prompt templates per section type
 │   ├── knowledge/
 │   │   ├── loader.go                # Layered loading: embedded → workspace → staged
-│   │   ├── embedded.go              # go:embed for defaults/ directory
+│   │   ├── embedded.go              # go:embed for internal defaults/ directory
 │   │   ├── types.go                 # Knowledge data structures (Honorific, Source, Person, etc.)
 │   │   └── glossary.go              # Combined glossary builder for prompt injection
 │   ├── renderer/
@@ -760,15 +760,11 @@ mutercim/                            # Go project root (github.com/mmdemirbas/mu
 │       ├── book.go                  # Book-level metadata
 │       ├── entry.go                 # Entry, footnote, source data structures
 │       └── section.go               # Section type enum, page range model
-├── defaults/                        # Embedded into binary via go:embed
-│   ├── knowledge/
-│   │   ├── honorifics.yaml          # Common Islamic honorifics
-│   │   ├── people.yaml              # 50+ common sahabi/person name mappings
-│   │   ├── terminology.yaml         # Core Islamic terminology
-│   │   └── places.yaml              # Common place name mappings
-│   └── templates/
-│       ├── book.tex                 # LaTeX book template (XeLaTeX + polyglossia + bidi)
-│       └── page.tex                 # Per-page LaTeX template
+├── example/                         # Example workspace and reference files
+│   ├── defaults/                    # Reference copies of embedded defaults (not used by binary)
+│   │   ├── knowledge/               # honorifics, people, terminology, places YAML
+│   │   └── templates/               # LaTeX book/page templates
+│   └── mutercim.yaml               # Example workspace config
 ├── docker/
 │   └── xelatex/
 │       └── Dockerfile               # XeLaTeX compilation container
@@ -780,7 +776,7 @@ mutercim/                            # Go project root (github.com/mmdemirbas/mu
 ```
 
 Key structural decisions:
-- `defaults/` is embedded into the binary via `go:embed` — no external files needed at runtime
+- `internal/knowledge/defaults/` is embedded into the binary via `go:embed` — no external files needed at runtime
 - `internal/workspace/` owns all workspace path resolution and staging operations
 - `internal/config/sections.go` provides a `SectionForPage(pageNum int) Section` lookup used by all phases
 - `provider/registry.go` maps config strings ("gemini", "claude") to concrete Provider instances

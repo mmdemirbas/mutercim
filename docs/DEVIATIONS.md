@@ -24,5 +24,5 @@
 
 ## Phase 4 — Knowledge & Solve
 
-- **What**: Embedded default YAML files placed in `internal/knowledge/defaults/` instead of project-root `defaults/`
-- **Why**: `go:embed` can only access files within or below the package directory. The SPEC puts defaults at project root, but that path is unreachable from `internal/knowledge/embedded.go`. The root `defaults/` directory is kept as the source of truth; files are copied into the package.
+- **What**: Embedded default YAML files live only in `internal/knowledge/defaults/` (single source of truth)
+- **Why**: `go:embed` can only access files within or below the package directory. Former top-level `defaults/` was a redundant copy; moved to `example/defaults/` as reference only.
