@@ -12,7 +12,3 @@
 - Optimize token usage
     * short JSON keys
     * shorter system prompts
-
-- Let's make status output and live dashboard follow consistent formatting.
-- Let's show latest a few log lines in the live dashboard.
-
