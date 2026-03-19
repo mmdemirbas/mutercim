@@ -24,7 +24,7 @@ Only `main()` calls `os.Exit`. No `os.Exit` or `log.Fatal` anywhere else in the 
 
 ## Error Handling
 
-- Wrap errors with context: `fmt.Errorf("extract page %d: %w", pageNum, err)`
+- Wrap errors with context: `fmt.Errorf("read page %d: %w", pageNum, err)`
 - Error messages include enough to diagnose: what failed, what input, what was expected
 - User-visible errors are actionable ("pdftoppm not found in PATH — install with: brew install
   poppler")

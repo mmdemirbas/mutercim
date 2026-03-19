@@ -19,7 +19,7 @@ type mockProvider struct {
 
 func (m *mockProvider) Name() string         { return "mock" }
 func (m *mockProvider) SupportsVision() bool { return true }
-func (m *mockProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+func (m *mockProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
 	return m.response, nil
 }
 func (m *mockProvider) Translate(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
@@ -31,7 +31,7 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 	dir := t.TempDir()
 
 	// Create workspace directories
-	for _, d := range []string{"input", "cache/images", "cache/extracted"} {
+	for _, d := range []string{"input", "cache/images", "cache/read"} {
 		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
 			t.Fatalf("mkdir %s: %v", d, err)
 		}
@@ -62,7 +62,7 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 		Inputs:   []string{imagesDir},
 		CacheDir: "./cache",
 		DPI:      300,
-		Extract: config.ExtractConfig{
+		Read: config.ReadConfig{
 			Provider:    "mock",
 			Model:       "test-model",
 			Concurrency: 1,
@@ -79,7 +79,7 @@ func setupTestWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *pr
 	return ws, cfg, tracker
 }
 
-func TestExtractPipeline(t *testing.T) {
+func TestReadPipeline(t *testing.T) {
 	ws, cfg, tracker := setupTestWorkspace(t)
 
 	response := `{
@@ -89,7 +89,7 @@ func TestExtractPipeline(t *testing.T) {
 		"warnings": []
 	}`
 
-	err := Extract(context.Background(), ExtractOptions{
+	err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
@@ -97,17 +97,17 @@ func TestExtractPipeline(t *testing.T) {
 		Logger:    nil,
 	})
 	if err != nil {
-		t.Fatalf("Extract() error: %v", err)
+		t.Fatalf("Read() error: %v", err)
 	}
 
 	// Verify output file was created in per-input subdir
-	outputPath := filepath.Join(ws.ExtractedDir(), "testinput", "page_001.json")
+	outputPath := filepath.Join(ws.ReadDir(), "testinput", "page_001.json")
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
 	}
 
-	var page model.ExtractedPage
+	var page model.ReadPage
 	if err := json.Unmarshal(data, &page); err != nil {
 		t.Fatalf("unmarshal output: %v", err)
 	}
@@ -120,31 +120,31 @@ func TestExtractPipeline(t *testing.T) {
 
 	// Verify progress was updated with compound phase name
 	state := tracker.State()
-	phase := state.Phases["extract:testinput"]
+	phase := state.Phases["read:testinput"]
 	if phase == nil {
-		t.Fatal("expected extract:testinput phase in progress")
+		t.Fatal("expected read:testinput phase in progress")
 	}
 	if !containsInt(phase.Completed, 1) {
 		t.Error("expected page 1 in completed list")
 	}
 }
 
-func TestExtractPipelineSkipsCompleted(t *testing.T) {
+func TestReadPipelineSkipsCompleted(t *testing.T) {
 	ws, cfg, tracker := setupTestWorkspace(t)
 
 	// Mark page as already completed AND create the output file
-	tracker.MarkCompleted("extract:testinput", 1)
+	tracker.MarkCompleted("read:testinput", 1)
 	if err := tracker.Save(); err != nil {
 		t.Fatalf("save tracker: %v", err)
 	}
 
 	// Create the output file so the skip logic sees it as truly complete
-	outputDir := filepath.Join(ws.ExtractedDir(), "testinput")
+	outputDir := filepath.Join(ws.ReadDir(), "testinput")
 	os.MkdirAll(outputDir, 0755)
 	outputPath := filepath.Join(outputDir, "page_001.json")
 	os.WriteFile(outputPath, []byte(`{"version":"1.0","page_number":1}`), 0644)
 
-	err := Extract(context.Background(), ExtractOptions{
+	err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: `{"entries":[],"footnotes":[],"warnings":[]}`},
@@ -152,7 +152,7 @@ func TestExtractPipelineSkipsCompleted(t *testing.T) {
 		Logger:    nil,
 	})
 	if err != nil {
-		t.Fatalf("Extract() error: %v", err)
+		t.Fatalf("Read() error: %v", err)
 	}
 
 	// Output file should still contain the original content (not re-processed)
@@ -165,7 +165,7 @@ func TestExtractPipelineSkipsCompleted(t *testing.T) {
 	}
 }
 
-func TestExtractPipelineNoImages(t *testing.T) {
+func TestReadPipelineNoImages(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create empty images dir
@@ -178,35 +178,35 @@ func TestExtractPipelineNoImages(t *testing.T) {
 	cfg := &config.Config{Inputs: []string{emptyDir}}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
-	err := Extract(context.Background(), ExtractOptions{
+	err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: "{}"},
 		Tracker:   tracker,
 	})
-	// Extract logs per-input errors but doesn't fail the overall run
+	// Read logs per-input errors but doesn't fail the overall run
 	if err != nil {
-		t.Fatalf("Extract() unexpected error: %v", err)
+		t.Fatalf("Read() unexpected error: %v", err)
 	}
 
 	// No output files should exist
-	outputPath := filepath.Join(ws.ExtractedDir(), "empty", "page_001.json")
+	outputPath := filepath.Join(ws.ReadDir(), "empty", "page_001.json")
 	if _, err := os.Stat(outputPath); err == nil {
 		t.Error("expected no output files for empty input")
 	}
 }
 
-func TestSaveExtractedPage(t *testing.T) {
+func TestSaveReadPage(t *testing.T) {
 	dir := t.TempDir()
 
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		Version:    "1.0",
 		PageNumber: 5,
 		Entries:    []model.Entry{{Type: "hadith", ArabicText: "test"}},
 	}
 
-	if err := saveExtractedPage(dir, 5, page); err != nil {
-		t.Fatalf("saveExtractedPage() error: %v", err)
+	if err := saveReadPage(dir, 5, page); err != nil {
+		t.Fatalf("saveReadPage() error: %v", err)
 	}
 
 	// Verify file exists with correct name
@@ -216,7 +216,7 @@ func TestSaveExtractedPage(t *testing.T) {
 		t.Fatalf("read output: %v", err)
 	}
 
-	var loaded model.ExtractedPage
+	var loaded model.ReadPage
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}

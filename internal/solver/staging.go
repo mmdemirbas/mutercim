@@ -1,4 +1,4 @@
-package enrichment
+package solver
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ type stagedSource struct {
 // StageFromReferenceTable extracts source-like entries from a reference_table page
 // and writes them to the staging area. Only stages if the page has entries that
 // look like abbreviation key-value pairs.
-func StageFromReferenceTable(page *model.ExtractedPage, stagedDir string) error {
+func StageFromReferenceTable(page *model.ReadPage, stagedDir string) error {
 	if page.SectionType != "reference_table" {
 		return nil
 	}

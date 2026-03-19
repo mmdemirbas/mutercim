@@ -22,7 +22,7 @@ Go was chosen over Python and Kotlin after evaluating the actual workload:
 ## Core Principles
 
 1. **Dual output**: Every book produces two valuable artifacts — a clean digital Arabic text (from OCR) and its Turkish translation.
-2. **Model-agnostic**: Extraction and translation use swappable AI backends. Free models default, premium models available.
+2. **Model-agnostic**: Reading and translation use swappable AI backends. Free models default, premium models available.
 3. **Incremental & resumable**: Results are saved per-page immediately. Processing can stop and resume at any point.
 4. **Domain-aware**: Islamic scholarly terminology, honorifics, companion names, and source abbreviations are handled correctly via pluggable knowledge modules.
 5. **Best-effort with transparency**: Errors don't halt processing. Every anomaly is logged and flagged for human review.
@@ -34,13 +34,13 @@ Go was chosen over Python and Kotlin after evaluating the actual workload:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        mutercim CLI                         │
-│  mutercim extract | enrich | translate | compile | run      │
+│  mutercim read | solve | translate | write | make           │
 └─────┬───────────┬──────────────┬─────────────┬──────────────┘
       │           │              │             │
       ▼           ▼              ▼             ▼
 ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌───────────┐
 │ Phase 1  │ │ Phase 2  │ │  Phase 3  │ │  Phase 4  │
-│ EXTRACT  │ │ ENRICH   │ │ TRANSLATE │ │  COMPILE  │
+│ READ     │ │ SOLVE    │ │ TRANSLATE │ │  WRITE    │
 │          │ │          │ │           │ │           │
 │ Image →  │ │ Validate │ │ Arabic →  │ │ JSON →    │
 │ Struct.  │ │ Resolve  │ │ Turkish   │ │ Markdown  │
@@ -51,13 +51,13 @@ Go was chosen over Python and Kotlin after evaluating the actual workload:
 └──────────┘ └──────────┘ └───────────┘ └───────────┘
 ```
 
-### Phase 1: EXTRACT (parallelizable, AI-based)
+### Phase 1: READ (parallelizable, AI-based)
 
 **Input**: Page images (PNG/JPG) or PDF pages converted to images.
-**Output**: One JSON file per page in `cache/extracted/page_NNN.json`.
+**Output**: One JSON file per page in `cache/read/page_NNN.json`.
 **Model**: Gemini 2.0 Flash (free default) / Claude Sonnet / Qwen2.5-VL (local) / Surya (local OCR + AI structural parse)
 
-The extraction prompt asks the vision model to:
+The read prompt asks the vision model to:
 1. Identify all visual zones on the page (header, body entries, separator, footnotes, page number, margin notes, etc.)
 2. Extract Arabic text with full tashkeel preservation
 3. Classify each entry by type (hadith, athar, commentary, chapter heading, etc.)
@@ -68,17 +68,17 @@ The extraction prompt asks the vision model to:
 
 **No cross-page reasoning happens here.** Each page is processed independently. This makes Phase 1 embarrassingly parallel.
 
-**Extraction prompt strategy**: The system prompt should NOT describe a specific book layout. Instead, it should instruct the model to analyze the page as a general Islamic scholarly text and identify structural elements. Example instruction areas:
+**Read prompt strategy**: The system prompt should NOT describe a specific book layout. Instead, it should instruct the model to analyze the page as a general Islamic scholarly text and identify structural elements. Example instruction areas:
 - "Identify numbered entries — these are typically hadith or athar"
 - "Detect separator lines (asterisks, horizontal rules) that divide main text from footnotes"
 - "Recognize source abbreviation codes in parentheses within footnotes"
 - "Flag if the first entry on the page appears to be a continuation (no number, starts mid-sentence)"
 - "Preserve all diacritical marks (tashkeel/harakat) exactly as they appear"
 
-### Phase 2: ENRICH (sequential, local, no API calls)
+### Phase 2: SOLVE (sequential, local, no API calls)
 
-**Input**: All extracted JSONs + knowledge YAML files.
-**Output**: Enriched JSONs in `cache/enriched/page_NNN.json`.
+**Input**: All read JSONs + knowledge YAML files.
+**Output**: Solved JSONs in `cache/solved/page_NNN.json`.
 
 This phase performs:
 1. **Abbreviation resolution**: Match source codes (ت، ن، حم) against the source abbreviation table (from knowledge YAML or auto-detected from early book pages)
@@ -91,7 +91,7 @@ This phase performs:
 
 ### Phase 3: TRANSLATE (parallelizable in chunks, AI-based)
 
-**Input**: Enriched JSONs + knowledge YAMLs + sliding context window.
+**Input**: Solved JSONs + knowledge YAMLs + sliding context window.
 **Output**: One JSON file per page in `cache/translated/page_NNN.json`.
 **Model**: Gemini 2.0 Flash (free default) / Claude Sonnet / Claude Opus (premium) / local models
 
@@ -101,13 +101,13 @@ The translation system prompt includes:
 - Instructions for meaning-first translation (not word-by-word)
 - Rules for handling Arabic honorific formulas (صلى الله عليه وسلم → sallallâhu aleyhi ve sellem)
 - Context from previous 1-2 pages (sliding window)
-- The page's `translation_context` from enrichment phase
+- The page's `translation_context` from solve phase
 
 **Parallelization strategy**: Process in sequential chunks of 10-20 pages. Within each chunk, process sequentially (for context). Different chunks can run in parallel with 1-2 page overlap at boundaries. For v1, just process all pages sequentially.
 
 **Output structure mirrors input**: Same JSON schema but with `turkish_text`, `translated_footnote`, `translated_header` fields added alongside the Arabic originals.
 
-### Phase 4: COMPILE (local, no API calls)
+### Phase 4: WRITE (local, no API calls)
 
 **Input**: Translated JSONs + output templates.
 **Output**: Final documents in `output/`.
@@ -137,11 +137,11 @@ mutercim separates the **tool** (installed binary + embedded defaults) from **bo
 │   └── book.pdf                     # Or a directory of scanned images
 ├── cache/                           # All intermediate artifacts
 │   ├── images/                      # PDF pages converted to PNG
-│   ├── extracted/                   # Phase 1 output: page_NNN.json
-│   ├── enriched/                    # Phase 2 output: page_NNN.json
+│   ├── read/                        # Phase 1 output: page_NNN.json
+│   ├── solved/                      # Phase 2 output: page_NNN.json
 │   ├── translated/                  # Phase 3 output: page_NNN.json
-│   └── staged/                      # Auto-extracted knowledge (pending review)
-│       └── sources_pages_6-8.yaml   # e.g., abbreviation table extracted from pages 6-8
+│   └── staged/                      # Auto-detected knowledge (pending review)
+│       └── sources_pages_6-8.yaml   # e.g., abbreviation table detected from pages 6-8
 ├── output/                          # Final deliverables
 │   ├── arabic/                      # Reconstructed Arabic text
 │   │   ├── book.md
@@ -153,8 +153,8 @@ mutercim separates the **tool** (installed binary + embedded defaults) from **bo
 │       ├── book.tex
 │       └── book.pdf
 ├── reports/                         # Per-phase reports
-│   ├── extract_report.json
-│   ├── enrich_report.json
+│   ├── read_report.json
+│   ├── solve_report.json
 │   └── translate_report.json
 └── progress.json                    # Checkpoint state
 ```
@@ -170,30 +170,30 @@ Layer 1: Embedded defaults (compiled into the binary via go:embed)
 Layer 2: Workspace knowledge/ directory (persistent, user-reviewed)
   → Book-specific sources, custom overrides, promoted staged entries
 
-Layer 3: Staged cache/staged/ (auto-extracted, pending review)
-  → Abbreviation tables, terminology detected during extraction
-  → Used during enrichment/translation but marked as "staged" in output
+Layer 3: Staged cache/staged/ (auto-detected, pending review)
+  → Abbreviation tables, terminology detected during read phase
+  → Used during solve/translation but marked as "staged" in output
   → NOT written to persistent knowledge unless user explicitly promotes
 ```
 
-### Staging Area — Knowledge Auto-Extraction Lifecycle
+### Staging Area — Knowledge Auto-Detection Lifecycle
 
-When Phase 1 extracts a page with `type: reference_table` (e.g., an abbreviation key), the extracted key-value pairs are written to the staging area:
+When Phase 1 reads a page with `type: reference_table` (e.g., an abbreviation key), the detected key-value pairs are written to the staging area:
 
 ```
-1. Extract phase detects abbreviation table on pages 6-8
+1. Read phase detects abbreviation table on pages 6-8
    → Writes cache/staged/sources_pages_6-8.yaml
 
-2. Enrich phase loads all three knowledge layers
+2. Solve phase loads all three knowledge layers
    → Staged sources are used for abbreviation resolution
-   → Enriched output marks resolved sources with "source: staged" flag
+   → Solved output marks resolved sources with "source: staged" flag
 
 3. User reviews staged files:
    mutercim knowledge staged         # List staged files with summaries
    mutercim knowledge diff           # Show staged vs persistent differences
    mutercim knowledge promote <file> # Merge into knowledge/sources.yaml
 
-4. After promotion, re-running enrich/translate uses the persistent version
+4. After promotion, re-running solve/translate uses the persistent version
    → "source: staged" flags become "source: workspace"
 ```
 
@@ -212,12 +212,12 @@ Workspace Commands:
   config        Show effective configuration (merged config + flags + defaults)
 
 Pipeline Commands:
-  extract       Extract text and structure from book pages (Phase 1)
-  enrich        Validate, resolve, and enrich extracted data (Phase 2)
-  translate     Translate enriched data to target language (Phase 3)
-  compile       Render translated data to output formats (Phase 4)
-  run           Execute all phases sequentially (extract → enrich → translate → compile)
-  validate      Run validation checks on extracted/translated data without processing
+  read          Read text and structure from book pages (Phase 1)
+  solve         Validate, resolve, and enhance read data (Phase 2)
+  translate     Translate solved data to target language (Phase 3)
+  write         Render translated data to output formats (Phase 4)
+  make          Execute all phases sequentially (read → solve → translate → write)
+  validate      Run validation checks on read/translated data without processing
 
 Knowledge Commands:
   knowledge list       Show all loaded knowledge (embedded + workspace + staged) with layer info
@@ -239,10 +239,10 @@ Init Flags:
   --source-lang       Source language (default: ar)
   --target-lang       Target language (default: tr)
 
-Extract-specific:
-  --extract-model     Model for extraction (default: gemini-2.0-flash)
-  --extract-provider  Provider: gemini, claude, openai, ollama, surya (default: gemini)
-  --concurrency       Parallel extraction workers (default: 1)
+Read-specific:
+  --read-model        Model for reading (default: gemini-2.0-flash)
+  --read-provider     Provider: gemini, claude, openai, ollama, surya (default: gemini)
+  --concurrency       Parallel read workers (default: 1)
   --dpi               DPI for PDF-to-image conversion (default: 300)
 
 Translate-specific:
@@ -250,7 +250,7 @@ Translate-specific:
   --translate-provider Provider: gemini, claude, openai, ollama (default: gemini)
   --context-window     Number of previous pages to include as context (default: 2)
 
-Compile-specific:
+Write-specific:
   --format             Output formats, comma-separated: md,latex,docx (default: md,latex)
   --latex-docker-image Docker image for LaTeX compilation (default: mutercim/xelatex:latest)
   --skip-pdf           Generate .tex but don't compile to PDF
@@ -341,7 +341,7 @@ sections:
 #   auto              - AI detects layout (default for unconfigured pages)
 
 # Model configuration — different model per phase, mix providers freely
-extract:
+read:
   provider: gemini
   model: gemini-2.0-flash
   concurrency: 1
@@ -351,7 +351,7 @@ translate:
   model: gemini-2.0-flash
   context_window: 2
 
-compile:
+write:
   formats: [md, latex]
   expand_sources: true
   latex_docker_image: mutercim/xelatex:latest
@@ -376,15 +376,15 @@ rate_limit:
 
 ## Data Schemas
 
-### Extracted Page (Phase 1 output)
+### Read Page (Phase 1 output)
 
 ```json
 {
   "version": "1.0",
   "page_number": 190,
   "section_type": "scholarly_entries",
-  "extraction_model": "gemini-2.0-flash",
-  "extraction_timestamp": "2026-03-17T14:30:00Z",
+  "read_model": "gemini-2.0-flash",
+  "read_timestamp": "2026-03-17T14:30:00Z",
   "header": {
     "text": "حرف الألف مع السين",
     "type": "section_title"
@@ -418,13 +418,13 @@ rate_limit:
   ],
   "page_footer": "- 190 -",
   "raw_text": "Full page text as fallback...",
-  "extraction_warnings": []
+  "read_warnings": []
 }
 ```
 
-### Enriched Page (Phase 2 output)
+### Solved Page (Phase 2 output)
 
-Extends the extracted page with:
+Extends the read page with:
 
 ```json
 {
@@ -447,11 +447,11 @@ Extends the extracted page with:
 }
 ```
 
-The `layer` field on resolved sources indicates where the mapping came from: `embedded` (shipped with binary), `workspace` (user-reviewed persistent), or `staged` (auto-extracted, pending review). The `unresolved_sources` array lists any source codes that couldn't be matched against any knowledge layer — these appear in the phase report as actionable items.
+The `layer` field on resolved sources indicates where the mapping came from: `embedded` (shipped with binary), `workspace` (user-reviewed persistent), or `staged` (auto-detected, pending review). The `unresolved_sources` array lists any source codes that couldn't be matched against any knowledge layer — these appear in the phase report as actionable items.
 
 ### Translated Page (Phase 3 output)
 
-Extends the enriched page with:
+Extends the solved page with:
 
 ```json
 {
@@ -485,12 +485,12 @@ Extends the enriched page with:
   "book_id": "el-camius-sagir",
   "total_pages": 600,
   "phases": {
-    "extract": {
+    "read": {
       "completed": [1, 2, 3, 4, 5],
       "failed": [],
       "pending": [6, 7, 8, "..."]
     },
-    "enrich": {
+    "solve": {
       "completed": [1, 2, 3, 4, 5],
       "last_run": "2026-03-17T14:35:00Z"
     },
@@ -499,7 +499,7 @@ Extends the enriched page with:
       "failed": [],
       "pending": [4, 5, "..."]
     },
-    "compile": {
+    "write": {
       "completed": [1, 2, 3],
       "pending": [4, 5, "..."]
     }
@@ -694,11 +694,11 @@ mutercim/                            # Go project root (github.com/mmdemirbas/mu
 │   ├── cli/
 │   │   ├── root.go                  # Root command + common flag registration
 │   │   ├── init.go                  # 'init' — workspace scaffolding (interactive + non-interactive)
-│   │   ├── extract.go               # 'extract' subcommand
-│   │   ├── enrich.go                # 'enrich' subcommand
+│   │   ├── read.go                  # 'read' subcommand
+│   │   ├── solve.go                 # 'solve' subcommand
 │   │   ├── translate.go             # 'translate' subcommand
-│   │   ├── compile.go               # 'compile' subcommand
-│   │   ├── run.go                   # 'run' — full pipeline
+│   │   ├── write.go                 # 'write' subcommand
+│   │   ├── make.go                  # 'make' — full pipeline
 │   │   ├── status.go                # 'status' — progress + flagged issues
 │   │   ├── validate.go              # 'validate' — dry validation checks
 │   │   ├── config_cmd.go            # 'config' — show effective config
@@ -711,10 +711,10 @@ mutercim/                            # Go project root (github.com/mmdemirbas/mu
 │   │   ├── config.go                # Config loading: YAML + flags + defaults
 │   │   └── sections.go              # Section type definitions, page range parsing, page→section lookup
 │   ├── pipeline/
-│   │   ├── extract.go               # Phase 1 orchestrator (section-aware prompt selection)
-│   │   ├── enrich.go                # Phase 2 orchestrator (loads all 3 knowledge layers)
+│   │   ├── read.go                  # Phase 1 orchestrator (section-aware prompt selection)
+│   │   ├── solve.go                 # Phase 2 orchestrator (loads all 3 knowledge layers)
 │   │   ├── translate.go             # Phase 3 orchestrator (section-aware translation)
-│   │   └── compile.go               # Phase 4 orchestrator (section-aware template selection)
+│   │   └── write.go                 # Phase 4 orchestrator (section-aware template selection)
 │   ├── apiclient/
 │   │   ├── client.go                # Shared HTTP client: retry, backoff, Retry-After header
 │   │   ├── ratelimit.go             # Token bucket rate limiter (per-provider)
@@ -727,14 +727,14 @@ mutercim/                            # Go project root (github.com/mmdemirbas/mu
 │   │   ├── openai.go                # OpenAI (~70 lines)
 │   │   ├── ollama.go                # Ollama local (~60 lines)
 │   │   └── surya.go                 # Surya OCR + text model for structural parsing
-│   ├── extraction/
-│   │   ├── extractor.go             # Extraction logic, section-aware prompt selection
+│   ├── reader/
+│   │   ├── reader.go                # Read logic, section-aware prompt selection
 │   │   └── prompts.go               # Prompt templates per section type
-│   ├── enrichment/
-│   │   ├── enricher.go              # Enrichment orchestration
+│   ├── solver/
+│   │   ├── solver.go                # Solve orchestration
 │   │   ├── abbreviation.go          # Source code resolution against all knowledge layers
 │   │   ├── continuation.go          # Cross-page merging detection
-│   │   ├── staging.go               # Auto-stage reference_table extractions
+│   │   ├── staging.go               # Auto-stage reference_table reads
 │   │   └── validator.go             # Structural validation, numbering checks
 │   ├── translation/
 │   │   ├── translator.go            # Translation logic, section-aware prompt selection
@@ -755,7 +755,7 @@ mutercim/                            # Go project root (github.com/mmdemirbas/mu
 │   ├── progress/
 │   │   └── tracker.go               # Checkpoint/resume: per-page, per-phase state
 │   └── model/
-│       ├── page.go                  # Page data structures (extracted, enriched, translated)
+│       ├── page.go                  # Page data structures (read, solved, translated)
 │       ├── book.go                  # Book-level metadata
 │       ├── entry.go                 # Entry, footnote, source data structures
 │       └── section.go               # Section type enum, page range model
@@ -783,7 +783,7 @@ Key structural decisions:
 - `internal/workspace/` owns all workspace path resolution and staging operations
 - `internal/config/sections.go` provides a `SectionForPage(pageNum int) Section` lookup used by all phases
 - `provider/registry.go` maps config strings ("gemini", "claude") to concrete Provider instances
-- `enrichment/staging.go` writes auto-extracted knowledge to the workspace staging area
+- `solver/staging.go` writes auto-read knowledge to the workspace staging area
 
 ---
 
@@ -888,7 +888,7 @@ type GeminiProvider struct {
     model  string
 }
 
-func (g *GeminiProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+func (g *GeminiProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
     body := geminiRequest{
         Contents: []geminiContent{{
             Parts: []geminiPart{
@@ -907,7 +907,7 @@ func (g *GeminiProvider) ExtractFromImage(ctx context.Context, image []byte, sys
         Body:    body,
     })
     if err != nil {
-        return "", fmt.Errorf("gemini extract: %w", err)
+        return "", fmt.Errorf("gemini read: %w", err)
     }
     return resp.Candidates[0].Content.Parts[0].Text, nil
 }
@@ -918,7 +918,7 @@ func (g *GeminiProvider) ExtractFromImage(ctx context.Context, image []byte, sys
 ```go
 // claude.go — ~70 lines total
 
-func (c *ClaudeProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+func (c *ClaudeProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
     body := claudeRequest{
         Model:     c.model,
         MaxTokens: 4096,
@@ -943,13 +943,13 @@ func (c *ClaudeProvider) ExtractFromImage(ctx context.Context, image []byte, sys
         Body: body,
     })
     if err != nil {
-        return "", fmt.Errorf("claude extract: %w", err)
+        return "", fmt.Errorf("claude read: %w", err)
     }
     return resp.Content[0].Text, nil
 }
 ```
 
-The pattern is clear: each provider is ~70 lines of struct definitions for request/response envelopes + method implementations that construct the body and extract the text. All retry, rate limiting, HTTP plumbing, and error classification lives in `apiclient` once.
+The pattern is clear: each provider is ~70 lines of struct definitions for request/response envelopes + method implementations that construct the body and parse the text. All retry, rate limiting, HTTP plumbing, and error classification lives in `apiclient` once.
 
 **Total HTTP infrastructure**: ~200 lines in `apiclient` + ~70 lines per provider × 4-5 providers = **~500-550 lines**. One-time cost.
 
@@ -960,14 +960,14 @@ The pattern is clear: each provider is ~70 lines of struct definitions for reque
 ```go
 // provider.go
 
-// Provider abstracts AI model interaction for both vision (extraction) and text (translation).
+// Provider abstracts AI model interaction for both vision (reading) and text (translation).
 type Provider interface {
     // Name returns the provider identifier (e.g., "gemini", "claude", "ollama")
     Name() string
 
-    // ExtractFromImage sends an image to a vision model with a system prompt
+    // ReadFromImage sends an image to a vision model with a system prompt
     // and returns the model's text response (expected to be JSON).
-    ExtractFromImage(ctx context.Context, image []byte, systemPrompt string, userPrompt string) (string, error)
+    ReadFromImage(ctx context.Context, image []byte, systemPrompt string, userPrompt string) (string, error)
 
     // Translate sends text to a language model with a system prompt
     // and returns the model's text response (expected to be JSON).
@@ -982,7 +982,7 @@ Each provider is constructed with an `*apiclient.Client` (configured with the ap
 
 ### Recommended Models (documented in README and config example)
 
-**Extraction (Vision):**
+**Reading (Vision):**
 | Priority | Provider | Model | Cost | Quality | Notes |
 |----------|----------|-------|------|---------|-------|
 | 1 (default) | Gemini | gemini-2.0-flash | Free tier | Good | 15 RPM, 1500 req/day free |
@@ -1004,7 +1004,7 @@ Each provider is constructed with an `*apiclient.Client` (configured with the ap
 
 ### System Dependency Validation
 
-Pipeline commands (`extract`, `translate`, `compile`, `run`) must validate required system dependencies **at startup, before any API calls or file processing**. This prevents discovering a missing tool 200 pages into a run.
+Pipeline commands (`read`, `translate`, `write`, `make`) must validate required system dependencies **at startup, before any API calls or file processing**. This prevents discovering a missing tool 200 pages into a run.
 
 ```go
 // workspace/preflight.go
@@ -1019,15 +1019,15 @@ func Preflight(cfg *config.Config, command string) error {
         }
     }
     // Needed for LaTeX compilation
-    if command == "compile" || command == "run" {
-        if slices.Contains(cfg.Compile.Formats, "latex") && !cfg.Compile.SkipPDF {
+    if command == "write" || command == "make" {
+        if slices.Contains(cfg.Write.Formats, "latex") && !cfg.Write.SkipPDF {
             if _, err := exec.LookPath("docker"); err != nil {
                 return fmt.Errorf("docker not found in PATH (required for LaTeX→PDF compilation, or use --skip-pdf)")
             }
         }
     }
     // Needed for DOCX output via pandoc
-    if slices.Contains(cfg.Compile.Formats, "docx") {
+    if slices.Contains(cfg.Write.Formats, "docx") {
         if _, err := exec.LookPath("pandoc"); err != nil {
             return fmt.Errorf("pandoc not found in PATH (required for DOCX output)")
         }
@@ -1131,7 +1131,7 @@ Compilation command:
 docker run --rm -v $(pwd)/output/latex:/data mutercim/xelatex book.tex
 ```
 
-### Extraction System Prompt (Core)
+### Read System Prompt (Core)
 
 ```
 You are an expert OCR system specialized in classical Arabic Islamic scholarly texts.
@@ -1168,7 +1168,7 @@ Return a JSON object with this exact schema:
     }
   ],
   "page_footer": "<page number text if present>",
-  "warnings": ["<any issues encountered during extraction>"]
+  "warnings": ["<any issues encountered during reading>"]
 }
 
 Respond with ONLY the JSON object. No markdown formatting, no explanations.
@@ -1206,7 +1206,7 @@ For footnotes, translate the explanatory text and expand source abbreviations to
 
 {expand_sources_instruction}
 
-Input (enriched page JSON):
+Input (solved page JSON):
 {input_json}
 
 Return a JSON object with this exact schema:
@@ -1272,7 +1272,7 @@ go install github.com/mmdemirbas/mutercim/cmd/mutercim@latest
 mkdir my-book && cd my-book
 mutercim init
 # Copy your PDF into input/
-mutercim run
+mutercim make
 ```
 
 ---
@@ -1283,7 +1283,7 @@ Every phase produces a `report.json` alongside its outputs:
 
 ```json
 {
-  "phase": "extract",
+  "phase": "read",
   "timestamp": "2026-03-17T14:30:00Z",
   "total_pages": 600,
   "successful": 595,
@@ -1297,14 +1297,14 @@ Every phase produces a `report.json` alongside its outputs:
 }
 ```
 
-Failed pages save whatever raw text was extracted to `cache/extracted/page_NNN.raw.txt` so nothing is lost.
+Failed pages save whatever raw text was read to `cache/read/page_NNN.raw.txt` so nothing is lost.
 
 ---
 
 ## Future Enhancements (Not in v1)
 
 - Parallel chunk processing for Phase 3 (translation) with overlap at chunk boundaries
-- Web UI for reviewing and correcting extraction/translation
+- Web UI for reviewing and correcting read/translation output
 - Support for right-to-left output in DOCX (proper RTL paragraph direction)
 - Multiple target languages (Urdu, Malay, English, etc.)
 - Fine-tuned local model for Arabic Islamic text OCR

@@ -10,16 +10,16 @@ import (
 	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
-	"github.com/mmdemirbas/mutercim/internal/extraction"
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/provider"
+	"github.com/mmdemirbas/mutercim/internal/reader"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-// ExtractOptions configures the extraction pipeline.
-type ExtractOptions struct {
+// ReadOptions configures the read pipeline.
+type ReadOptions struct {
 	Workspace *workspace.Workspace
 	Config    *config.Config
 	Provider  provider.Provider
@@ -28,8 +28,8 @@ type ExtractOptions struct {
 	Logger    *slog.Logger
 }
 
-// Extract runs the Phase 1 extraction pipeline for all configured inputs.
-func Extract(ctx context.Context, opts ExtractOptions) error {
+// Read runs the Phase 1 read pipeline for all configured inputs.
+func Read(ctx context.Context, opts ReadOptions) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -45,7 +45,7 @@ func Extract(ctx context.Context, opts ExtractOptions) error {
 		stem := fileStem(inputPath)
 		logger.Info("processing input", "input", inputPath, "stem", stem)
 
-		if err := extractOneInput(ctx, opts, resolved, stem); err != nil {
+		if err := readOneInput(ctx, opts, resolved, stem); err != nil {
 			logger.Error("input failed", "input", inputPath, "error", err)
 			// Continue to next input — don't abort the whole run
 		}
@@ -54,7 +54,7 @@ func Extract(ctx context.Context, opts ExtractOptions) error {
 	return nil
 }
 
-func extractOneInput(ctx context.Context, opts ExtractOptions, inputPath, stem string) error {
+func readOneInput(ctx context.Context, opts ReadOptions, inputPath, stem string) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -65,7 +65,7 @@ func extractOneInput(ctx context.Context, opts ExtractOptions, inputPath, stem s
 
 	// Per-input subdirectories
 	imagesDir := filepath.Join(ws.ImagesDir(), stem)
-	extractedDir := filepath.Join(ws.ExtractedDir(), stem)
+	readDir := filepath.Join(ws.ReadDir(), stem)
 
 	// Convert PDF to images if needed
 	if config.IsPDF(inputPath) {
@@ -98,7 +98,7 @@ func extractOneInput(ctx context.Context, opts ExtractOptions, inputPath, stem s
 
 	logger.Info("found images", "count", len(images), "input", stem)
 
-	// Build page→image map
+	// Build page->image map
 	imageMap := make(map[int]string)
 	for _, img := range images {
 		imageMap[img.PageNumber] = img.Path
@@ -118,16 +118,16 @@ func extractOneInput(ctx context.Context, opts ExtractOptions, inputPath, stem s
 		logger.Warn("section lookup error, using auto for all pages", "error", err)
 	}
 
-	// Create extractor
-	extractor := extraction.NewExtractor(opts.Provider, logger)
+	// Create reader
+	rdr := reader.NewReader(opts.Provider, logger)
 
 	// Ensure output directory exists
-	if err := os.MkdirAll(extractedDir, 0755); err != nil {
-		return fmt.Errorf("create extracted dir: %w", err)
+	if err := os.MkdirAll(readDir, 0755); err != nil {
+		return fmt.Errorf("create read dir: %w", err)
 	}
 
 	// Use compound phase name for per-input progress tracking
-	phaseName := progress.PhaseName("extract:" + stem)
+	phaseName := progress.PhaseName("read:" + stem)
 
 	// Process pages
 	completed := 0
@@ -135,7 +135,7 @@ func extractOneInput(ctx context.Context, opts ExtractOptions, inputPath, stem s
 	skipped := 0
 	for _, pageNum := range pagesToProcess {
 		// Skip already completed pages — but only if the output file actually exists
-		outputPath := filepath.Join(extractedDir, fmt.Sprintf("page_%03d.json", pageNum))
+		outputPath := filepath.Join(readDir, fmt.Sprintf("page_%03d.json", pageNum))
 		state := opts.Tracker.State()
 		if phase := state.Phases[phaseName]; phase != nil {
 			if containsInt(phase.Completed, pageNum) {
@@ -176,18 +176,18 @@ func extractOneInput(ctx context.Context, opts ExtractOptions, inputPath, stem s
 			continue
 		}
 
-		// Extract
-		page, err := extractor.ExtractPage(ctx, imageData, pageNum, sectionType, cfg.Extract.Model)
+		// Read page via AI
+		page, err := rdr.ReadPage(ctx, imageData, pageNum, sectionType, cfg.Read.Model)
 		if err != nil {
-			logger.Error("extraction failed", "input", stem, "page", pageNum, "error", err)
+			logger.Error("read failed", "input", stem, "page", pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pageNum)
 			failed++
 			continue
 		}
 
 		// Save result atomically
-		if err := saveExtractedPage(extractedDir, pageNum, page); err != nil {
-			logger.Error("failed to save extracted page", "input", stem, "page", pageNum, "error", err)
+		if err := saveReadPage(readDir, pageNum, page); err != nil {
+			logger.Error("failed to save read page", "input", stem, "page", pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pageNum)
 			failed++
 			continue
@@ -198,22 +198,22 @@ func extractOneInput(ctx context.Context, opts ExtractOptions, inputPath, stem s
 			logger.Error("failed to save progress", "error", err)
 		}
 		completed++
-		logger.Info("page extracted", "input", stem, "page", pageNum, "completed", completed)
+		logger.Info("page read", "input", stem, "page", pageNum, "completed", completed)
 	}
 
-	logger.Info("input extraction complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
+	logger.Info("input read complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 	return nil
 }
 
 // fileStem returns the filename without extension.
-// e.g. "./input/Anfas1.pdf" → "Anfas1"
+// e.g. "./input/Anfas1.pdf" -> "Anfas1"
 func fileStem(path string) string {
 	base := filepath.Base(path)
 	ext := filepath.Ext(base)
 	return strings.TrimSuffix(base, ext)
 }
 
-func saveExtractedPage(dir string, pageNum int, page *model.ExtractedPage) error {
+func saveReadPage(dir string, pageNum int, page *model.ReadPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)

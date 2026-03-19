@@ -12,10 +12,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newEnrichCmd() *cobra.Command {
+func newSolveCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "enrich",
-		Short: "Enrich extracted pages with knowledge resolution (Phase 2)",
+		Use:   "solve",
+		Short: "Solve read pages with knowledge resolution (Phase 2)",
 		Long:  "Resolves source abbreviations, detects cross-page continuations, validates structure, and injects translation context.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
@@ -59,7 +59,7 @@ func newEnrichCmd() *cobra.Command {
 				return fmt.Errorf("load progress: %w", err)
 			}
 
-			return pipeline.Enrich(cmd.Context(), pipeline.EnrichOptions{
+			return pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
 				Workspace: ws,
 				Knowledge: k,
 				Tracker:   tracker,

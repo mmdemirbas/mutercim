@@ -52,7 +52,7 @@ type Validation struct {
 	HadithNumberSequenceValid bool     `json:"hadith_number_sequence_valid"`
 }
 
-// TranslationContext holds context injected during enrichment.
+// TranslationContext holds context injected during solving.
 type TranslationContext struct {
 	RelevantGlossaryTerms []string `json:"relevant_glossary_terms"`
 	PreviousPageSummary   string   `json:"previous_page_summary"`

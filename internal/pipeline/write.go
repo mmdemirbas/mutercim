@@ -16,8 +16,8 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-// CompileOptions configures the compilation pipeline.
-type CompileOptions struct {
+// WriteOptions configures the compilation pipeline.
+type WriteOptions struct {
 	Workspace *workspace.Workspace
 	Config    *config.Config
 	Tracker   *progress.Tracker
@@ -25,8 +25,8 @@ type CompileOptions struct {
 	Logger    *slog.Logger
 }
 
-// Compile runs the Phase 4 compilation pipeline for all inputs.
-func Compile(ctx context.Context, opts CompileOptions) error {
+// Write runs the Phase 4 compilation pipeline for all inputs.
+func Write(ctx context.Context, opts WriteOptions) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -45,7 +45,7 @@ func Compile(ctx context.Context, opts CompileOptions) error {
 
 	for _, stem := range inputs {
 		logger.Info("compiling input", "input", stem)
-		if err := compileOneInput(ctx, opts, stem); err != nil {
+		if err := writeOneInput(ctx, opts, stem); err != nil {
 			logger.Error("compilation failed", "input", stem, "error", err)
 		}
 	}
@@ -53,7 +53,7 @@ func Compile(ctx context.Context, opts CompileOptions) error {
 	return nil
 }
 
-func compileOneInput(ctx context.Context, opts CompileOptions, stem string) error {
+func writeOneInput(ctx context.Context, opts WriteOptions, stem string) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -94,10 +94,10 @@ func compileOneInput(ctx context.Context, opts CompileOptions, stem string) erro
 		return pages[i].PageNumber < pages[j].PageNumber
 	})
 
-	phaseName := progress.PhaseName("compile:" + stem)
+	phaseName := progress.PhaseName("write:" + stem)
 
 	// Render each requested format
-	for _, format := range cfg.Compile.Formats {
+	for _, format := range cfg.Write.Formats {
 		switch format {
 		case "md":
 			if err := compileMarkdown(ws, stem, pages, logger); err != nil {
@@ -124,7 +124,7 @@ func compileOneInput(ctx context.Context, opts CompileOptions, stem string) erro
 		logger.Error("failed to save progress", "error", err)
 	}
 
-	logger.Info("compilation complete", "input", stem, "pages", len(pages), "formats", cfg.Compile.Formats)
+	logger.Info("write complete", "input", stem, "pages", len(pages), "formats", cfg.Write.Formats)
 	return nil
 }
 
@@ -175,9 +175,9 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 	logger.Info("wrote latex", "path", texPath)
 
 	// Compile to PDF unless skipped
-	if !cfg.Compile.SkipPDF {
-		logger.Info("compiling PDF via Docker", "image", cfg.Compile.LaTeXDockerImage)
-		if err := renderer.CompilePDF(ctx, latexDir, cfg.Compile.LaTeXDockerImage); err != nil {
+	if !cfg.Write.SkipPDF {
+		logger.Info("compiling PDF via Docker", "image", cfg.Write.LaTeXDockerImage)
+		if err := renderer.CompilePDF(ctx, latexDir, cfg.Write.LaTeXDockerImage); err != nil {
 			return fmt.Errorf("compile PDF: %w", err)
 		}
 		logger.Info("wrote PDF", "path", filepath.Join(latexDir, "book.pdf"))

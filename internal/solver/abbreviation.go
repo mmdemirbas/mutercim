@@ -1,4 +1,4 @@
-package enrichment
+package solver
 
 import (
 	"github.com/mmdemirbas/mutercim/internal/knowledge"

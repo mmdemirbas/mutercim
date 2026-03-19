@@ -1,4 +1,4 @@
-package extraction
+package reader
 
 import (
 	"context"
@@ -13,14 +13,14 @@ type mockProvider struct {
 
 func (m *mockProvider) Name() string         { return "mock" }
 func (m *mockProvider) SupportsVision() bool { return true }
-func (m *mockProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+func (m *mockProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
 	return m.response, m.err
 }
 func (m *mockProvider) Translate(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
 	return m.response, m.err
 }
 
-func TestExtractPage(t *testing.T) {
+func TestReadPage(t *testing.T) {
 	response := `{
 		"page_number": 42,
 		"header": {"text": "باب الألف", "type": "section_title"},
@@ -45,11 +45,11 @@ func TestExtractPage(t *testing.T) {
 	}`
 
 	mock := &mockProvider{response: response}
-	extractor := NewExtractor(mock, nil)
+	r := NewReader(mock, nil)
 
-	page, err := extractor.ExtractPage(context.Background(), []byte("fake-image"), 42, "scholarly_entries", "test-model")
+	page, err := r.ReadPage(context.Background(), []byte("fake-image"), 42, "scholarly_entries", "test-model")
 	if err != nil {
-		t.Fatalf("ExtractPage() error: %v", err)
+		t.Fatalf("ReadPage() error: %v", err)
 	}
 
 	if page.PageNumber != 42 {
@@ -58,8 +58,8 @@ func TestExtractPage(t *testing.T) {
 	if page.SectionType != "scholarly_entries" {
 		t.Errorf("expected section type 'scholarly_entries', got %q", page.SectionType)
 	}
-	if page.ExtractionModel != "test-model" {
-		t.Errorf("expected model 'test-model', got %q", page.ExtractionModel)
+	if page.ReadModel != "test-model" {
+		t.Errorf("expected model 'test-model', got %q", page.ReadModel)
 	}
 	if page.Header == nil {
 		t.Fatal("expected header, got nil")
@@ -82,12 +82,12 @@ func TestExtractPage(t *testing.T) {
 	if page.Version != "1.0" {
 		t.Errorf("expected version '1.0', got %q", page.Version)
 	}
-	if page.ExtractionTimestamp == "" {
-		t.Error("expected non-empty extraction timestamp")
+	if page.ReadTimestamp == "" {
+		t.Error("expected non-empty read timestamp")
 	}
 }
 
-func TestExtractPageNullPageNumber(t *testing.T) {
+func TestReadPageNullPageNumber(t *testing.T) {
 	// When AI returns null for page_number, use the provided pageNum
 	response := `{
 		"page_number": null,
@@ -97,38 +97,38 @@ func TestExtractPageNullPageNumber(t *testing.T) {
 	}`
 
 	mock := &mockProvider{response: response}
-	extractor := NewExtractor(mock, nil)
+	r := NewReader(mock, nil)
 
-	page, err := extractor.ExtractPage(context.Background(), []byte("fake-image"), 7, "auto", "test-model")
+	page, err := r.ReadPage(context.Background(), []byte("fake-image"), 7, "auto", "test-model")
 	if err != nil {
-		t.Fatalf("ExtractPage() error: %v", err)
+		t.Fatalf("ReadPage() error: %v", err)
 	}
 	if page.PageNumber != 7 {
 		t.Errorf("expected page number 7 (from argument), got %d", page.PageNumber)
 	}
 }
 
-func TestExtractPageCodeBlockResponse(t *testing.T) {
+func TestReadPageCodeBlockResponse(t *testing.T) {
 	// AI wraps JSON in markdown code block
 	response := "```json\n{\"page_number\": 1, \"entries\": [], \"footnotes\": [], \"warnings\": []}\n```"
 
 	mock := &mockProvider{response: response}
-	extractor := NewExtractor(mock, nil)
+	r := NewReader(mock, nil)
 
-	page, err := extractor.ExtractPage(context.Background(), []byte("fake-image"), 1, "auto", "test-model")
+	page, err := r.ReadPage(context.Background(), []byte("fake-image"), 1, "auto", "test-model")
 	if err != nil {
-		t.Fatalf("ExtractPage() error: %v", err)
+		t.Fatalf("ReadPage() error: %v", err)
 	}
 	if page.PageNumber != 1 {
 		t.Errorf("expected page number 1, got %d", page.PageNumber)
 	}
 }
 
-func TestExtractPageProviderError(t *testing.T) {
+func TestReadPageProviderError(t *testing.T) {
 	mock := &mockProvider{err: fmt.Errorf("provider error")}
-	extractor := NewExtractor(mock, nil)
+	r := NewReader(mock, nil)
 
-	_, err := extractor.ExtractPage(context.Background(), []byte("fake-image"), 1, "auto", "test-model")
+	_, err := r.ReadPage(context.Background(), []byte("fake-image"), 1, "auto", "test-model")
 	if err == nil {
 		t.Fatal("expected error when provider fails")
 	}

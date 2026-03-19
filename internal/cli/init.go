@@ -72,6 +72,6 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Place your PDF or page images in input/")
 	fmt.Println("  2. Edit mutercim.yaml to configure sections")
-	fmt.Println("  3. Run: mutercim extract")
+	fmt.Println("  3. Run: mutercim read")
 	return nil
 }

@@ -1,4 +1,4 @@
-package enrichment
+package solver
 
 import (
 	"testing"
@@ -7,13 +7,13 @@ import (
 )
 
 func TestDetectContinuationFromPrevious(t *testing.T) {
-	current := &model.ExtractedPage{
+	current := &model.ReadPage{
 		PageNumber: 10,
 		Entries: []model.Entry{
 			{IsContinuation: true, ArabicText: "...continued text"},
 		},
 	}
-	previous := &model.ExtractedPage{PageNumber: 9}
+	previous := &model.ReadPage{PageNumber: 9}
 
 	info := DetectContinuation(current, previous)
 	if info == nil {
@@ -25,7 +25,7 @@ func TestDetectContinuationFromPrevious(t *testing.T) {
 }
 
 func TestDetectContinuationToNext(t *testing.T) {
-	current := &model.ExtractedPage{
+	current := &model.ReadPage{
 		PageNumber: 10,
 		Entries: []model.Entry{
 			{ArabicText: "text", ContinuesOnNextPage: true},
@@ -42,7 +42,7 @@ func TestDetectContinuationToNext(t *testing.T) {
 }
 
 func TestDetectContinuationNone(t *testing.T) {
-	current := &model.ExtractedPage{
+	current := &model.ReadPage{
 		PageNumber: 10,
 		Entries: []model.Entry{
 			{ArabicText: "normal text"},
@@ -56,7 +56,7 @@ func TestDetectContinuationNone(t *testing.T) {
 }
 
 func TestDetectContinuationEmpty(t *testing.T) {
-	current := &model.ExtractedPage{PageNumber: 1}
+	current := &model.ReadPage{PageNumber: 1}
 	info := DetectContinuation(current, nil)
 	if info != nil {
 		t.Errorf("expected nil for empty page, got %+v", info)

@@ -68,8 +68,8 @@ func (c *ClaudeProvider) Name() string { return "claude" }
 // SupportsVision returns true because Claude supports image inputs.
 func (c *ClaudeProvider) SupportsVision() bool { return true }
 
-// ExtractFromImage sends an image to Claude and returns the text response.
-func (c *ClaudeProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+// ReadFromImage sends an image to Claude and returns the text response.
+func (c *ClaudeProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
 	body := claudeRequest{
 		Model:     c.model,
 		MaxTokens: 4096,
@@ -94,7 +94,7 @@ func (c *ClaudeProvider) ExtractFromImage(ctx context.Context, image []byte, sys
 		Body: body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("claude extract: %w", err)
+		return "", fmt.Errorf("claude read: %w", err)
 	}
 	return c.extractText(resp)
 }

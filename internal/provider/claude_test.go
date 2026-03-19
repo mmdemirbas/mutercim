@@ -22,7 +22,7 @@ func newTestClaudeProvider(t *testing.T, serverURL string) *ClaudeProvider {
 	return p
 }
 
-func TestClaudeProviderExtractFromImage(t *testing.T) {
+func TestClaudeProviderReadFromImage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify headers
 		if r.Header.Get("x-api-key") != "test-key" {
@@ -41,9 +41,9 @@ func TestClaudeProviderExtractFromImage(t *testing.T) {
 	defer server.Close()
 
 	p := newTestClaudeProvider(t, server.URL)
-	result, err := p.ExtractFromImage(context.Background(), []byte("image"), "system", "user")
+	result, err := p.ReadFromImage(context.Background(), []byte("image"), "system", "user")
 	if err != nil {
-		t.Fatalf("ExtractFromImage() error: %v", err)
+		t.Fatalf("ReadFromImage() error: %v", err)
 	}
 	if result != `{"page_number": 1}` {
 		t.Errorf("unexpected result: %q", result)

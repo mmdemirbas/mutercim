@@ -23,11 +23,11 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DPI != 300 {
 		t.Errorf("DPI = %d, want 300", cfg.DPI)
 	}
-	if cfg.Extract.Provider != "gemini" {
-		t.Errorf("Extract.Provider = %q, want %q", cfg.Extract.Provider, "gemini")
+	if cfg.Read.Provider != "gemini" {
+		t.Errorf("Read.Provider = %q, want %q", cfg.Read.Provider, "gemini")
 	}
-	if cfg.Extract.Model != "gemini-2.0-flash" {
-		t.Errorf("Extract.Model = %q, want %q", cfg.Extract.Model, "gemini-2.0-flash")
+	if cfg.Read.Model != "gemini-2.0-flash" {
+		t.Errorf("Read.Model = %q, want %q", cfg.Read.Model, "gemini-2.0-flash")
 	}
 	if cfg.Translate.ContextWindow != 2 {
 		t.Errorf("Translate.ContextWindow = %d, want 2", cfg.Translate.ContextWindow)
@@ -65,7 +65,7 @@ sections:
     pages: "6-100"
     type: scholarly_entries
     translate: true
-extract:
+read:
   provider: claude
   model: claude-sonnet-4-20250514
 rate_limit:
@@ -97,15 +97,15 @@ rate_limit:
 	if cfg.Sections[0].Type != model.SectionProse {
 		t.Errorf("Sections[0].Type = %q, want %q", cfg.Sections[0].Type, model.SectionProse)
 	}
-	if cfg.Extract.Provider != "claude" {
-		t.Errorf("Extract.Provider = %q, want %q", cfg.Extract.Provider, "claude")
+	if cfg.Read.Provider != "claude" {
+		t.Errorf("Read.Provider = %q, want %q", cfg.Read.Provider, "claude")
 	}
-	if cfg.Extract.Model != "claude-sonnet-4-20250514" {
-		t.Errorf("Extract.Model = %q, want %q", cfg.Extract.Model, "claude-sonnet-4-20250514")
+	if cfg.Read.Model != "claude-sonnet-4-20250514" {
+		t.Errorf("Read.Model = %q, want %q", cfg.Read.Model, "claude-sonnet-4-20250514")
 	}
 	// Default should still apply for unset fields
-	if cfg.Extract.Concurrency != 1 {
-		t.Errorf("Extract.Concurrency = %d, want 1 (default)", cfg.Extract.Concurrency)
+	if cfg.Read.Concurrency != 1 {
+		t.Errorf("Read.Concurrency = %d, want 1 (default)", cfg.Read.Concurrency)
 	}
 	if cfg.RateLimit.RequestsPerMinute != 50 {
 		t.Errorf("RateLimit.RequestsPerMinute = %d, want 50", cfg.RateLimit.RequestsPerMinute)

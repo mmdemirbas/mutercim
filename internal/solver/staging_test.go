@@ -1,4 +1,4 @@
-package enrichment
+package solver
 
 import (
 	"os"
@@ -11,7 +11,7 @@ import (
 func TestStageFromReferenceTable(t *testing.T) {
 	dir := t.TempDir()
 
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		PageNumber:  7,
 		SectionType: "reference_table",
 		Entries: []model.Entry{
@@ -41,7 +41,7 @@ func TestStageFromReferenceTable(t *testing.T) {
 func TestStageFromReferenceTableSkipsNonRefTable(t *testing.T) {
 	dir := t.TempDir()
 
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		PageNumber:  1,
 		SectionType: "scholarly_entries",
 		Entries:     []model.Entry{{ArabicText: "text"}},
@@ -62,7 +62,7 @@ func TestStageFromReferenceTableSkipsNonRefTable(t *testing.T) {
 func TestStageFromReferenceTableEmptyEntries(t *testing.T) {
 	dir := t.TempDir()
 
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		PageNumber:  7,
 		SectionType: "reference_table",
 		Entries:     []model.Entry{},

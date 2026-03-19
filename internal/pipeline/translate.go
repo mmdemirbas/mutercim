@@ -38,13 +38,13 @@ func Translate(ctx context.Context, opts TranslateOptions) error {
 
 	ws := opts.Workspace
 
-	// Discover inputs from enriched directory
-	inputs, err := discoverSubdirs(ws.EnrichedDir())
+	// Discover inputs from solved directory
+	inputs, err := discoverSubdirs(ws.SolvedDir())
 	if err != nil {
-		return fmt.Errorf("discover enriched inputs: %w", err)
+		return fmt.Errorf("discover solved inputs: %w", err)
 	}
 	if len(inputs) == 0 {
-		return fmt.Errorf("no enriched pages found in %s (run enrich first)", ws.EnrichedDir())
+		return fmt.Errorf("no solved pages found in %s (run solve first)", ws.SolvedDir())
 	}
 
 	contextWindow := opts.ContextWindow
@@ -58,7 +58,7 @@ func Translate(ctx context.Context, opts TranslateOptions) error {
 	translator := translation.NewTranslator(
 		opts.Provider,
 		opts.Knowledge,
-		opts.Config.Compile.ExpandSources,
+		opts.Config.Write.ExpandSources,
 		logger,
 	)
 
@@ -80,20 +80,20 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 
 	ws := opts.Workspace
 	cfg := opts.Config
-	enrichedDir := filepath.Join(ws.EnrichedDir(), stem)
+	solvedDir := filepath.Join(ws.SolvedDir(), stem)
 	translatedDir := filepath.Join(ws.TranslatedDir(), stem)
 	outputPagesDir := filepath.Join(ws.OutputDir(), "turkish", "pages", stem)
 
 	// Build section lookup for translate checks
 	lookup, _ := config.NewSectionLookup(cfg.Sections)
 
-	// List enriched pages
-	pages, err := listPageFiles(enrichedDir)
+	// List solved pages
+	pages, err := listPageFiles(solvedDir)
 	if err != nil {
-		return fmt.Errorf("list enriched pages: %w", err)
+		return fmt.Errorf("list solved pages: %w", err)
 	}
 	if len(pages) == 0 {
-		return fmt.Errorf("no enriched pages in %s", enrichedDir)
+		return fmt.Errorf("no solved pages in %s", solvedDir)
 	}
 
 	if len(opts.Pages) > 0 {
@@ -109,15 +109,15 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 
 	phaseName := progress.PhaseName("translate:" + stem)
 
-	// Load all enriched pages for context window
-	enrichedPages := make(map[int]*model.EnrichedPage)
+	// Load all solved pages for context window
+	solvedPages := make(map[int]*model.SolvedPage)
 	for _, pf := range pages {
-		page, err := loadEnrichedPage(pf.path)
+		page, err := loadSolvedPage(pf.path)
 		if err != nil {
-			logger.Error("failed to load enriched page", "page", pf.pageNum, "error", err)
+			logger.Error("failed to load solved page", "page", pf.pageNum, "error", err)
 			continue
 		}
-		enrichedPages[pf.pageNum] = page
+		solvedPages[pf.pageNum] = page
 	}
 
 	// Track translated pages for context window
@@ -151,7 +151,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			}
 		}
 
-		enriched, ok := enrichedPages[pf.pageNum]
+		solved, ok := solvedPages[pf.pageNum]
 		if !ok {
 			continue
 		}
@@ -168,13 +168,13 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			}
 		}
 
-		// Also add enrichment context if available
-		if enriched.TranslationContext != nil && enriched.TranslationContext.PreviousPageSummary != "" {
-			contextSummaries = append(contextSummaries, enriched.TranslationContext.PreviousPageSummary)
+		// Also add solver context if available
+		if solved.TranslationContext != nil && solved.TranslationContext.PreviousPageSummary != "" {
+			contextSummaries = append(contextSummaries, solved.TranslationContext.PreviousPageSummary)
 		}
 
 		// Translate
-		translated, err := translator.TranslatePage(ctx, enriched, contextSummaries, cfg.Translate.Model)
+		translated, err := translator.TranslatePage(ctx, solved, contextSummaries, cfg.Translate.Model)
 		if err != nil {
 			logger.Error("translation failed", "input", stem, "page", pf.pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pf.pageNum)
@@ -209,12 +209,12 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	return nil
 }
 
-func loadEnrichedPage(path string) (*model.EnrichedPage, error) {
+func loadSolvedPage(path string) (*model.SolvedPage, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var page model.EnrichedPage
+	var page model.SolvedPage
 	if err := json.Unmarshal(data, &page); err != nil {
 		return nil, err
 	}

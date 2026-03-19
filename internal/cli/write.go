@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newCompileCmd() *cobra.Command {
+func newWriteCmd() *cobra.Command {
 	var (
 		formats          string
 		latexDockerImage string
@@ -21,8 +21,8 @@ func newCompileCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "compile",
-		Short: "Compile translated pages into final output (Phase 4)",
+		Use:   "write",
+		Short: "Write translated pages into final output (Phase 4)",
 		Long:  "Generates Markdown, LaTeX, and optionally DOCX from translated JSON files.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
@@ -41,20 +41,20 @@ func newCompileCmd() *cobra.Command {
 
 			// Apply CLI flag overrides
 			if formats != "" {
-				cfg.Compile.Formats = strings.Split(formats, ",")
+				cfg.Write.Formats = strings.Split(formats, ",")
 			}
 			if latexDockerImage != "" {
-				cfg.Compile.LaTeXDockerImage = latexDockerImage
+				cfg.Write.LaTeXDockerImage = latexDockerImage
 			}
 			if cmd.Flags().Changed("skip-pdf") {
-				cfg.Compile.SkipPDF = skipPDF
+				cfg.Write.SkipPDF = skipPDF
 			}
 
 			// Preflight checks
-			for _, f := range cfg.Compile.Formats {
+			for _, f := range cfg.Write.Formats {
 				switch f {
 				case "latex":
-					if !cfg.Compile.SkipPDF {
+					if !cfg.Write.SkipPDF {
 						if err := renderer.CheckDocker(); err != nil {
 							return err
 						}
@@ -85,7 +85,7 @@ func newCompileCmd() *cobra.Command {
 				return fmt.Errorf("load progress: %w", err)
 			}
 
-			return pipeline.Compile(cmd.Context(), pipeline.CompileOptions{
+			return pipeline.Write(cmd.Context(), pipeline.WriteOptions{
 				Workspace: ws,
 				Config:    cfg,
 				Tracker:   tracker,

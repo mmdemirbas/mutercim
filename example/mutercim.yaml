@@ -9,7 +9,7 @@ inputs:
   - ./input/Anfas1.pdf
 
 # Page range to process: "1-50", "1,5,10-20", "all"
-pages: "1-5"
+pages: "155"
 
 output: ./output
 cache_dir: ./cache
@@ -30,7 +30,7 @@ dpi: 300
 sections: [ ]
 
 # Model configuration
-extract:
+read:
   provider: gemini
   model: gemini-2.5-flash-lite
   #  provider: ollama
@@ -44,7 +44,7 @@ translate:
 #  model: qwen3:14b
   context_window: 2
 
-compile:
+write:
   formats: [ md, latex ]
   expand_sources: true
   latex_docker_image: mutercim/xelatex:latest

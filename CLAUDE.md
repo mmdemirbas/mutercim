@@ -71,7 +71,7 @@ Create DEVIATIONS.md if it doesn't exist.
 ## Error Handling
 
 - Never silently swallow errors. Either return them, log them, or both.
-- Pipeline phases (extract, enrich, translate, compile) must not abort on single-page failures. Log
+- Pipeline phases (read, solve, translate, write) must not abort on single-page failures. Log
   the error, save partial/raw data, record the failure in progress.json, continue to next page.
 - System dependency checks (pdftoppm, docker, pandoc) happen at command startup via preflight, not
   lazily on first use.

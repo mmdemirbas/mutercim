@@ -88,7 +88,7 @@ func BuildSystemPrompt(honorifics, companions, sources, terminology, context, se
 		honorifics, companions, sources, terminology, context, expandInstr)
 }
 
-// BuildUserPrompt constructs the user prompt with the enriched page JSON.
+// BuildUserPrompt constructs the user prompt with the solved page JSON.
 func BuildUserPrompt(inputJSON string) string {
 	return fmt.Sprintf("Translate this page:\n\n%s", inputJSON)
 }

@@ -74,14 +74,14 @@ func (w *Workspace) StagedDir() string {
 	return filepath.Join(w.Root, "cache", "staged")
 }
 
-// ExtractedDir returns the extracted cache directory path.
-func (w *Workspace) ExtractedDir() string {
-	return filepath.Join(w.Root, "cache", "extracted")
+// ReadDir returns the read cache directory path.
+func (w *Workspace) ReadDir() string {
+	return filepath.Join(w.Root, "cache", "read")
 }
 
-// EnrichedDir returns the enriched cache directory path.
-func (w *Workspace) EnrichedDir() string {
-	return filepath.Join(w.Root, "cache", "enriched")
+// SolvedDir returns the solved cache directory path.
+func (w *Workspace) SolvedDir() string {
+	return filepath.Join(w.Root, "cache", "solved")
 }
 
 // TranslatedDir returns the translated cache directory path.

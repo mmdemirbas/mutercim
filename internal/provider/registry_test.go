@@ -11,7 +11,7 @@ type mockProvider struct {
 
 func (m *mockProvider) Name() string         { return m.name }
 func (m *mockProvider) SupportsVision() bool { return true }
-func (m *mockProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+func (m *mockProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
 	return "", nil
 }
 func (m *mockProvider) Translate(ctx context.Context, systemPrompt, userPrompt string) (string, error) {

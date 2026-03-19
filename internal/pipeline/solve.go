@@ -8,15 +8,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mmdemirbas/mutercim/internal/enrichment"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/progress"
+	"github.com/mmdemirbas/mutercim/internal/solver"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-// EnrichOptions configures the enrichment pipeline.
-type EnrichOptions struct {
+// SolveOptions configures the solver pipeline.
+type SolveOptions struct {
 	Workspace *workspace.Workspace
 	Knowledge *knowledge.Knowledge
 	Tracker   *progress.Tracker
@@ -24,8 +24,8 @@ type EnrichOptions struct {
 	Logger    *slog.Logger
 }
 
-// Enrich runs the Phase 2 enrichment pipeline for all inputs.
-func Enrich(ctx context.Context, opts EnrichOptions) error {
+// Solve runs the Phase 2 solver pipeline for all inputs.
+func Solve(ctx context.Context, opts SolveOptions) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -33,45 +33,45 @@ func Enrich(ctx context.Context, opts EnrichOptions) error {
 
 	ws := opts.Workspace
 
-	// Discover inputs from extracted directory
-	inputs, err := discoverSubdirs(ws.ExtractedDir())
+	// Discover inputs from read directory
+	inputs, err := discoverSubdirs(ws.ReadDir())
 	if err != nil {
-		return fmt.Errorf("discover extracted inputs: %w", err)
+		return fmt.Errorf("discover read inputs: %w", err)
 	}
 	if len(inputs) == 0 {
-		return fmt.Errorf("no extracted pages found in %s (run extract first)", ws.ExtractedDir())
+		return fmt.Errorf("no read pages found in %s (run read first)", ws.ReadDir())
 	}
 
-	enricher := enrichment.NewEnricher(opts.Knowledge, logger)
+	slvr := solver.NewSolver(opts.Knowledge, logger)
 
 	for _, stem := range inputs {
-		logger.Info("enriching input", "input", stem)
-		if err := enrichOneInput(ctx, opts, enricher, stem); err != nil {
-			logger.Error("enrichment failed", "input", stem, "error", err)
+		logger.Info("solving input", "input", stem)
+		if err := solveOneInput(ctx, opts, slvr, stem); err != nil {
+			logger.Error("solve failed", "input", stem, "error", err)
 		}
 	}
 
 	return nil
 }
 
-func enrichOneInput(ctx context.Context, opts EnrichOptions, enricher *enrichment.Enricher, stem string) error {
+func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, stem string) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
 	}
 
 	ws := opts.Workspace
-	extractedDir := filepath.Join(ws.ExtractedDir(), stem)
-	enrichedDir := filepath.Join(ws.EnrichedDir(), stem)
+	readDir := filepath.Join(ws.ReadDir(), stem)
+	solvedDir := filepath.Join(ws.SolvedDir(), stem)
 	stagedDir := ws.StagedDir()
 
-	// List extracted page files
-	pages, err := listPageFiles(extractedDir)
+	// List read page files
+	pages, err := listPageFiles(readDir)
 	if err != nil {
-		return fmt.Errorf("list extracted pages: %w", err)
+		return fmt.Errorf("list read pages: %w", err)
 	}
 	if len(pages) == 0 {
-		return fmt.Errorf("no extracted pages in %s", extractedDir)
+		return fmt.Errorf("no read pages in %s", readDir)
 	}
 
 	// Filter to requested pages
@@ -79,18 +79,18 @@ func enrichOneInput(ctx context.Context, opts EnrichOptions, enricher *enrichmen
 		pages = filterPages(pages, opts.Pages)
 	}
 
-	if err := os.MkdirAll(enrichedDir, 0755); err != nil {
-		return fmt.Errorf("create enriched dir: %w", err)
+	if err := os.MkdirAll(solvedDir, 0755); err != nil {
+		return fmt.Errorf("create solved dir: %w", err)
 	}
 
-	phaseName := progress.PhaseName("enrich:" + stem)
+	phaseName := progress.PhaseName("solve:" + stem)
 
-	// Load all extracted pages for cross-page context
-	allPages := make(map[int]*model.ExtractedPage)
+	// Load all read pages for cross-page context
+	allPages := make(map[int]*model.ReadPage)
 	for _, pf := range pages {
-		page, err := loadExtractedPage(pf.path)
+		page, err := loadReadPage(pf.path)
 		if err != nil {
-			logger.Error("failed to load extracted page", "page", pf.pageNum, "error", err)
+			logger.Error("failed to load read page", "page", pf.pageNum, "error", err)
 			continue
 		}
 		allPages[pf.pageNum] = page
@@ -102,7 +102,7 @@ func enrichOneInput(ctx context.Context, opts EnrichOptions, enricher *enrichmen
 
 	for _, pf := range pages {
 		// Skip already completed — but only if the output file actually exists
-		outputPath := filepath.Join(enrichedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
+		outputPath := filepath.Join(solvedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
 		state := opts.Tracker.State()
 		if phase := state.Phases[phaseName]; phase != nil {
 			if containsInt(phase.Completed, pf.pageNum) {
@@ -120,24 +120,24 @@ func enrichOneInput(ctx context.Context, opts EnrichOptions, enricher *enrichmen
 		}
 
 		// Get previous page for continuation detection
-		var previous *model.ExtractedPage
+		var previous *model.ReadPage
 		if prev, ok := allPages[pf.pageNum-1]; ok {
 			previous = prev
 		}
 
-		// Enrich
-		enriched := enricher.EnrichPage(current, previous)
+		// Solve: solve page with knowledge resolution
+		solved := slvr.SolvePage(current, previous)
 
 		// Auto-stage from reference_table pages
 		if current.SectionType == "reference_table" {
-			if err := enrichment.StageFromReferenceTable(current, stagedDir); err != nil {
+			if err := solver.StageFromReferenceTable(current, stagedDir); err != nil {
 				logger.Warn("staging failed", "page", pf.pageNum, "error", err)
 			}
 		}
 
-		// Save enriched page
-		if err := saveEnrichedPage(enrichedDir, pf.pageNum, enriched); err != nil {
-			logger.Error("failed to save enriched page", "page", pf.pageNum, "error", err)
+		// Save solved page
+		if err := saveSolvedPage(solvedDir, pf.pageNum, solved); err != nil {
+			logger.Error("failed to save solved page", "page", pf.pageNum, "error", err)
 			opts.Tracker.MarkFailed(phaseName, pf.pageNum)
 			failed++
 			continue
@@ -150,23 +150,23 @@ func enrichOneInput(ctx context.Context, opts EnrichOptions, enricher *enrichmen
 		completed++
 	}
 
-	logger.Info("enrichment complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
+	logger.Info("solve complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 	return nil
 }
 
-func loadExtractedPage(path string) (*model.ExtractedPage, error) {
+func loadReadPage(path string) (*model.ReadPage, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var page model.ExtractedPage
+	var page model.ReadPage
 	if err := json.Unmarshal(data, &page); err != nil {
 		return nil, err
 	}
 	return &page, nil
 }
 
-func saveEnrichedPage(dir string, pageNum int, page *model.EnrichedPage) error {
+func saveSolvedPage(dir string, pageNum int, page *model.SolvedPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)

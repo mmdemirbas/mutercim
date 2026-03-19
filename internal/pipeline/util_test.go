@@ -152,16 +152,16 @@ func TestFileExists(t *testing.T) {
 	}
 }
 
-func TestSaveExtractedPageAtomicWrite(t *testing.T) {
+func TestSaveReadPageAtomicWrite(t *testing.T) {
 	dir := t.TempDir()
 
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		Version:    "1.0",
 		PageNumber: 42,
 		Entries:    []model.Entry{{Type: "hadith", ArabicText: "text"}},
 	}
 
-	if err := saveExtractedPage(dir, 42, page); err != nil {
+	if err := saveReadPage(dir, 42, page); err != nil {
 		t.Fatalf("error: %v", err)
 	}
 
@@ -170,7 +170,7 @@ func TestSaveExtractedPageAtomicWrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
-	var loaded model.ExtractedPage
+	var loaded model.ReadPage
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}

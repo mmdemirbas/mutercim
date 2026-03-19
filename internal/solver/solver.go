@@ -1,4 +1,4 @@
-package enrichment
+package solver
 
 import (
 	"log/slog"
@@ -7,51 +7,51 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
-// Enricher orchestrates the enrichment of extracted pages.
-type Enricher struct {
+// Solver orchestrates the solving of read pages.
+type Solver struct {
 	knowledge *knowledge.Knowledge
 	logger    *slog.Logger
 }
 
-// NewEnricher creates a new Enricher.
-func NewEnricher(k *knowledge.Knowledge, logger *slog.Logger) *Enricher {
+// NewSolver creates a new Solver.
+func NewSolver(k *knowledge.Knowledge, logger *slog.Logger) *Solver {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Enricher{knowledge: k, logger: logger}
+	return &Solver{knowledge: k, logger: logger}
 }
 
-// EnrichPage performs all enrichment steps on an extracted page.
+// SolvePage performs all solving steps on a read page.
 // The previous page is used for cross-page continuation detection.
-func (e *Enricher) EnrichPage(current *model.ExtractedPage, previous *model.ExtractedPage) *model.EnrichedPage {
-	enriched := model.EnrichedPage{
-		ExtractedPage: *current,
+func (e *Solver) SolvePage(current *model.ReadPage, previous *model.ReadPage) *model.SolvedPage {
+	solved := model.SolvedPage{
+		ReadPage: *current,
 	}
 
 	// 1. Resolve source abbreviations
-	enriched.SourcesResolved, enriched.UnresolvedSources = ResolveAbbreviations(current.Footnotes, e.knowledge)
+	solved.SourcesResolved, solved.UnresolvedSources = ResolveAbbreviations(current.Footnotes, e.knowledge)
 
-	if len(enriched.UnresolvedSources) > 0 {
-		e.logger.Warn("unresolved sources", "page", current.PageNumber, "codes", enriched.UnresolvedSources)
+	if len(solved.UnresolvedSources) > 0 {
+		e.logger.Warn("unresolved sources", "page", current.PageNumber, "codes", solved.UnresolvedSources)
 	}
 
 	// 2. Detect cross-page continuations
-	enriched.ContinuationInfo = DetectContinuation(current, previous)
+	solved.ContinuationInfo = DetectContinuation(current, previous)
 
 	// 3. Validate structure
-	enriched.Validation = Validate(current)
+	solved.Validation = Validate(current)
 
-	if enriched.Validation.Status != "ok" {
-		e.logger.Warn("validation warnings", "page", current.PageNumber, "warnings", enriched.Validation.Warnings)
+	if solved.Validation.Status != "ok" {
+		e.logger.Warn("validation warnings", "page", current.PageNumber, "warnings", solved.Validation.Warnings)
 	}
 
 	// 4. Build translation context
-	enriched.TranslationContext = e.buildTranslationContext(current)
+	solved.TranslationContext = e.buildTranslationContext(current)
 
-	return &enriched
+	return &solved
 }
 
-func (e *Enricher) buildTranslationContext(page *model.ExtractedPage) *model.TranslationContext {
+func (e *Solver) buildTranslationContext(page *model.ReadPage) *model.TranslationContext {
 	ctx := &model.TranslationContext{}
 
 	// Find relevant glossary terms that appear in this page's text

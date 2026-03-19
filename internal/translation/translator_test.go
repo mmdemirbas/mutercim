@@ -15,7 +15,7 @@ type mockProvider struct {
 
 func (m *mockProvider) Name() string         { return "mock" }
 func (m *mockProvider) SupportsVision() bool { return true }
-func (m *mockProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+func (m *mockProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
 	return m.response, m.err
 }
 func (m *mockProvider) Translate(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
@@ -51,8 +51,8 @@ func TestTranslatePage(t *testing.T) {
 	mock := &mockProvider{response: response}
 	translator := NewTranslator(mock, k, true, nil)
 
-	page := &model.EnrichedPage{
-		ExtractedPage: model.ExtractedPage{
+	page := &model.SolvedPage{
+		ReadPage: model.ReadPage{
 			PageNumber:  1,
 			SectionType: "scholarly_entries",
 			Header:      &model.Header{Text: "حرف الألف", Type: "section_title"},
@@ -93,8 +93,8 @@ func TestTranslatePageWithContext(t *testing.T) {
 	mock := &mockProvider{response: response}
 	translator := NewTranslator(mock, &knowledge.Knowledge{}, true, nil)
 
-	page := &model.EnrichedPage{
-		ExtractedPage: model.ExtractedPage{
+	page := &model.SolvedPage{
+		ReadPage: model.ReadPage{
 			PageNumber:  5,
 			SectionType: "scholarly_entries",
 		},
@@ -109,8 +109,8 @@ func TestTranslatePageWithContext(t *testing.T) {
 
 func TestPageSummary(t *testing.T) {
 	page := &model.TranslatedPage{
-		EnrichedPage: model.EnrichedPage{
-			ExtractedPage: model.ExtractedPage{PageNumber: 42},
+		SolvedPage: model.SolvedPage{
+			ReadPage: model.ReadPage{PageNumber: 42},
 		},
 		TranslatedHeader: &model.TranslatedHeader{Text: "Bab"},
 		TranslatedEntries: []model.TranslatedEntry{

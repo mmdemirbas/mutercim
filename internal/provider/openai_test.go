@@ -22,7 +22,7 @@ func newTestOpenAIProvider(t *testing.T, serverURL string) *OpenAIProvider {
 	return p
 }
 
-func TestOpenAIProviderExtractFromImage(t *testing.T) {
+func TestOpenAIProviderReadFromImage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer test-key" {
 			t.Error("expected Bearer auth header")
@@ -39,9 +39,9 @@ func TestOpenAIProviderExtractFromImage(t *testing.T) {
 	defer server.Close()
 
 	p := newTestOpenAIProvider(t, server.URL)
-	result, err := p.ExtractFromImage(context.Background(), []byte("image"), "system", "user")
+	result, err := p.ReadFromImage(context.Background(), []byte("image"), "system", "user")
 	if err != nil {
-		t.Fatalf("ExtractFromImage() error: %v", err)
+		t.Fatalf("ReadFromImage() error: %v", err)
 	}
 	if result != `{"page_number": 1}` {
 		t.Errorf("unexpected result: %q", result)

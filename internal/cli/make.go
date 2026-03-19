@@ -17,10 +17,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newRunCmd() *cobra.Command {
+func newMakeCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "run",
-		Short: "Run all phases: extract → enrich → translate → compile",
+		Use:   "make",
+		Short: "Run all phases: read -> solve -> translate -> write",
 		Long:  "Executes the full pipeline sequentially. Validates system dependencies before starting.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
@@ -47,10 +47,10 @@ func newRunCmd() *cobra.Command {
 					break
 				}
 			}
-			for _, f := range cfg.Compile.Formats {
+			for _, f := range cfg.Write.Formats {
 				switch f {
 				case "latex":
-					if !cfg.Compile.SkipPDF {
+					if !cfg.Write.SkipPDF {
 						if err := renderer.CheckDocker(); err != nil {
 							return err
 						}
@@ -83,52 +83,52 @@ func newRunCmd() *cobra.Command {
 				return fmt.Errorf("load progress: %w", err)
 			}
 
-			// Phase 1: Extract
-			logger.Info("=== Phase 1: EXTRACT ===")
-			extractAPIKey, err := resolveAPIKey(cfg.Extract.Provider)
+			// Phase 1: Read
+			logger.Info("=== Phase 1: READ ===")
+			readAPIKey, err := resolveAPIKey(cfg.Read.Provider)
 			if err != nil {
-				return fmt.Errorf("extract API key: %w", err)
+				return fmt.Errorf("read API key: %w", err)
 			}
-			extractClient := apiclient.NewClient(apiclient.ClientConfig{
-				Timeout:           clientTimeout(cfg.Extract.Provider),
+			readClient := apiclient.NewClient(apiclient.ClientConfig{
+				Timeout:           clientTimeout(cfg.Read.Provider),
 				MaxRetries:        cfg.Retry.MaxAttempts,
 				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
 				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,
 			}, logger)
-			defer extractClient.Close()
+			defer readClient.Close()
 
-			extractProvider, err := createProvider(cfg.Extract.Provider, extractClient, extractAPIKey, cfg.Extract.Model)
+			readProvider, err := createProvider(cfg.Read.Provider, readClient, readAPIKey, cfg.Read.Model)
 			if err != nil {
-				return fmt.Errorf("create extract provider: %w", err)
+				return fmt.Errorf("create read provider: %w", err)
 			}
 
-			if err := pipeline.Extract(cmd.Context(), pipeline.ExtractOptions{
+			if err := pipeline.Read(cmd.Context(), pipeline.ReadOptions{
 				Workspace: ws,
 				Config:    cfg,
-				Provider:  extractProvider,
+				Provider:  readProvider,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
 			}); err != nil {
-				return fmt.Errorf("extract: %w", err)
+				return fmt.Errorf("read: %w", err)
 			}
 
-			// Phase 2: Enrich
-			logger.Info("=== Phase 2: ENRICH ===")
+			// Phase 2: Solve
+			logger.Info("=== Phase 2: SOLVE ===")
 			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.Knowledge.Dir)
 			k, err := knowledge.Load(knowledgeDir, ws.StagedDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
 			}
 
-			if err := pipeline.Enrich(cmd.Context(), pipeline.EnrichOptions{
+			if err := pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
 				Workspace: ws,
 				Knowledge: k,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
 			}); err != nil {
-				return fmt.Errorf("enrich: %w", err)
+				return fmt.Errorf("solve: %w", err)
 			}
 
 			// Phase 3: Translate
@@ -162,16 +162,16 @@ func newRunCmd() *cobra.Command {
 				return fmt.Errorf("translate: %w", err)
 			}
 
-			// Phase 4: Compile
-			logger.Info("=== Phase 4: COMPILE ===")
-			if err := pipeline.Compile(cmd.Context(), pipeline.CompileOptions{
+			// Phase 4: Write
+			logger.Info("=== Phase 4: WRITE ===")
+			if err := pipeline.Write(cmd.Context(), pipeline.WriteOptions{
 				Workspace: ws,
 				Config:    cfg,
 				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Logger:    logger,
 			}); err != nil {
-				return fmt.Errorf("compile: %w", err)
+				return fmt.Errorf("write: %w", err)
 			}
 
 			logger.Info("=== All phases complete ===")

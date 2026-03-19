@@ -13,8 +13,8 @@ func TestMarkdownRenderPage(t *testing.T) {
 	r := &MarkdownRenderer{}
 
 	page := &model.TranslatedPage{
-		EnrichedPage: model.EnrichedPage{
-			ExtractedPage: model.ExtractedPage{
+		SolvedPage: model.SolvedPage{
+			ReadPage: model.ReadPage{
 				PageNumber: 1,
 			},
 		},
@@ -48,14 +48,14 @@ func TestMarkdownRenderBook(t *testing.T) {
 
 	pages := []*model.TranslatedPage{
 		{
-			EnrichedPage: model.EnrichedPage{
-				ExtractedPage: model.ExtractedPage{PageNumber: 1},
+			SolvedPage: model.SolvedPage{
+				ReadPage: model.ReadPage{PageNumber: 1},
 			},
 			TranslatedEntries: []model.TranslatedEntry{{Number: 1, TurkishText: "Birinci"}},
 		},
 		{
-			EnrichedPage: model.EnrichedPage{
-				ExtractedPage: model.ExtractedPage{PageNumber: 2},
+			SolvedPage: model.SolvedPage{
+				ReadPage: model.ReadPage{PageNumber: 2},
 			},
 			TranslatedEntries: []model.TranslatedEntry{{Number: 2, TurkishText: "İkinci"}},
 		},
@@ -75,8 +75,8 @@ func TestArabicMarkdownRenderPage(t *testing.T) {
 	r := &ArabicMarkdownRenderer{}
 
 	page := &model.TranslatedPage{
-		EnrichedPage: model.EnrichedPage{
-			ExtractedPage: model.ExtractedPage{
+		SolvedPage: model.SolvedPage{
+			ReadPage: model.ReadPage{
 				PageNumber: 1,
 				Header:     &model.Header{Text: "حرف الألف"},
 				Entries: []model.Entry{

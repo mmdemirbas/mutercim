@@ -31,8 +31,8 @@ func TestInit(t *testing.T) {
 		"output/turkish/pages",
 		"output/latex",
 		"cache/images",
-		"cache/extracted",
-		"cache/enriched",
+		"cache/read",
+		"cache/solved",
 		"cache/translated",
 		"cache/staged",
 		"knowledge",
@@ -121,7 +121,7 @@ func TestDiscover(t *testing.T) {
 	}
 
 	// Discover from subdirectory
-	subDir := filepath.Join(dir, "cache", "extracted")
+	subDir := filepath.Join(dir, "cache", "read")
 	ws, err = Discover(subDir)
 	if err != nil {
 		t.Fatalf("Discover() from subdir error = %v", err)

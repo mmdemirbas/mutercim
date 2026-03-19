@@ -68,8 +68,8 @@ func (o *OpenAIProvider) Name() string { return "openai" }
 // SupportsVision returns true because OpenAI vision models support image inputs.
 func (o *OpenAIProvider) SupportsVision() bool { return true }
 
-// ExtractFromImage sends an image to OpenAI and returns the text response.
-func (o *OpenAIProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+// ReadFromImage sends an image to OpenAI and returns the text response.
+func (o *OpenAIProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
 	dataURI := fmt.Sprintf("data:image/png;base64,%s", base64.StdEncoding.EncodeToString(image))
 
 	body := openaiRequest{
@@ -93,7 +93,7 @@ func (o *OpenAIProvider) ExtractFromImage(ctx context.Context, image []byte, sys
 		Body: body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("openai extract: %w", err)
+		return "", fmt.Errorf("openai read: %w", err)
 	}
 	return o.extractText(resp)
 }

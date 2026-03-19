@@ -1,12 +1,12 @@
 Read SPEC.md first. Follow its architecture, naming, and data structures exactly.
 Do not deviate from the spec's package structure or interface definitions.
 
-Read SPEC.md sections: "Phase 4: COMPILE", LaTeX Docker container.
+Read SPEC.md sections: "Phase 4: WRITE", LaTeX Docker container.
 
 Implement:
 1. internal/renderer/ — renderer.go, markdown.go, latex.go, docx.go
-2. internal/pipeline/compile.go
-3. internal/cli/compile.go
+2. internal/pipeline/write.go
+3. internal/cli/write.go
 4. docker/xelatex/Dockerfile
 5. templates in defaults/templates/
 
@@ -36,10 +36,10 @@ Before declaring this phase complete, execute these commands and verify they pas
 - `latex_test.go` — LaTeX rendering, book structure, escape function
 
 **Pipeline** (`internal/pipeline/`):
-- `compile.go` — Phase 4 orchestrator: discovers inputs from translated dir, loads pages, renders per format (md/latex/docx), atomic writes, progress tracking, `CompilePDF()` via Docker
+- `write.go` — Phase 4 orchestrator: discovers inputs from translated dir, loads pages, renders per format (md/latex/docx), atomic writes, progress tracking, `CompilePDF()` via Docker
 
 **CLI** (`internal/cli/`):
-- `compile.go` — `mutercim compile` subcommand with `--format`, `--latex-docker-image`, `--skip-pdf` flags, preflight checks for docker/pandoc
+- `write.go` — `mutercim write` subcommand with `--format`, `--latex-docker-image`, `--skip-pdf` flags, preflight checks for docker/pandoc
 
 **Docker** (`docker/xelatex/`):
 - `Dockerfile` — XeLaTeX container with polyglossia, bidi, arabxetex, Amiri font

@@ -35,7 +35,7 @@ Before declaring this phase complete, execute these commands and verify they pas
 **Data structures** (`internal/model/`):
 - `section.go` — `SectionType` enum (skip, prose, scholarly_entries, reference_table, toc, index, auto), `PageRange` parsing ("1-50", "1,5,10-20", "all"), page-in-range lookup
 - `entry.go` — Entry, Footnote, Header, SourceResolved, TranslatedEntry, etc.
-- `page.go` — ExtractedPage, EnrichedPage, TranslatedPage structs
+- `page.go` — ReadPage, SolvedPage, TranslatedPage structs
 - `book.go` — Book metadata
 
 **Config** (`internal/config/`):

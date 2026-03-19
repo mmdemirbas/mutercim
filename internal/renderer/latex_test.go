@@ -11,8 +11,8 @@ func TestLatexRenderPage(t *testing.T) {
 	r := &LaTeXRenderer{}
 
 	page := &model.TranslatedPage{
-		EnrichedPage: model.EnrichedPage{
-			ExtractedPage: model.ExtractedPage{PageNumber: 5},
+		SolvedPage: model.SolvedPage{
+			ReadPage: model.ReadPage{PageNumber: 5},
 		},
 		TranslatedHeader: &model.TranslatedHeader{Text: "Bab"},
 		TranslatedEntries: []model.TranslatedEntry{
@@ -38,8 +38,8 @@ func TestLatexRenderBook(t *testing.T) {
 
 	pages := []*model.TranslatedPage{
 		{
-			EnrichedPage: model.EnrichedPage{
-				ExtractedPage: model.ExtractedPage{PageNumber: 1},
+			SolvedPage: model.SolvedPage{
+				ReadPage: model.ReadPage{PageNumber: 1},
 			},
 			TranslatedEntries: []model.TranslatedEntry{{Number: 1, TurkishText: "test"}},
 		},

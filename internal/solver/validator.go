@@ -1,4 +1,4 @@
-package enrichment
+package solver
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
-// Validate checks structural consistency of an extracted page.
+// Validate checks structural consistency of a read page.
 // Validates hadith number sequencing and flags anomalies.
-func Validate(page *model.ExtractedPage) *model.Validation {
+func Validate(page *model.ReadPage) *model.Validation {
 	v := &model.Validation{
 		Status:                    "ok",
 		HadithNumberSequenceValid: true,

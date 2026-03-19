@@ -79,8 +79,8 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 	phaseDirs := []phaseDir{
 		{"images", ws.ImagesDir()},
-		{"extracted", ws.ExtractedDir()},
-		{"enriched", ws.EnrichedDir()},
+		{"read", ws.ReadDir()},
+		{"solved", ws.SolvedDir()},
 		{"translated", ws.TranslatedDir()},
 	}
 
@@ -100,7 +100,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		// Show progress tracker data for all matching phases
 		for _, phaseName := range sortedPhaseNames(state) {
 			name := string(phaseName)
-			// Match "extract:Anfas1" to input "Anfas1"
+			// Match "read:Anfas1" to input "Anfas1"
 			if !strings.HasSuffix(name, ":"+stem) {
 				continue
 			}
@@ -146,7 +146,7 @@ func printPhaseProgress(label string, ps *progress.PhaseState) {
 // discoverInputs finds input stems by scanning cache subdirectories for per-input folders.
 func discoverInputs(ws *workspace.Workspace) []string {
 	seen := make(map[string]bool)
-	for _, dir := range []string{ws.ImagesDir(), ws.ExtractedDir(), ws.EnrichedDir(), ws.TranslatedDir()} {
+	for _, dir := range []string{ws.ImagesDir(), ws.ReadDir(), ws.SolvedDir(), ws.TranslatedDir()} {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue

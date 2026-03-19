@@ -1,10 +1,10 @@
-package enrichment
+package solver
 
 import "github.com/mmdemirbas/mutercim/internal/model"
 
 // DetectContinuation checks if the current page continues from the previous page
 // or continues onto the next page. Returns nil if no continuation is detected.
-func DetectContinuation(current, previous *model.ExtractedPage) *model.ContinuationInfo {
+func DetectContinuation(current, previous *model.ReadPage) *model.ContinuationInfo {
 	if current == nil || len(current.Entries) == 0 {
 		return nil
 	}

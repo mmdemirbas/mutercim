@@ -1,4 +1,4 @@
-package extraction
+package reader
 
 import (
 	"strings"
@@ -15,8 +15,8 @@ func TestBuildUserPrompt(t *testing.T) {
 		{"reference_table", "reference table"},
 		{"toc", "table of contents"},
 		{"index", "alphabetical index"},
-		{"auto", "Extract all text"},
-		{"", "Extract all text"},
+		{"auto", "Read all text"},
+		{"", "Read all text"},
 	}
 
 	for _, tt := range tests {

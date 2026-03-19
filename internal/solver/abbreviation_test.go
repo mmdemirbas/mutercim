@@ -1,4 +1,4 @@
-package enrichment
+package solver
 
 import (
 	"testing"

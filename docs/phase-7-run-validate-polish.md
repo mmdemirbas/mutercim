@@ -1,7 +1,7 @@
 Read SPEC.md first. Follow its architecture, naming, and data structures exactly.
 Do not deviate from the spec's package structure or interface definitions.
 
-Implement internal/cli/run.go (chains all phases) and validate.go.
+Implement internal/cli/make.go (chains all phases as `make` command) and validate.go.
 Add remaining providers (claude.go, openai.go, ollama.go, surya.go) — 
 they follow the exact same pattern as gemini.go.
 
@@ -27,13 +27,13 @@ Before declaring this phase complete, execute these commands and verify they pas
 - `claude_test.go`, `openai_test.go`, `ollama_test.go` — httptest-based tests for each
 
 **CLI** (`internal/cli/`):
-- `run.go` — `mutercim run` chains all phases: extract → enrich → translate → compile, with full preflight checks upfront
-- `validate.go` — `mutercim validate` reads extracted pages, validates numbering sequences and structural consistency, reports warnings (read-only, no API calls)
+- `make.go` — `mutercim make` chains all phases: read → solve → translate → write, with full preflight checks upfront
+- `validate.go` — `mutercim validate` reads page JSONs, validates numbering sequences and structural consistency, reports warnings (read-only, no API calls)
 
 ### Files Modified
 
-- `internal/cli/extract.go` — `createProvider()` now supports gemini, claude, openai, ollama
-- `internal/cli/root.go` — registered `run` and `validate` subcommands
+- `internal/cli/read.go` — `createProvider()` now supports gemini, claude, openai, ollama
+- `internal/cli/root.go` — registered `make` and `validate` subcommands
 
 ### Provider Summary
 

@@ -24,7 +24,7 @@ func newTestOllamaProvider(t *testing.T, serverURL string) *OllamaProvider {
 	}
 }
 
-func TestOllamaProviderExtractFromImage(t *testing.T) {
+func TestOllamaProviderReadFromImage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify endpoint
 		if r.URL.Path != "/api/chat" {
@@ -61,9 +61,9 @@ func TestOllamaProviderExtractFromImage(t *testing.T) {
 	defer server.Close()
 
 	p := newTestOllamaProvider(t, server.URL)
-	result, err := p.ExtractFromImage(context.Background(), []byte("image"), "system", "user")
+	result, err := p.ReadFromImage(context.Background(), []byte("image"), "system", "user")
 	if err != nil {
-		t.Fatalf("ExtractFromImage() error: %v", err)
+		t.Fatalf("ReadFromImage() error: %v", err)
 	}
 	if result != `{"page_number": 1}` {
 		t.Errorf("unexpected result: %q", result)

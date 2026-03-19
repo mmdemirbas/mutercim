@@ -28,7 +28,7 @@ type translatedFootnoteResp struct {
 	SourcesExpanded []string `json:"sources_expanded"`
 }
 
-// Translator translates enriched pages using an AI provider.
+// Translator translates solved pages using an AI provider.
 type Translator struct {
 	provider      provider.Provider
 	knowledge     *knowledge.Knowledge
@@ -49,9 +49,9 @@ func NewTranslator(p provider.Provider, k *knowledge.Knowledge, expandSources bo
 	}
 }
 
-// TranslatePage translates a single enriched page. contextPages provides
+// TranslatePage translates a single solved page. contextPages provides
 // summaries from previous pages for the sliding context window.
-func (t *Translator) TranslatePage(ctx context.Context, page *model.EnrichedPage, contextSummaries []string, modelName string) (*model.TranslatedPage, error) {
+func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedPage, contextSummaries []string, modelName string) (*model.TranslatedPage, error) {
 	// Build the system prompt with knowledge injected
 	systemPrompt := BuildSystemPrompt(
 		t.knowledge.HonorificsSection(),
@@ -88,7 +88,7 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.EnrichedPage
 	}
 
 	translated := &model.TranslatedPage{
-		EnrichedPage:         *page,
+		SolvedPage:           *page,
 		TranslationModel:     modelName,
 		TranslationTimestamp: time.Now().UTC().Format(time.RFC3339),
 		TranslatedHeader:     resp.TranslatedHeader,

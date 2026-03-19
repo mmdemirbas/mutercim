@@ -47,11 +47,11 @@ into Turkish, preserving layout, structure, and domain-specific terminology.`,
 
 	// Pipeline commands — ordered by phase
 	addToGroup(rootCmd, "pipeline",
-		ordered(1, newRunCmd()),
-		ordered(2, newExtractCmd()),
-		ordered(3, newEnrichCmd()),
+		ordered(1, newMakeCmd()),
+		ordered(2, newReadCmd()),
+		ordered(3, newSolveCmd()),
 		ordered(4, newTranslateCmd()),
-		ordered(5, newCompileCmd()),
+		ordered(5, newWriteCmd()),
 		ordered(6, newValidateCmd()),
 	)
 

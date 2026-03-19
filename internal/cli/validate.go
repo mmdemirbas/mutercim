@@ -8,9 +8,9 @@ import (
 	"sort"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
-	"github.com/mmdemirbas/mutercim/internal/enrichment"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
+	"github.com/mmdemirbas/mutercim/internal/solver"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ import (
 func newValidateCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "validate",
-		Short: "Run validation checks on extracted/enriched data (read-only)",
+		Short: "Run validation checks on read/solved data (read-only)",
 		Long:  "Validates structural consistency, numbering sequences, and source resolution without making API calls or modifying files.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
@@ -49,10 +49,10 @@ func newValidateCmd() *cobra.Command {
 				pagesToProcess = model.ExpandPages(ranges)
 			}
 
-			// Discover inputs from extracted directory
-			inputs, err := pipeline.DiscoverSubdirs(ws.ExtractedDir())
+			// Discover inputs from read directory
+			inputs, err := pipeline.DiscoverSubdirs(ws.ReadDir())
 			if err != nil || len(inputs) == 0 {
-				fmt.Println("No extracted pages found. Run extract first.")
+				fmt.Println("No pages found. Run read first.")
 				return nil
 			}
 
@@ -73,9 +73,9 @@ func newValidateCmd() *cobra.Command {
 }
 
 func validateInput(ws *workspace.Workspace, stem string, pagesToProcess []int) (int, int) {
-	extractedDir := filepath.Join(ws.ExtractedDir(), stem)
+	readDir := filepath.Join(ws.ReadDir(), stem)
 
-	pages, err := loadExtractedPages(extractedDir, pagesToProcess)
+	pages, err := loadReadPages(readDir, pagesToProcess)
 	if err != nil {
 		fmt.Printf("  error loading pages: %v\n", err)
 		return 0, 0
@@ -90,7 +90,7 @@ func validateInput(ws *workspace.Workspace, stem string, pagesToProcess []int) (
 
 	// Validate each page
 	for _, page := range pages {
-		v := enrichment.Validate(page)
+		v := solver.Validate(page)
 		if v.Status != "ok" {
 			fmt.Printf("  page %d: %s\n", page.PageNumber, v.Status)
 			for _, w := range v.Warnings {
@@ -126,7 +126,7 @@ func validateInput(ws *workspace.Workspace, stem string, pagesToProcess []int) (
 	return totalWarnings, len(pages)
 }
 
-func loadExtractedPages(dir string, filter []int) ([]*model.ExtractedPage, error) {
+func loadReadPages(dir string, filter []int) ([]*model.ReadPage, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ func loadExtractedPages(dir string, filter []int) ([]*model.ExtractedPage, error
 		filterSet[p] = true
 	}
 
-	var pages []*model.ExtractedPage
+	var pages []*model.ReadPage
 	for _, e := range entries {
 		if e.IsDir() || filepath.Ext(e.Name()) != ".json" {
 			continue
@@ -154,7 +154,7 @@ func loadExtractedPages(dir string, filter []int) ([]*model.ExtractedPage, error
 		if err != nil {
 			continue
 		}
-		var page model.ExtractedPage
+		var page model.ReadPage
 		if err := json.Unmarshal(data, &page); err != nil {
 			continue
 		}

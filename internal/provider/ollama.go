@@ -54,8 +54,8 @@ func (o *OllamaProvider) Name() string { return "ollama" }
 // SupportsVision returns true because Ollama vision models support image inputs.
 func (o *OllamaProvider) SupportsVision() bool { return true }
 
-// ExtractFromImage sends an image to Ollama via /api/chat and returns the text response.
-func (o *OllamaProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+// ReadFromImage sends an image to Ollama via /api/chat and returns the text response.
+func (o *OllamaProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
 	body := ollamaChatRequest{
 		Model: o.model,
 		Messages: []ollamaMessage{
@@ -72,7 +72,7 @@ func (o *OllamaProvider) ExtractFromImage(ctx context.Context, image []byte, sys
 		Body:    body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("ollama extract: %w", err)
+		return "", fmt.Errorf("ollama read: %w", err)
 	}
 	return resp.Message.Content, nil
 }

@@ -38,7 +38,7 @@ Before declaring this phase complete, execute these commands and verify they pas
 - `internal/apiclient/ratelimit_test.go` — token consumption, context cancellation, refill
 - `internal/apiclient/response_test.go` — Unicode sanitization (8 char types), ZWNJ/ZWJ preservation, JSON extraction strategies
 - `internal/provider/registry_test.go` — register/get, unknown provider, names, overwrite
-- `internal/provider/gemini_test.go` — extract with image, translate text-only, empty response, HTTP error
+- `internal/provider/gemini_test.go` — read with image, translate text-only, empty response, HTTP error
 
 ### Additional Fix
 

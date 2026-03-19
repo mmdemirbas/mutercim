@@ -12,10 +12,10 @@ import (
 type PhaseName string
 
 const (
-	PhaseExtract   PhaseName = "extract"
-	PhaseEnrich    PhaseName = "enrich"
+	PhaseRead      PhaseName = "read"
+	PhaseSolve     PhaseName = "solve"
 	PhaseTranslate PhaseName = "translate"
-	PhaseCompile   PhaseName = "compile"
+	PhaseWrite     PhaseName = "write"
 )
 
 // PhaseState tracks the state of a single phase.

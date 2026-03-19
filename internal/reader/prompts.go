@@ -1,8 +1,8 @@
-package extraction
+package reader
 
 import "fmt"
 
-const extractionSystemPrompt = `You are an expert OCR system specialized in classical Arabic Islamic scholarly texts.
+const systemPrompt = `You are an expert OCR system specialized in classical Arabic Islamic scholarly texts.
 
 Analyze the provided page image and extract ALL text with full structural metadata.
 
@@ -37,7 +37,7 @@ Return a JSON object with this exact schema:
     }
   ],
   "page_footer": "<page number text if present>",
-  "warnings": ["<any issues encountered during extraction>"]
+  "warnings": ["<any issues encountered during reading>"]
 }
 
 Respond with ONLY the JSON object. No markdown formatting, no explanations.`
@@ -48,23 +48,23 @@ func SectionHint(sectionType string) string {
 	case "scholarly_entries":
 		return "This page is from a section containing numbered scholarly entries (hadith/athar) with footnotes and source codes."
 	case "prose":
-		return "This page is from a prose section (introduction, preface, or commentary). Extract continuous paragraphs as entries of type 'other'."
+		return "This page is from a prose section (introduction, preface, or commentary). Read continuous paragraphs as entries of type 'other'."
 	case "reference_table":
-		return "This page contains a reference table (e.g., abbreviation key). Extract each row as an entry with the abbreviation code and its expansion."
+		return "This page contains a reference table (e.g., abbreviation key). Read each row as an entry with the abbreviation code and its expansion."
 	case "toc":
-		return "This page is a table of contents. Extract each line as an entry of type 'other'."
+		return "This page is a table of contents. Read each line as an entry of type 'other'."
 	case "index":
-		return "This page is an alphabetical index. Extract each line as an entry of type 'other'."
+		return "This page is an alphabetical index. Read each line as an entry of type 'other'."
 	default:
 		return ""
 	}
 }
 
-// BuildUserPrompt constructs the user prompt for extraction.
+// BuildUserPrompt constructs the user prompt for reading a page.
 func BuildUserPrompt(sectionType string) string {
 	hint := SectionHint(sectionType)
 	if hint == "" {
-		return "Extract all text and structural metadata from this page."
+		return "Read all text and structural metadata from this page."
 	}
-	return fmt.Sprintf("%s\n\nExtract all text and structural metadata from this page.", hint)
+	return fmt.Sprintf("%s\n\nRead all text and structural metadata from this page.", hint)
 }

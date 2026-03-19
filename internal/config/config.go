@@ -19,16 +19,16 @@ type Config struct {
 	CacheDir  string          `yaml:"cache_dir" mapstructure:"cache_dir" json:"cache_dir"`
 	DPI       int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
 	Sections  []model.Section `yaml:"sections" mapstructure:"sections" json:"sections"`
-	Extract   ExtractConfig   `yaml:"extract" mapstructure:"extract" json:"extract"`
+	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
 	Translate TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
-	Compile   CompileConfig   `yaml:"compile" mapstructure:"compile" json:"compile"`
+	Write     WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
 	Knowledge KnowledgeConfig `yaml:"knowledge" mapstructure:"knowledge" json:"knowledge"`
 	Retry     RetryConfig     `yaml:"retry" mapstructure:"retry" json:"retry"`
 	RateLimit RateLimitConfig `yaml:"rate_limit" mapstructure:"rate_limit" json:"rate_limit"`
 }
 
-// ExtractConfig holds extraction-phase settings.
-type ExtractConfig struct {
+// ReadConfig holds read-phase settings.
+type ReadConfig struct {
 	Provider    string `yaml:"provider" mapstructure:"provider" json:"provider"`
 	Model       string `yaml:"model" mapstructure:"model" json:"model"`
 	Concurrency int    `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"`
@@ -41,8 +41,8 @@ type TranslateConfig struct {
 	ContextWindow int    `yaml:"context_window" mapstructure:"context_window" json:"context_window"`
 }
 
-// CompileConfig holds compilation-phase settings.
-type CompileConfig struct {
+// WriteConfig holds write-phase settings.
+type WriteConfig struct {
 	Formats          []string `yaml:"formats" mapstructure:"formats" json:"formats"`
 	ExpandSources    bool     `yaml:"expand_sources" mapstructure:"expand_sources" json:"expand_sources"`
 	LaTeXDockerImage string   `yaml:"latex_docker_image" mapstructure:"latex_docker_image" json:"latex_docker_image"`
@@ -74,18 +74,18 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("cache_dir", "./cache")
 	v.SetDefault("dpi", 300)
 
-	v.SetDefault("extract.provider", "gemini")
-	v.SetDefault("extract.model", "gemini-2.0-flash")
-	v.SetDefault("extract.concurrency", 1)
+	v.SetDefault("read.provider", "gemini")
+	v.SetDefault("read.model", "gemini-2.0-flash")
+	v.SetDefault("read.concurrency", 1)
 
 	v.SetDefault("translate.provider", "gemini")
 	v.SetDefault("translate.model", "gemini-2.0-flash")
 	v.SetDefault("translate.context_window", 2)
 
-	v.SetDefault("compile.formats", []string{"md", "latex"})
-	v.SetDefault("compile.expand_sources", true)
-	v.SetDefault("compile.latex_docker_image", "mutercim/xelatex:latest")
-	v.SetDefault("compile.skip_pdf", false)
+	v.SetDefault("write.formats", []string{"md", "latex"})
+	v.SetDefault("write.expand_sources", true)
+	v.SetDefault("write.latex_docker_image", "mutercim/xelatex:latest")
+	v.SetDefault("write.skip_pdf", false)
 
 	v.SetDefault("knowledge.dir", "./knowledge")
 
@@ -152,14 +152,14 @@ func applyDefaults(cfg *Config) {
 	if cfg.DPI == 0 {
 		cfg.DPI = 300
 	}
-	if cfg.Extract.Provider == "" {
-		cfg.Extract.Provider = "gemini"
+	if cfg.Read.Provider == "" {
+		cfg.Read.Provider = "gemini"
 	}
-	if cfg.Extract.Model == "" {
-		cfg.Extract.Model = "gemini-2.0-flash"
+	if cfg.Read.Model == "" {
+		cfg.Read.Model = "gemini-2.0-flash"
 	}
-	if cfg.Extract.Concurrency == 0 {
-		cfg.Extract.Concurrency = 1
+	if cfg.Read.Concurrency == 0 {
+		cfg.Read.Concurrency = 1
 	}
 	if cfg.Translate.Provider == "" {
 		cfg.Translate.Provider = "gemini"
@@ -170,11 +170,11 @@ func applyDefaults(cfg *Config) {
 	if cfg.Translate.ContextWindow == 0 {
 		cfg.Translate.ContextWindow = 2
 	}
-	if len(cfg.Compile.Formats) == 0 {
-		cfg.Compile.Formats = []string{"md", "latex"}
+	if len(cfg.Write.Formats) == 0 {
+		cfg.Write.Formats = []string{"md", "latex"}
 	}
-	if cfg.Compile.LaTeXDockerImage == "" {
-		cfg.Compile.LaTeXDockerImage = "mutercim/xelatex:latest"
+	if cfg.Write.LaTeXDockerImage == "" {
+		cfg.Write.LaTeXDockerImage = "mutercim/xelatex:latest"
 	}
 	if cfg.Knowledge.Dir == "" {
 		cfg.Knowledge.Dir = "./knowledge"

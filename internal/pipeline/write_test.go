@@ -13,7 +13,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-func setupCompileWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *progress.Tracker) {
+func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *progress.Tracker) {
 	t.Helper()
 	dir := t.TempDir()
 
@@ -31,18 +31,18 @@ func setupCompileWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, 
 
 	// Create a translated page JSON
 	page := &model.TranslatedPage{
-		EnrichedPage: model.EnrichedPage{
-			ExtractedPage: model.ExtractedPage{
+		SolvedPage: model.SolvedPage{
+			ReadPage: model.ReadPage{
 				PageNumber:  1,
 				SectionType: "scholarly_entries",
-				Header:      &model.Header{Text: "حرف الألف", Type: "section_title"},
+				Header:      &model.Header{Text: "\u062d\u0631\u0641 \u0627\u0644\u0623\u0644\u0641", Type: "section_title"},
 				Entries: []model.Entry{
-					{Number: intPtr(1), Type: "hadith", ArabicText: "أَبْشِرُوا"},
+					{Number: intPtr(1), Type: "hadith", ArabicText: "\u0623\u064e\u0628\u0652\u0634\u0650\u0631\u064f\u0648\u0627"},
 				},
 			},
 		},
 		TranslatedHeader:  &model.TranslatedHeader{Text: "Elif Harfi"},
-		TranslatedEntries: []model.TranslatedEntry{{Number: 1, TurkishText: "Müjdelenin!"}},
+		TranslatedEntries: []model.TranslatedEntry{{Number: 1, TurkishText: "M\u00fcjdelenin!"}},
 	}
 
 	data, _ := json.MarshalIndent(page, "", "  ")
@@ -57,9 +57,9 @@ func setupCompileWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, 
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Compile: config.CompileConfig{
-			Formats:   []string{"md"},
-			SkipPDF:   true,
+		Write: config.WriteConfig{
+			Formats:       []string{"md"},
+			SkipPDF:       true,
 			ExpandSources: true,
 		},
 	}
@@ -71,16 +71,16 @@ func setupCompileWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, 
 	return ws, cfg, tracker
 }
 
-func TestCompileMarkdown(t *testing.T) {
-	ws, cfg, tracker := setupCompileWorkspace(t)
+func TestWriteMarkdown(t *testing.T) {
+	ws, cfg, tracker := setupWriteWorkspace(t)
 
-	err := Compile(context.Background(), CompileOptions{
+	err := Write(context.Background(), WriteOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Tracker:   tracker,
 	})
 	if err != nil {
-		t.Fatalf("Compile() error: %v", err)
+		t.Fatalf("Write() error: %v", err)
 	}
 
 	// Check Turkish markdown was written
@@ -106,24 +106,24 @@ func TestCompileMarkdown(t *testing.T) {
 
 	// Check progress was updated
 	state := tracker.State()
-	phase := state.Phases["compile:TestBook"]
+	phase := state.Phases["write:TestBook"]
 	if phase == nil {
-		t.Fatal("expected compile:TestBook phase in progress")
+		t.Fatal("expected write:TestBook phase in progress")
 	}
 }
 
-func TestCompileLatexSkipPDF(t *testing.T) {
-	ws, cfg, tracker := setupCompileWorkspace(t)
-	cfg.Compile.Formats = []string{"latex"}
-	cfg.Compile.SkipPDF = true
+func TestWriteLatexSkipPDF(t *testing.T) {
+	ws, cfg, tracker := setupWriteWorkspace(t)
+	cfg.Write.Formats = []string{"latex"}
+	cfg.Write.SkipPDF = true
 
-	err := Compile(context.Background(), CompileOptions{
+	err := Write(context.Background(), WriteOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Tracker:   tracker,
 	})
 	if err != nil {
-		t.Fatalf("Compile() error: %v", err)
+		t.Fatalf("Write() error: %v", err)
 	}
 
 	texPath := filepath.Join(ws.OutputDir(), "latex", "book.tex")

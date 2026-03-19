@@ -39,8 +39,8 @@ func Init(opts InitOptions) (*Workspace, error) {
 		"output/turkish/pages",
 		"output/latex",
 		"cache/images",
-		"cache/extracted",
-		"cache/enriched",
+		"cache/read",
+		"cache/solved",
 		"cache/translated",
 		"cache/staged",
 		"knowledge",
@@ -120,7 +120,7 @@ dpi: 300
 sections: []
 
 # Model configuration
-extract:
+read:
   provider: gemini
   model: gemini-2.0-flash
   concurrency: 1
@@ -130,7 +130,7 @@ translate:
   model: gemini-2.0-flash
   context_window: 2
 
-compile:
+write:
   formats: [md, latex]
   expand_sources: true
   latex_docker_image: mutercim/xelatex:latest

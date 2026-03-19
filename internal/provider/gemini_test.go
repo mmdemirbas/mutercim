@@ -36,7 +36,7 @@ func TestGeminiProviderSupportsVision(t *testing.T) {
 	}
 }
 
-func TestGeminiProviderExtractFromImage(t *testing.T) {
+func TestGeminiProviderReadFromImage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify request structure
 		var req geminiRequest
@@ -86,9 +86,9 @@ func TestGeminiProviderExtractFromImage(t *testing.T) {
 
 	p := newTestGeminiProvider(t, server.URL)
 
-	result, err := p.ExtractFromImage(context.Background(), []byte("fake-image"), "system prompt", "user prompt")
+	result, err := p.ReadFromImage(context.Background(), []byte("fake-image"), "system prompt", "user prompt")
 	if err != nil {
-		t.Fatalf("ExtractFromImage() error: %v", err)
+		t.Fatalf("ReadFromImage() error: %v", err)
 	}
 	if result != `{"page_number": 1, "entries": []}` {
 		t.Errorf("unexpected result: %q", result)
@@ -152,7 +152,7 @@ func TestGeminiProviderEmptyResponse(t *testing.T) {
 
 	p := newTestGeminiProvider(t, server.URL)
 
-	_, err := p.ExtractFromImage(context.Background(), []byte("fake-image"), "system", "user")
+	_, err := p.ReadFromImage(context.Background(), []byte("fake-image"), "system", "user")
 	if err == nil {
 		t.Fatal("expected error for empty response")
 	}
@@ -174,7 +174,7 @@ func TestGeminiProviderHTTPError(t *testing.T) {
 	p := NewGeminiProvider(client, "bad-key", "test-model")
 	p.baseURL = server.URL
 
-	_, err := p.ExtractFromImage(context.Background(), []byte("fake-image"), "system", "user")
+	_, err := p.ReadFromImage(context.Background(), []byte("fake-image"), "system", "user")
 	if err == nil {
 		t.Fatal("expected error for 401 response")
 	}

@@ -17,18 +17,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newExtractCmd() *cobra.Command {
+func newReadCmd() *cobra.Command {
 	var (
-		extractProvider string
-		extractModel    string
-		concurrency     int
-		dpi             int
+		readProvider string
+		readModel    string
+		concurrency  int
+		dpi          int
 	)
 
 	cmd := &cobra.Command{
-		Use:   "extract",
-		Short: "Extract structured data from page images (Phase 1)",
-		Long:  "Sends page images to an AI vision model and extracts structured JSON with entries, footnotes, and metadata.",
+		Use:   "read",
+		Short: "Read structured data from page images (Phase 1)",
+		Long:  "Sends page images to an AI vision model and reads structured JSON with entries, footnotes, and metadata.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Discover workspace
 			ws, err := workspace.Discover(".")
@@ -47,14 +47,14 @@ func newExtractCmd() *cobra.Command {
 			}
 
 			// Apply CLI flag overrides
-			if extractProvider != "" {
-				cfg.Extract.Provider = extractProvider
+			if readProvider != "" {
+				cfg.Read.Provider = readProvider
 			}
-			if extractModel != "" {
-				cfg.Extract.Model = extractModel
+			if readModel != "" {
+				cfg.Read.Model = readModel
 			}
 			if concurrency > 0 {
-				cfg.Extract.Concurrency = concurrency
+				cfg.Read.Concurrency = concurrency
 			}
 			if dpi > 0 {
 				cfg.DPI = dpi
@@ -72,14 +72,14 @@ func newExtractCmd() *cobra.Command {
 			}
 
 			// Resolve API key
-			apiKey, err := resolveAPIKey(cfg.Extract.Provider)
+			apiKey, err := resolveAPIKey(cfg.Read.Provider)
 			if err != nil {
 				return err
 			}
 
 			// Create API client
 			clientCfg := apiclient.ClientConfig{
-				Timeout:           clientTimeout(cfg.Extract.Provider),
+				Timeout:           clientTimeout(cfg.Read.Provider),
 				MaxRetries:        cfg.Retry.MaxAttempts,
 				BaseBackoff:       time.Duration(cfg.Retry.BackoffSeconds) * time.Second,
 				RequestsPerMinute: cfg.RateLimit.RequestsPerMinute,
@@ -89,7 +89,7 @@ func newExtractCmd() *cobra.Command {
 			defer client.Close()
 
 			// Create provider
-			p, err := createProvider(cfg.Extract.Provider, client, apiKey, cfg.Extract.Model)
+			p, err := createProvider(cfg.Read.Provider, client, apiKey, cfg.Read.Model)
 			if err != nil {
 				return err
 			}
@@ -115,8 +115,8 @@ func newExtractCmd() *cobra.Command {
 				return fmt.Errorf("load progress: %w", err)
 			}
 
-			// Run extraction pipeline
-			return pipeline.Extract(cmd.Context(), pipeline.ExtractOptions{
+			// Run read pipeline
+			return pipeline.Read(cmd.Context(), pipeline.ReadOptions{
 				Workspace: ws,
 				Config:    cfg,
 				Provider:  p,
@@ -127,9 +127,9 @@ func newExtractCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&extractProvider, "extract-provider", "", "provider: gemini, claude, openai, ollama, surya (default: from config)")
-	cmd.Flags().StringVar(&extractModel, "extract-model", "", "model for extraction (default: from config)")
-	cmd.Flags().IntVar(&concurrency, "concurrency", 0, "parallel extraction workers (default: from config)")
+	cmd.Flags().StringVar(&readProvider, "read-provider", "", "provider: gemini, claude, openai, ollama, surya (default: from config)")
+	cmd.Flags().StringVar(&readModel, "read-model", "", "model for reading (default: from config)")
+	cmd.Flags().IntVar(&concurrency, "concurrency", 0, "parallel read workers (default: from config)")
 	cmd.Flags().IntVar(&dpi, "dpi", 0, "DPI for PDF-to-image conversion (default: from config)")
 
 	return cmd

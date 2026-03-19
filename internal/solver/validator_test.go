@@ -1,4 +1,4 @@
-package enrichment
+package solver
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 func intPtr(n int) *int { return &n }
 
 func TestValidateSequentialNumbers(t *testing.T) {
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		Entries: []model.Entry{
 			{Number: intPtr(1), Type: "hadith", ArabicText: "text1"},
 			{Number: intPtr(2), Type: "hadith", ArabicText: "text2"},
@@ -27,7 +27,7 @@ func TestValidateSequentialNumbers(t *testing.T) {
 }
 
 func TestValidateNumberGap(t *testing.T) {
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		Entries: []model.Entry{
 			{Number: intPtr(1), Type: "hadith", ArabicText: "text1"},
 			{Number: intPtr(3), Type: "hadith", ArabicText: "text3"}, // gap: 1→3
@@ -47,7 +47,7 @@ func TestValidateNumberGap(t *testing.T) {
 }
 
 func TestValidateEmptyType(t *testing.T) {
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		Entries: []model.Entry{
 			{Number: intPtr(1), Type: "", ArabicText: "text"},
 		},
@@ -60,7 +60,7 @@ func TestValidateEmptyType(t *testing.T) {
 }
 
 func TestValidateEmptyArabicText(t *testing.T) {
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		Entries: []model.Entry{
 			{Number: intPtr(1), Type: "hadith", ArabicText: ""},
 		},
@@ -73,7 +73,7 @@ func TestValidateEmptyArabicText(t *testing.T) {
 }
 
 func TestValidateSkipsContinuations(t *testing.T) {
-	page := &model.ExtractedPage{
+	page := &model.ReadPage{
 		Entries: []model.Entry{
 			{IsContinuation: true, Type: "hadith", ArabicText: "continued"},
 			{Number: intPtr(5), Type: "hadith", ArabicText: "text"},

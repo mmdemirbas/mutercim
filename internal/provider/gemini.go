@@ -69,8 +69,8 @@ func (g *GeminiProvider) Name() string { return "gemini" }
 // SupportsVision returns true because Gemini supports image inputs.
 func (g *GeminiProvider) SupportsVision() bool { return true }
 
-// ExtractFromImage sends an image to Gemini and returns the text response.
-func (g *GeminiProvider) ExtractFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
+// ReadFromImage sends an image to Gemini and returns the text response.
+func (g *GeminiProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
 	body := geminiRequest{
 		Contents: []geminiContent{{
 			Parts: []geminiPart{
@@ -89,7 +89,7 @@ func (g *GeminiProvider) ExtractFromImage(ctx context.Context, image []byte, sys
 		Body:    body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("gemini extract: %w", err)
+		return "", fmt.Errorf("gemini read: %w", err)
 	}
 	return g.extractText(resp)
 }

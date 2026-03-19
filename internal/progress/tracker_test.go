@@ -50,10 +50,10 @@ func TestTrackerMarkAndSave(t *testing.T) {
 	tracker := NewTracker(path)
 	tracker.SetBookID("test-book")
 	tracker.SetTotalPages(100)
-	tracker.MarkCompleted(PhaseExtract, 1)
-	tracker.MarkCompleted(PhaseExtract, 2)
-	tracker.MarkCompleted(PhaseExtract, 3)
-	tracker.MarkFailed(PhaseExtract, 4)
+	tracker.MarkCompleted(PhaseRead, 1)
+	tracker.MarkCompleted(PhaseRead, 2)
+	tracker.MarkCompleted(PhaseRead, 3)
+	tracker.MarkFailed(PhaseRead, 4)
 
 	if err := tracker.Save(); err != nil {
 		t.Fatalf("Save() error = %v", err)
@@ -73,15 +73,15 @@ func TestTrackerMarkAndSave(t *testing.T) {
 		t.Errorf("TotalPages = %d, want 100", state.TotalPages)
 	}
 
-	extract := state.Phases[PhaseExtract]
-	if extract == nil {
-		t.Fatal("extract phase is nil")
+	read := state.Phases[PhaseRead]
+	if read == nil {
+		t.Fatal("read phase is nil")
 	}
-	if len(extract.Completed) != 3 {
-		t.Errorf("len(Completed) = %d, want 3", len(extract.Completed))
+	if len(read.Completed) != 3 {
+		t.Errorf("len(Completed) = %d, want 3", len(read.Completed))
 	}
-	if len(extract.Failed) != 1 {
-		t.Errorf("len(Failed) = %d, want 1", len(extract.Failed))
+	if len(read.Failed) != 1 {
+		t.Errorf("len(Failed) = %d, want 1", len(read.Failed))
 	}
 }
 
@@ -90,14 +90,14 @@ func TestTrackerMarkCompletedDedup(t *testing.T) {
 	path := filepath.Join(dir, "progress.json")
 
 	tracker := NewTracker(path)
-	tracker.MarkCompleted(PhaseExtract, 1)
-	tracker.MarkCompleted(PhaseExtract, 1)
-	tracker.MarkCompleted(PhaseExtract, 1)
+	tracker.MarkCompleted(PhaseRead, 1)
+	tracker.MarkCompleted(PhaseRead, 1)
+	tracker.MarkCompleted(PhaseRead, 1)
 
 	state := tracker.State()
-	extract := state.Phases[PhaseExtract]
-	if len(extract.Completed) != 1 {
-		t.Errorf("len(Completed) = %d, want 1 (dedup)", len(extract.Completed))
+	read := state.Phases[PhaseRead]
+	if len(read.Completed) != 1 {
+		t.Errorf("len(Completed) = %d, want 1 (dedup)", len(read.Completed))
 	}
 }
 
@@ -106,16 +106,16 @@ func TestTrackerMarkCompletedRemovesFailed(t *testing.T) {
 	path := filepath.Join(dir, "progress.json")
 
 	tracker := NewTracker(path)
-	tracker.MarkFailed(PhaseExtract, 5)
-	tracker.MarkCompleted(PhaseExtract, 5)
+	tracker.MarkFailed(PhaseRead, 5)
+	tracker.MarkCompleted(PhaseRead, 5)
 
 	state := tracker.State()
-	extract := state.Phases[PhaseExtract]
-	if len(extract.Failed) != 0 {
-		t.Errorf("len(Failed) = %d, want 0 after marking completed", len(extract.Failed))
+	read := state.Phases[PhaseRead]
+	if len(read.Failed) != 0 {
+		t.Errorf("len(Failed) = %d, want 0 after marking completed", len(read.Failed))
 	}
-	if len(extract.Completed) != 1 {
-		t.Errorf("len(Completed) = %d, want 1", len(extract.Completed))
+	if len(read.Completed) != 1 {
+		t.Errorf("len(Completed) = %d, want 1", len(read.Completed))
 	}
 }
 
@@ -124,7 +124,7 @@ func TestTrackerAtomicWrite(t *testing.T) {
 	path := filepath.Join(dir, "progress.json")
 
 	tracker := NewTracker(path)
-	tracker.MarkCompleted(PhaseExtract, 1)
+	tracker.MarkCompleted(PhaseRead, 1)
 	if err := tracker.Save(); err != nil {
 		t.Fatalf("Save() error = %v", err)
 	}
