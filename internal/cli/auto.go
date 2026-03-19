@@ -112,7 +112,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 		if err != nil {
 			return fmt.Errorf("auto read: %w", err)
 		}
-		if result.Completed == 0 {
+		if result.IsEmpty() {
 			return fmt.Errorf("auto read produced 0 pages")
 		}
 	}
@@ -132,7 +132,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 		if err != nil {
 			return fmt.Errorf("auto solve: %w", err)
 		}
-		if result.Completed == 0 {
+		if result.IsEmpty() {
 			return fmt.Errorf("auto solve produced 0 pages")
 		}
 	}
@@ -158,7 +158,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 		if err != nil {
 			return fmt.Errorf("auto translate: %w", err)
 		}
-		if result.Completed == 0 {
+		if result.IsEmpty() {
 			return fmt.Errorf("auto translate produced 0 pages")
 		}
 	}

@@ -14,6 +14,11 @@ type PhaseResult struct {
 	Skipped   int
 }
 
+// IsEmpty returns true if no pages were completed or skipped (nothing useful produced).
+func (r PhaseResult) IsEmpty() bool {
+	return r.Completed == 0 && r.Skipped == 0
+}
+
 // pageFile represents a JSON page file with its parsed page number.
 type pageFile struct {
 	pageNum int

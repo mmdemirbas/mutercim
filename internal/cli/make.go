@@ -20,9 +20,10 @@ import (
 
 func newMakeCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "make",
-		Short: "(Phase *) Run all phases: pages -> read -> solve -> translate -> write",
-		Long:  "Executes the full pipeline sequentially. Validates system dependencies before starting.",
+		Use:       "make [formats...]",
+		Short:     "(Phase *) Run all phases: pages -> read -> solve -> translate -> write",
+		Long:      "Executes the full pipeline sequentially. Validates system dependencies before starting.\n\nOptional format arguments override the write phase output formats:\n  mutercim make pdf\n  mutercim make md docx",
+		ValidArgs: []string{"md", "latex", "tex", "pdf", "docx"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
 			if err != nil {
@@ -36,6 +37,15 @@ func newMakeCmd() *cobra.Command {
 			cfg, err := config.Load(configPath)
 			if err != nil {
 				return fmt.Errorf("config: %w", err)
+			}
+
+			// Override write formats if positional args provided
+			if len(args) > 0 {
+				fmts, err := normalizeFormats(args)
+				if err != nil {
+					return err
+				}
+				cfg.Write.Formats = fmts
 			}
 
 			// Preflight: check all dependencies upfront
@@ -134,7 +144,7 @@ func newMakeCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("read: %w", err)
 			}
-			if readResult.Completed == 0 {
+			if readResult.IsEmpty() {
 				logger.Error("stopping pipeline: read produced 0 pages")
 				return fmt.Errorf("stopping pipeline: read produced 0 pages")
 			}
@@ -158,7 +168,7 @@ func newMakeCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("solve: %w", err)
 			}
-			if solveResult.Completed == 0 {
+			if solveResult.IsEmpty() {
 				logger.Error("stopping pipeline: solve produced 0 pages")
 				return fmt.Errorf("stopping pipeline: solve produced 0 pages")
 			}
@@ -184,7 +194,7 @@ func newMakeCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("translate: %w", err)
 			}
-			if translateResult.Completed == 0 {
+			if translateResult.IsEmpty() {
 				logger.Error("stopping pipeline: translate produced 0 pages")
 				return fmt.Errorf("stopping pipeline: translate produced 0 pages")
 			}

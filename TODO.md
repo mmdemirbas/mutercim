@@ -1,4 +1,4 @@
-- Support multiple app languages (help messages, logs etc)? (ar/tr/zh)
+DOCUMENTATION ======================================================================================
 
 - Add README
     * Document .env and .envrc autoload behaviour
@@ -9,16 +9,28 @@
 
 - Provide AR/TR/ZH translations for docs
 
+- Support multiple app languages (help messages, logs etc)? (ar/tr/zh)
+
+
+OPTIMIZATION =======================================================================================
+
 - Optimize token usage
     * short JSON keys
     * shorter system prompts
 
-- Dependencies? Single-binary?
+
+FEATURES ===========================================================================================
+
+- The tool should be idempotent and skip already-processed pages by default. We should provide a force flag, so we can force it to re-process.
 
 - Support fixing / completing tashkeels optionally in the arabic script.
 
-- Support on-demand output formats configs: 'mutercim write pdf' (pdf|md|tex|docx etc). Same can be support with 'mutercim make'. Even if the configured output formats are different, this command specifically build a pdf (or whatever output format specified in cli).
+- Allow adding to the system prompt, or a second prompt maybe (user prompt). 
+  So we can teach some âdâb to the AI (Peygamberimiz, Efendimiz vs.)
+
+
+SIMPLIFICATION =====================================================================================
 
 - What does 'validate' do? How important is it? Should we remove it?
 
-- Allow adding to the system prompt, or a second prompt maybe (user prompt).
+- Dependencies? Single-binary?

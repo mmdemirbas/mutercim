@@ -66,6 +66,12 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Overridable per-model via `rpm` field in `ModelSpec`
 - Global `rate_limit` config kept for backward compat but per-model RPM takes precedence
 
+## On-Demand Output Formats (positional args)
+- `write` and `make` accept positional format arguments: `mutercim write pdf`, `mutercim make md docx`
+- Positional args override config; `--format` flag is kept as an alternative
+- `tex` is an alias for `latex`; unknown formats are rejected with a clear error
+- Deduplication: `tex latex` resolves to a single `latex`
+
 ## Auto-Run Prerequisites (--auto flag)
 - `--auto` persistent flag on root command, available to all subcommands
 - When set, each phase checks for missing prerequisite output and runs earlier phases automatically

@@ -11,7 +11,7 @@ book:
   title: "Test Book"                 # Book title (shown in dashboard and output)
   author: "Unknown Author"           # Book author
   source_langs: [ ar ]               # Source language codes
-  target_langs: [ tr ]               # Target language codes
+  target_langs: [ tr, ar ]           # Target language codes
 
 # ─── Inputs ──────────────────────────────────────────────────────────────────
 #

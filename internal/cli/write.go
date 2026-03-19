@@ -21,9 +21,10 @@ func newWriteCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "write",
-		Short: "(Phase 4) Write translated pages into final output",
-		Long:  "Generates output files from translated JSON. Supported formats: md, latex, pdf, docx.",
+		Use:       "write [formats...]",
+		Short:     "(Phase 4) Write translated pages into final output",
+		Long:      "Generates output files from translated JSON. Supported formats: md, latex (tex), pdf, docx.\n\nFormats can be specified as positional arguments to override the config:\n  mutercim write pdf\n  mutercim write md docx",
+		ValidArgs: []string{"md", "latex", "tex", "pdf", "docx"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
 			if err != nil {
@@ -39,9 +40,19 @@ func newWriteCmd() *cobra.Command {
 				return fmt.Errorf("config: %w", err)
 			}
 
-			// Apply CLI flag overrides
-			if formats != "" {
-				cfg.Write.Formats = strings.Split(formats, ",")
+			// Apply format overrides: positional args > --format flag > config
+			if len(args) > 0 {
+				fmts, err := normalizeFormats(args)
+				if err != nil {
+					return err
+				}
+				cfg.Write.Formats = fmts
+			} else if formats != "" {
+				fmts, err := normalizeFormats(strings.Split(formats, ","))
+				if err != nil {
+					return err
+				}
+				cfg.Write.Formats = fmts
 			}
 			if latexDockerImage != "" {
 				cfg.Write.LaTeXDockerImage = latexDockerImage
@@ -93,7 +104,7 @@ func newWriteCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&formats, "format", "", "output formats, comma-separated: md,latex,pdf,docx (default: from config)")
+	cmd.Flags().StringVar(&formats, "format", "", "output formats, comma-separated: md,latex,pdf,docx (overridden by positional args)")
 	cmd.Flags().StringVar(&latexDockerImage, "latex-docker-image", "", "Docker image for LaTeX compilation (default: from config)")
 
 	return cmd
