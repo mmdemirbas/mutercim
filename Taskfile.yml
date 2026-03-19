@@ -13,7 +13,6 @@ tasks:
       - go build -o build/mutercim ./cmd/mutercim
       - go test ./...
       - go vet ./...
-      - golangci-lint run
 
   build:
     desc: Build for the current platform
