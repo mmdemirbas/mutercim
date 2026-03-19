@@ -112,8 +112,8 @@ read:
     - provider: groq
       model: llama-3.2-90b-vision-preview
     # 4. xAI: $25 free credits, good vision
-    - provider: xai
-      model: grok-2-vision-latest
+    #- provider: xai
+    #  model: grok-2-vision-latest
     # 5. Local fallback: always available, slow
     - provider: ollama
       model: qwen2.5vl:7b
@@ -136,8 +136,8 @@ translate:
     - provider: gemini
       model: gemini-2.5-flash
     # 5. xAI: $25 free credits
-    - provider: xai
-      model: grok-2-latest
+    #- provider: xai
+    #  model: grok-2-latest
     # 6. OpenRouter: community-funded free models
     - provider: openrouter
       model: meta-llama/llama-3.1-8b-instruct:free

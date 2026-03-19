@@ -14,3 +14,5 @@
     * shorter system prompts
 
 - Depenedencies? Single-binary?
+
+- Add a flag to auto-execute missing previous steps if needed
