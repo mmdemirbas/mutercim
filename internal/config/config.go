@@ -120,6 +120,10 @@ func Load(configPath string) (*Config, error) {
 	// Apply defaults for fields that viper's nested unmarshal may miss
 	applyDefaults(&cfg)
 
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("validate config: %w", err)
+	}
+
 	return &cfg, nil
 }
 

@@ -47,7 +47,9 @@ func Pages(ctx context.Context, opts PagesOptions) error {
 		pages := opts.Pages
 		if len(pages) == 0 && inp.Pages != "" {
 			if ranges, err := model.ParsePageRanges(inp.Pages); err == nil {
-				pages = model.ExpandPages(ranges)
+				if expanded, err := model.ExpandPages(ranges); err == nil {
+					pages = expanded
+				}
 			}
 		}
 

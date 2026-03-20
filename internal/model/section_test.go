@@ -49,10 +49,32 @@ func TestExpandPages(t *testing.T) {
 		{[]PageRange{{1, 1}, {5, 5}, {10, 12}}, []int{1, 5, 10, 11, 12}},
 	}
 	for _, tt := range tests {
-		got := ExpandPages(tt.ranges)
+		got, err := ExpandPages(tt.ranges)
+		if err != nil {
+			t.Fatalf("ExpandPages(%v) error: %v", tt.ranges, err)
+		}
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("ExpandPages(%v) = %v, want %v", tt.ranges, got, tt.want)
 		}
+	}
+}
+
+func TestExpandPages_HugeRange(t *testing.T) {
+	ranges := []PageRange{{1, MaxExpandedPages + 1}}
+	_, err := ExpandPages(ranges)
+	if err == nil {
+		t.Fatalf("expected error for range exceeding MaxExpandedPages")
+	}
+}
+
+func TestExpandPages_ExactlyAtLimit(t *testing.T) {
+	ranges := []PageRange{{1, MaxExpandedPages}}
+	pages, err := ExpandPages(ranges)
+	if err != nil {
+		t.Fatalf("ExpandPages() error: %v", err)
+	}
+	if len(pages) != MaxExpandedPages {
+		t.Errorf("expected %d pages, got %d", MaxExpandedPages, len(pages))
 	}
 }
 

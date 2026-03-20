@@ -48,7 +48,10 @@ func newSolveCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("parse pages: %w", err)
 				}
-				pagesToProcess = model.ExpandPages(ranges)
+				pagesToProcess, err = model.ExpandPages(ranges)
+				if err != nil {
+					return fmt.Errorf("expand pages: %w", err)
+				}
 			}
 
 			// Auto-run prerequisites if needed

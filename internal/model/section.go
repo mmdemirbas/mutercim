@@ -66,16 +66,29 @@ func ParsePageRanges(s string) ([]PageRange, error) {
 	return ranges, nil
 }
 
+// MaxExpandedPages is the maximum number of pages that ExpandPages will produce.
+// This prevents unbounded memory allocation from huge ranges like "1-10000000".
+const MaxExpandedPages = 100000
+
 // ExpandPages expands page ranges into individual page numbers.
-func ExpandPages(ranges []PageRange) []int {
+// Returns an error if the total exceeds MaxExpandedPages.
+func ExpandPages(ranges []PageRange) ([]int, error) {
 	if ranges == nil {
-		return nil
+		return nil, nil
 	}
-	var pages []int
+	// Pre-check total count to avoid unbounded allocation
+	total := 0
+	for _, r := range ranges {
+		total += r.Last - r.First + 1
+		if total > MaxExpandedPages {
+			return nil, fmt.Errorf("page range expands to %d+ pages (max %d)", total, MaxExpandedPages)
+		}
+	}
+	pages := make([]int, 0, total)
 	for _, r := range ranges {
 		for p := r.First; p <= r.Last; p++ {
 			pages = append(pages, p)
 		}
 	}
-	return pages
+	return pages, nil
 }

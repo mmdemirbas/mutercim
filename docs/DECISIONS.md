@@ -193,3 +193,10 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - `mutercim init` scaffolds knowledge/glossary.yaml with commented format examples
 - Embedded defaults in single defaults/glossary.yaml with ar+tr+en entries where available
 - Removed: Honorific, Source, Person, Term, Place types; type-specific YAML schemas; per-type loaders; LookupSource; per-section prompt builders
+
+## Config Validation in Load
+- `Load()` now calls `Validate()` before returning — invalid page ranges in config are caught at load time
+
+## ExpandPages Bounds Check
+- `ExpandPages()` returns `([]int, error)` and caps at 100,000 pages (`MaxExpandedPages`)
+- Prevents unbounded memory allocation from huge ranges like "1-10000000"

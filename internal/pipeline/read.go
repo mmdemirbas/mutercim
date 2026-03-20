@@ -83,7 +83,9 @@ func buildInputPageMap(cfg *config.Config) map[string][]int {
 		if inp.Pages != "" {
 			stem := fileStem(inp.Path)
 			if ranges, err := model.ParsePageRanges(inp.Pages); err == nil {
-				m[stem] = model.ExpandPages(ranges)
+				if pages, err := model.ExpandPages(ranges); err == nil {
+					m[stem] = pages
+				}
 			}
 		}
 	}

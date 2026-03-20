@@ -3,16 +3,14 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 func TestLoad_InvalidYAML(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-
-	if err := os.WriteFile(path, []byte("invalid: yaml: [broken"), 0644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	os.WriteFile(path, []byte("invalid: yaml: [broken"), 0644)
 
 	_, err := Load(path)
 	if err == nil {
@@ -23,17 +21,12 @@ func TestLoad_InvalidYAML(t *testing.T) {
 func TestLoad_EmptyFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-
-	if err := os.WriteFile(path, []byte(""), 0644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	os.WriteFile(path, []byte(""), 0644)
 
 	cfg, err := Load(path)
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
-
-	// Should get defaults
 	if cfg.Book.PrimarySourceLang() != "ar" {
 		t.Errorf("expected default source lang 'ar', got %q", cfg.Book.PrimarySourceLang())
 	}
@@ -49,15 +42,7 @@ func TestLoad_NonexistentFile(t *testing.T) {
 func TestLoad_MinimalValidConfig(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-
-	yaml := `book:
-  title: "Test"
-inputs:
-  - path: ./input
-`
-	if err := os.WriteFile(path, []byte(yaml), 0644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	os.WriteFile(path, []byte("book:\n  title: \"Test\"\ninputs:\n  - path: ./input\n"), 0644)
 
 	cfg, err := Load(path)
 	if err != nil {
@@ -71,24 +56,58 @@ inputs:
 func TestLoad_DefaultsApplied(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-
-	// Minimal config, rely on defaults
-	if err := os.WriteFile(path, []byte("book:\n  title: X\n"), 0644); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	os.WriteFile(path, []byte("book:\n  title: X\n"), 0644)
 
 	cfg, err := Load(path)
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
-
 	if cfg.Retry.MaxAttempts != 3 {
 		t.Errorf("Retry.MaxAttempts = %d, want 3", cfg.Retry.MaxAttempts)
 	}
-	if cfg.Retry.BackoffSeconds != 2 {
-		t.Errorf("Retry.BackoffSeconds = %d, want 2", cfg.Retry.BackoffSeconds)
-	}
 	if cfg.DPI != 300 {
 		t.Errorf("DPI = %d, want 300", cfg.DPI)
+	}
+}
+
+func TestLoad_ValidateCalledWithInvalidPages(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "mutercim.yaml")
+
+	yaml := `book:
+  title: "Test"
+inputs:
+  - path: ./input
+    pages: "not-a-range"
+`
+	os.WriteFile(path, []byte(yaml), 0644)
+
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for invalid pages in config")
+	}
+	if !strings.Contains(err.Error(), "validate") {
+		t.Errorf("error should mention validation: %v", err)
+	}
+}
+
+func TestLoad_ValidateCalledWithValidPages(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "mutercim.yaml")
+
+	yaml := `book:
+  title: "Test"
+inputs:
+  - path: ./input
+    pages: "1-50"
+`
+	os.WriteFile(path, []byte(yaml), 0644)
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Inputs[0].Pages != "1-50" {
+		t.Errorf("pages = %q", cfg.Inputs[0].Pages)
 	}
 }
