@@ -56,14 +56,31 @@ func (r *Reader) ReadPage(ctx context.Context, image []byte, pageNum int, modelN
 
 	jsonStr, err := apiclient.ExtractJSON(rawResponse)
 	if err != nil {
-		return nil, fmt.Errorf("parse JSON from response for page %d: %w", pageNum, err)
+		// JSON extraction failed — preserve raw response for debugging
+		return &model.ReadPage{
+			Version:       "1.0",
+			PageNumber:    pageNum,
+			ReadModel:     modelName,
+			ReadTimestamp: time.Now().UTC().Format(time.RFC3339),
+			RawText:       rawResponse,
+			ReadWarnings:  []string{fmt.Sprintf("JSON extraction failed: %v", err)},
+		}, nil
 	}
 
 	var resp readResponse
 	if err := json.Unmarshal([]byte(jsonStr), &resp); err != nil {
-		return nil, fmt.Errorf("unmarshal read response for page %d: %w", pageNum, err)
+		// JSON parsing failed — preserve raw response for debugging
+		return &model.ReadPage{
+			Version:       "1.0",
+			PageNumber:    pageNum,
+			ReadModel:     modelName,
+			ReadTimestamp: time.Now().UTC().Format(time.RFC3339),
+			RawText:       rawResponse,
+			ReadWarnings:  []string{fmt.Sprintf("JSON unmarshal failed: %v", err)},
+		}, nil
 	}
 
+	// JSON parsing succeeded — no need to store raw text redundantly
 	page := &model.ReadPage{
 		Version:       "1.0",
 		PageNumber:    pageNum,
@@ -73,7 +90,6 @@ func (r *Reader) ReadPage(ctx context.Context, image []byte, pageNum int, modelN
 		Entries:       resp.Entries,
 		Footnotes:     convertFootnotes(resp.Footnotes),
 		PageFooter:    resp.PageFooter,
-		RawText:       rawResponse,
 		ReadWarnings:  resp.Warnings,
 	}
 
