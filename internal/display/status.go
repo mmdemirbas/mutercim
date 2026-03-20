@@ -46,19 +46,23 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 	fmt.Fprintln(w)
 
 	// Warnings
-	fmt.Fprintf(w, "  Warnings: %d\n", len(data.Warnings))
-	renderMessages(w, data.Warnings, 10, colors.yellow)
-	fmt.Fprintln(w)
+	if len(data.Warnings) > 0 {
+		fmt.Fprintf(w, "  %s %s\n", colors.Yellow("\u26a0"), colors.Yellow(fmt.Sprintf("%d warnings", len(data.Warnings))))
+		renderMessages(w, data.Warnings, 10, colors.Dim)
+		fmt.Fprintln(w)
+	}
 
 	// Errors
-	fmt.Fprintf(w, "  Errors: %d\n", len(data.Errors))
-	renderMessages(w, data.Errors, 0, colors.red) // show all errors
-	fmt.Fprintln(w)
+	if len(data.Errors) > 0 {
+		fmt.Fprintf(w, "  %s %s\n", colors.Red("\u2717"), colors.Red(fmt.Sprintf("%d errors", len(data.Errors))))
+		renderMessages(w, data.Errors, 0, colors.Dim) // show all errors
+		fmt.Fprintln(w)
+	}
 
 	// Log file info
 	if data.LogPath != "" {
 		size := formatBytes(data.LogSize)
-		fmt.Fprintf(w, "  Log: %s (%s)\n", data.LogPath, size)
+		fmt.Fprintf(w, "  %s %s %s\n", colors.Cyan("Log:"), data.LogPath, colors.Dim("("+size+")"))
 		fmt.Fprintln(w)
 	}
 }

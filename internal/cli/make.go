@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -208,14 +209,23 @@ func newAllCmd() *cobra.Command {
 			logger.Info("=== All phases complete ===")
 
 			// Print completion summary to console
+			colors := display.NewStatusColors(os.Stderr)
 			fmt.Fprintln(os.Stderr)
-			fmt.Fprintln(os.Stderr, "Done.")
-			fmt.Fprintf(os.Stderr, "  Read:      %d pages (%d failed)\n", readResult.Completed, readResult.Failed)
-			fmt.Fprintf(os.Stderr, "  Solve:     %d pages (%d failed)\n", solveResult.Completed, solveResult.Failed)
-			fmt.Fprintf(os.Stderr, "  Translate: %d pages (%d failed)\n", translateResult.Completed, translateResult.Failed)
-			fmt.Fprintf(os.Stderr, "  Output:    %s\n", ws.WriteDir())
+			fmt.Fprintln(os.Stderr, colors.Green("\u2713 Done."))
+			printPhaseSummary(os.Stderr, colors, "Read", readResult)
+			printPhaseSummary(os.Stderr, colors, "Solve", solveResult)
+			printPhaseSummary(os.Stderr, colors, "Translate", translateResult)
+			fmt.Fprintf(os.Stderr, "  %s %s\n", colors.Cyan("Output:"), ws.WriteDir())
 			fmt.Fprintln(os.Stderr)
 			return nil
 		},
 	}
+}
+
+func printPhaseSummary(w io.Writer, colors display.StatusColors, name string, result pipeline.PhaseResult) {
+	detail := fmt.Sprintf("%d pages", result.Completed)
+	if result.Failed > 0 {
+		detail += colors.Red(fmt.Sprintf(" (%d failed)", result.Failed))
+	}
+	fmt.Fprintf(w, "  %-12s %s\n", colors.Cyan(name+":"), detail)
 }

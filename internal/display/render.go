@@ -25,26 +25,27 @@ type HeaderData struct {
 func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 	lines := 0
 	if h.BookTitle != "" {
-		title := h.BookTitle
+		title := colors.Bold(h.BookTitle)
 		if h.BookAuthor != "" {
-			title += " \u2014 " + h.BookAuthor
+			title += " " + colors.dim("\u2014") + " " + h.BookAuthor
 		}
-		fmt.Fprintf(w, "%6s: %s\n", "Book", title)
+		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Book")), title)
 		lines++
 	}
 	if h.InputName != "" {
 		info := h.InputName
 		if h.PageRange != "" && h.InputPages > 0 {
-			info += fmt.Sprintf(" (pages %s of %d)", h.PageRange, h.InputPages)
+			info += colors.dim(fmt.Sprintf(" (pages %s of %d)", h.PageRange, h.InputPages))
 		} else if h.InputPages > 0 {
-			info += fmt.Sprintf(" (%d pages)", h.InputPages)
+			info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
 		}
-		fmt.Fprintf(w, "%6s: %s\n", "Input", info)
+		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Input")), info)
 		lines++
 	}
 	if len(h.SourceLangs) > 0 && len(h.TargetLangs) > 0 {
-		fmt.Fprintf(w, "%6s: %s \u2192 %s\n", "Langs",
+		fmt.Fprintf(w, "%s: %s %s %s\n", colors.Cyan(fmt.Sprintf("%6s", "Langs")),
 			strings.Join(h.SourceLangs, ", "),
+			colors.dim("\u2192"),
 			strings.Join(h.TargetLangs, ", "))
 		lines++
 	}
@@ -73,10 +74,12 @@ type ProgressRow struct {
 // ANSI color codes.
 const (
 	colorReset  = "\033[0m"
+	colorBold   = "\033[1m"
+	colorDim    = "\033[2m"
 	colorGreen  = "\033[32m"
 	colorYellow = "\033[33m"
 	colorRed    = "\033[31m"
-	colorDim    = "\033[2m"
+	colorCyan   = "\033[36m"
 )
 
 // StatusColors controls whether ANSI colors are used.
@@ -119,6 +122,34 @@ func (c StatusColors) dim(s string) string {
 	}
 	return colorDim + s + colorReset
 }
+
+// Bold returns bold text.
+func (c StatusColors) Bold(s string) string {
+	if !c.Enabled {
+		return s
+	}
+	return colorBold + s + colorReset
+}
+
+// Cyan returns cyan-colored text (used for labels and headers).
+func (c StatusColors) Cyan(s string) string {
+	if !c.Enabled {
+		return s
+	}
+	return colorCyan + s + colorReset
+}
+
+// Green returns green-colored text (exported for use outside display package).
+func (c StatusColors) Green(s string) string { return c.green(s) }
+
+// Yellow returns yellow-colored text (exported for use outside display package).
+func (c StatusColors) Yellow(s string) string { return c.yellow(s) }
+
+// Red returns red-colored text (exported for use outside display package).
+func (c StatusColors) Red(s string) string { return c.red(s) }
+
+// Dim returns dim text (exported for use outside display package).
+func (c StatusColors) Dim(s string) string { return c.dim(s) }
 
 // ProgressBar renders a progress bar of barWidth characters.
 func ProgressBar(completed, total int) string {

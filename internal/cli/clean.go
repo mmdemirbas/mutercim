@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -168,9 +169,11 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 				return nil
 			}
 
+			colors := display.NewStatusColors(os.Stdout)
+
 			// Print what will be deleted
 			for _, t := range targets {
-				fmt.Printf("  %s/\t%s\n", t.phase, formatSize(t.size))
+				fmt.Printf("  %s\t%s\n", colors.Red(t.phase+"/"), colors.Dim(formatSize(t.size)))
 			}
 
 			// Delete directories
@@ -180,7 +183,7 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 				}
 			}
 
-			fmt.Printf("Cleaned %d directories.\n", len(targets))
+			fmt.Printf("%s %d directories.\n", colors.Green("\u2713"), len(targets))
 			return nil
 		},
 	}

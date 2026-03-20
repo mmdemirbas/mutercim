@@ -33,9 +33,10 @@
 
 # NEXT
 
-- Use colorful help / status / progress output. Make sure to format console message in a pretty way which is easy to follow and parse for the humans.
-
 - Remove 'page' prefix from generated files. Just use numbers (padded). e.g. page-012 -> 012, page_123 -> 123
+
+- What is the purpose of the author field? Is it used anywhere? If not, then remove it.
+- Enrich schema documentation. Make purpose of each field clear. For example, where the "title" used, etc.
 
 - Dashboard is not stable. It should update the output, not re-write it. The mechanism should be
   rewrite but user should experience it like in-place update. Also the output is reporting 'tr' 3 times while it should report 'tr', 'en' and 'ar' according to the given input.
@@ -66,9 +67,6 @@
   ```
 
 - Arabic output is wrong! Both direction and letter combination looks wrong.
-
-- What is the purpose of the author field? Is it used anywhere? If not, then remove it.
-- Enrich schema documentation. Make purpose of each field clear. For example, where the "title" used, etc.
 
 - Allow prompt customization by user to teach adab to the tool:
   Custom prompt & âdâb: Three-layer prompt injection (built-in adab.md embedded in binary +

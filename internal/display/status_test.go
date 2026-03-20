@@ -39,8 +39,6 @@ func TestRenderStatus_AllDone(t *testing.T) {
 		"612/612",
 		"\u2713", // checkmark replaces "done"
 		"mutercim.log",
-		"Warnings: 0",
-		"Errors: 0",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output should contain %q, got:\n%s", want, out)
@@ -77,8 +75,8 @@ func TestRenderStatus_Partial(t *testing.T) {
 	if !strings.Contains(out, "2 warnings") {
 		t.Errorf("should show 2 warnings, got:\n%s", out)
 	}
-	if !strings.Contains(out, "Warnings: 2") {
-		t.Errorf("should show Warnings: 2, got:\n%s", out)
+	if !strings.Contains(out, "2 warnings") {
+		t.Errorf("should show 2 warnings, got:\n%s", out)
 	}
 	if !strings.Contains(out, "page 41") {
 		t.Errorf("should show warning details, got:\n%s", out)
@@ -265,8 +263,8 @@ func TestRenderStatus_Errors(t *testing.T) {
 	RenderStatus(&buf, data, StatusColors{Enabled: false})
 	out := buf.String()
 
-	if !strings.Contains(out, "Errors: 2") {
-		t.Errorf("should show Errors: 2, got:\n%s", out)
+	if !strings.Contains(out, "2 errors") {
+		t.Errorf("should show 2 errors, got:\n%s", out)
 	}
 	if !strings.Contains(out, "page 5") {
 		t.Errorf("should show error details, got:\n%s", out)

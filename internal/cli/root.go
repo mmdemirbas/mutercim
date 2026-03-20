@@ -175,7 +175,8 @@ func ungroupedCommands(cmds []*cobra.Command) []*cobra.Command {
 func Execute() {
 	rootCmd := NewRootCmd()
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		colors := display.NewStatusColors(os.Stderr)
+		fmt.Fprintf(os.Stderr, "%s %v\n", colors.Red("Error:"), err)
 		os.Exit(1)
 	}
 }
