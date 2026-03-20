@@ -239,8 +239,12 @@ func (d *TTYDisplay) render() {
 }
 
 func (d *TTYDisplay) clearLines() {
-	for i := 0; i < d.currentLines; i++ {
-		fmt.Fprint(d.out, "\033[A\033[2K")
+	if d.currentLines > 0 {
+		// Move cursor up by exactly the number of previously rendered lines
+		fmt.Fprintf(d.out, "\033[%dA", d.currentLines)
+		// Erase from cursor to end of screen — handles cases where the new
+		// render has fewer lines than the previous one (avoids stale leftovers)
+		fmt.Fprint(d.out, "\033[J")
 	}
 	d.currentLines = 0
 }

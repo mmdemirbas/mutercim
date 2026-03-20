@@ -2,6 +2,7 @@ package display
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -286,6 +287,73 @@ func TestTTYDisplayStatusLine_ClearedOnComplete(t *testing.T) {
 	out := buf.String()
 	if strings.Contains(out, "reading page 1") {
 		t.Errorf("status should be cleared after SetStatus({}), got: %q", out)
+	}
+}
+
+func TestTTYDisplayClearLines_NewPhaseAdded(t *testing.T) {
+	var buf bytes.Buffer
+	now := func() time.Time { return time.Unix(1000, 0) }
+
+	d := newTTYDisplay(&buf, now)
+
+	// Render with one phase — establishes initial line count
+	d.StartPhase(PhasePages, "vol1", 6, "")
+	d.FinishPhase(PhasePages, "vol1", "")
+
+	firstRender := buf.String()
+	firstLineCount := d.currentLines
+
+	// Now add a second phase — this should clear the FULL previous output
+	// before reprinting with more lines
+	buf.Reset()
+	d.StartPhase(PhaseRead, "vol1", 10, "")
+
+	secondRender := buf.String()
+
+	// The second render must begin with a cursor-up by firstLineCount
+	expectedCursorUp := fmt.Sprintf("\033[%dA", firstLineCount)
+	if !strings.Contains(secondRender, expectedCursorUp) {
+		t.Errorf("expected cursor-up by %d lines (%q), got output starting with: %q",
+			firstLineCount, expectedCursorUp, secondRender[:min(100, len(secondRender))])
+	}
+
+	// Must contain erase-to-end-of-screen after cursor-up
+	if !strings.Contains(secondRender, "\033[J") {
+		t.Errorf("expected erase-to-end-of-screen (\\033[J) in output, got: %q",
+			secondRender[:min(100, len(secondRender))])
+	}
+
+	// The new render should contain both phases
+	if !strings.Contains(secondRender, "PAGES") {
+		t.Error("second render should contain PAGES")
+	}
+	if !strings.Contains(secondRender, "READ") {
+		t.Error("second render should contain READ")
+	}
+
+	// currentLines should now be larger than before
+	if d.currentLines <= firstLineCount {
+		t.Errorf("currentLines should grow when phase added: was %d, now %d",
+			firstLineCount, d.currentLines)
+	}
+
+	_ = firstRender // used for context only
+}
+
+func TestTTYDisplayClearLines_ZeroLines(t *testing.T) {
+	var buf bytes.Buffer
+	now := func() time.Time { return time.Unix(1000, 0) }
+
+	d := newTTYDisplay(&buf, now)
+
+	// First render — currentLines starts at 0, so no cursor movement should happen
+	d.StartPhase(PhaseRead, "vol1", 10, "")
+	out := buf.String()
+
+	// Should NOT contain cursor-up sequence (nothing to clear on first render)
+	if strings.Contains(out, "\033[0A") || strings.Contains(out, "\033[J") {
+		t.Errorf("first render should not have cursor control sequences, got: %q",
+			out[:min(100, len(out))])
 	}
 }
 
