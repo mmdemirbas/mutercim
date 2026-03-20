@@ -28,12 +28,6 @@
 
 - Windows compatibility?
 
-- Find codes that could be deleted
-
-- Find logic that is not covered by high-quality tests
-
-- Find bugs
-
 - Simplify overall architecture and code structure. I think there are unnecessary code layers.
   We can reduce number of files and abstractions. We can unify duplications. We can simplify
   code structure. We can remove unnecessary abstractions.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
+	"path"
 	"sort"
 	"strings"
 
@@ -47,9 +47,9 @@ func loadFromFS(k *Knowledge, fsys fs.FS, root string) error {
 		if de.IsDir() || !isYAMLFile(de.Name()) {
 			continue
 		}
-		data, err := fs.ReadFile(fsys, filepath.Join(root, de.Name()))
+		data, err := fs.ReadFile(fsys, path.Join(root, de.Name()))
 		if err != nil {
-			continue
+			return fmt.Errorf("read %s: %w", de.Name(), err)
 		}
 		if err := mergeRawEntries(k, data); err != nil {
 			return fmt.Errorf("parse %s: %w", de.Name(), err)

@@ -135,7 +135,9 @@ func (t *Translator) formatGlossaryContext(sourceTerms []string, sourceLang stri
 			lines = append(lines, term) // fallback: show source form only
 			continue
 		}
-		lines = append(lines, knowledge.FormatGlossaryLine(entry, sourceLang, t.targetLang))
+		if line := knowledge.FormatGlossaryLine(entry, sourceLang, t.targetLang); line != "" {
+			lines = append(lines, line)
+		}
 	}
 	return lines
 }
