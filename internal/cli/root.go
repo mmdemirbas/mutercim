@@ -107,8 +107,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 		ordered(1, newInitCmd()),
 		ordered(2, newStatusCmd()),
 		ordered(3, newConfigCmd()),
-		ordered(4, newKnowledgeCmd()),
-		ordered(5, newCleanCmd()),
+		ordered(4, newCleanCmd()),
 	)
 
 	// Custom help template with colors

@@ -151,12 +151,11 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Pipeline wires callbacks via type assertion on `*provider.FailoverChain`
 - Status cleared automatically when API call completes (pipeline calls `SetStatus({})`)
 
-## Remove Knowledge Staged/Promote Workflow
-- Removed `mutercim knowledge staged`, `mutercim knowledge diff`, `mutercim knowledge promote` subcommands
+## Remove Knowledge Subcommand
+- Removed entire `mutercim knowledge` command (list, staged, diff, promote)
 - Removed `ListStagedFiles()` and `PromoteStagedFile()` from workspace package
 - Renamed "staged" layer to "memory" throughout (loader, model, tests)
 - Renamed `StageFromReferenceTable()` to `ExtractToMemory()` in solver package
 - Simplified mental model: knowledge/ is user-edited, memory/ is tool-written (auto-extracted during solve)
-- `mutercim knowledge list` stays — shows all three layers (embedded + workspace + memory)
 - To move knowledge from memory/ to knowledge/, user copies files manually
 - `mutercim clean memory` resets what the tool learned
