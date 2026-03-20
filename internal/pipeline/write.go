@@ -98,9 +98,9 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 		pageFiles = filterPages(pageFiles, opts.Pages)
 	}
 
-	var pages []*model.TranslatedPage
+	var pages []*model.TranslatedRegionPage
 	for _, pf := range pageFiles {
-		page, err := loadTranslatedPage(pf.path)
+		page, err := loadTranslatedRegionPageForWrite(pf.path)
 		if err != nil {
 			logger.Error("failed to load translated page", "page", pf.pageNum, "error", err)
 			continue
@@ -174,7 +174,7 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 	return nil
 }
 
-func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedPage, logger *slog.Logger) error {
+func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedRegionPage, logger *slog.Logger) error {
 	targetDir := filepath.Join(ws.WriteDir(), targetLang)
 	sourceDir := filepath.Join(ws.WriteDir(), cfg.Book.PrimarySourceLang())
 
@@ -207,7 +207,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 	return nil
 }
 
-func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedPage, compilePDF bool, logger *slog.Logger) error {
+func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedRegionPage, compilePDF bool, logger *slog.Logger) error {
 	title := workspace.SanitizeTitle(cfg.Book.Title)
 	langDir := filepath.Join(ws.WriteDir(), targetLang)
 	buildDir := filepath.Join(langDir, "latex-build")
@@ -269,12 +269,12 @@ func compileDocx(ctx context.Context, ws *workspace.Workspace, cfg *config.Confi
 	return nil
 }
 
-func loadTranslatedPage(path string) (*model.TranslatedPage, error) {
+func loadTranslatedRegionPageForWrite(path string) (*model.TranslatedRegionPage, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var page model.TranslatedPage
+	var page model.TranslatedRegionPage
 	if err := json.Unmarshal(data, &page); err != nil {
 		return nil, err
 	}

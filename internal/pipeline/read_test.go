@@ -105,21 +105,6 @@ func TestReadPipeline(t *testing.T) {
 		t.Errorf("expected 2 regions, got %d", len(page.Regions))
 	}
 
-	// Verify compatibility: loadReadPage should convert to ReadPage
-	readPage, err := loadReadPage(outputPath)
-	if err != nil {
-		t.Fatalf("loadReadPage: %v", err)
-	}
-	if readPage.Version != "1.0" {
-		t.Errorf("compat version = %q, want %q", readPage.Version, "1.0")
-	}
-	if readPage.Header == nil {
-		t.Error("compat header should not be nil")
-	}
-	if len(readPage.Entries) != 1 {
-		t.Errorf("compat entries = %d, want 1", len(readPage.Entries))
-	}
-
 	// Verify PhaseResult counts
 	if result.Completed != 1 {
 		t.Errorf("expected result.Completed=1, got %d", result.Completed)
@@ -395,62 +380,6 @@ func TestSaveRegionPage(t *testing.T) {
 	tmpPath := path + ".tmp"
 	if _, err := os.Stat(tmpPath); err == nil {
 		t.Error("tmp file should not exist after successful save")
-	}
-}
-
-func TestLoadReadPage_V1Format(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "001.json")
-	data := `{"version":"1.0","page_number":1,"entries":[{"type":"hadith","arabic_text":"test"}],"footnotes":[]}`
-	os.WriteFile(path, []byte(data), 0644)
-
-	page, err := loadReadPage(path)
-	if err != nil {
-		t.Fatalf("loadReadPage: %v", err)
-	}
-	if page.Version != "1.0" {
-		t.Errorf("Version = %q, want %q", page.Version, "1.0")
-	}
-	if len(page.Entries) != 1 {
-		t.Errorf("len(Entries) = %d, want 1", len(page.Entries))
-	}
-}
-
-func TestLoadReadPage_V2Format(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "001.json")
-	data := `{
-		"version": "2.0",
-		"page_number": 42,
-		"page_size": {"width": 1500, "height": 2200},
-		"regions": [
-			{"id": "r1", "bbox": [400,50,700,60], "text": "header text", "type": "header"},
-			{"id": "r2", "bbox": [800,150,600,400], "text": "entry text", "type": "entry"},
-			{"id": "r3", "bbox": [100,800,1300,200], "text": "footnote text", "type": "footnote"}
-		],
-		"reading_order": ["r1", "r2", "r3"],
-		"warnings": []
-	}`
-	os.WriteFile(path, []byte(data), 0644)
-
-	page, err := loadReadPage(path)
-	if err != nil {
-		t.Fatalf("loadReadPage: %v", err)
-	}
-	if page.Version != "1.0" {
-		t.Errorf("Version = %q, want %q (converted from 2.0)", page.Version, "1.0")
-	}
-	if page.PageNumber != 42 {
-		t.Errorf("PageNumber = %d, want 42", page.PageNumber)
-	}
-	if page.Header == nil || page.Header.Text != "header text" {
-		t.Errorf("Header = %+v, want header text", page.Header)
-	}
-	if len(page.Entries) != 1 || page.Entries[0].ArabicText != "entry text" {
-		t.Errorf("Entries = %+v, want 1 entry with 'entry text'", page.Entries)
-	}
-	if len(page.Footnotes) != 1 || page.Footnotes[0].ArabicText != "footnote text" {
-		t.Errorf("Footnotes = %+v, want 1 footnote with 'footnote text'", page.Footnotes)
 	}
 }
 

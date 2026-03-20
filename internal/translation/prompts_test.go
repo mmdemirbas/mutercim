@@ -3,6 +3,8 @@ package translation
 import (
 	"strings"
 	"testing"
+
+	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 func TestBuildSystemPrompt(t *testing.T) {
@@ -73,5 +75,59 @@ func TestBuildContextSection(t *testing.T) {
 	ctx := BuildContextSection([]string{"Page 1 — intro", "Page 2 — entries"})
 	if !strings.Contains(ctx, "Page 1") || !strings.Contains(ctx, "Page 2") {
 		t.Errorf("expected both pages in context, got %q", ctx)
+	}
+}
+
+func TestBuildRegionUserPrompt(t *testing.T) {
+	page := &model.SolvedRegionPage{
+		RegionPage: model.RegionPage{
+			Version:    "2.0",
+			PageNumber: 1,
+			Regions: []model.Region{
+				{ID: "r1", Text: "header text", Type: model.RegionTypeHeader},
+				{ID: "r2", Text: "entry text", Type: model.RegionTypeEntry},
+				{ID: "sep1", Text: "", Type: model.RegionTypeSeparator},
+				{ID: "pn1", Text: "42", Type: model.RegionTypePageNumber},
+			},
+			ReadingOrder: []string{"r1", "r2", "sep1", "pn1"},
+		},
+		GlossaryContext:     []string{"حديث → hadîs-i şerîf"},
+		PreviousPageSummary: "Previous page summary",
+	}
+
+	prompt := BuildRegionUserPrompt(page, []string{"ar"}, "tr")
+
+	for _, want := range []string{
+		"ar",
+		"tr",
+		"Region r1 (header): header text",
+		"Region r2 (entry): entry text",
+		"Region sep1 (separator): [separator line - do not translate]",
+		"Region pn1 (page_number): 42 [do not translate]",
+		"حديث → hadîs-i şerîf",
+		"Previous page summary",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Errorf("prompt should contain %q, got:\n%s", want, prompt)
+		}
+	}
+}
+
+func TestBuildRegionUserPrompt_NoGlossary(t *testing.T) {
+	page := &model.SolvedRegionPage{
+		RegionPage: model.RegionPage{
+			Version:    "2.0",
+			PageNumber: 1,
+			Regions: []model.Region{
+				{ID: "r1", Text: "text", Type: model.RegionTypeEntry},
+			},
+			ReadingOrder: []string{"r1"},
+		},
+	}
+
+	prompt := BuildRegionUserPrompt(page, []string{"ar"}, "tr")
+
+	if strings.Contains(prompt, "GLOSSARY") {
+		t.Error("prompt should not contain GLOSSARY when no terms")
 	}
 }

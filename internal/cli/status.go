@@ -11,7 +11,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/solver"
+
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -270,45 +270,41 @@ func collectValidationWarnings(ws *workspace.Workspace, inputs []string) []strin
 	var warnings []string
 	for _, stem := range inputs {
 		readDir := filepath.Join(ws.ReadDir(), stem)
-		pages, err := loadReadPages(readDir)
+		pages, err := loadRegionPages(readDir)
 		if err != nil || len(pages) == 0 {
 			continue
 		}
 
-		// Per-page validation
+		// Per-page validation: check for empty text in non-separator regions
 		for _, page := range pages {
-			v := solver.Validate(page)
-			for _, w := range v.Warnings {
-				warnings = append(warnings, fmt.Sprintf("%s page %d: %s", stem, page.PageNumber, w))
-			}
-		}
-
-		// Cross-page number continuity
-		var allNumbers []int
-		for _, page := range pages {
-			for _, e := range page.Entries {
-				if e.Number != nil && !e.IsContinuation {
-					allNumbers = append(allNumbers, *e.Number)
+			for _, r := range page.Regions {
+				if r.Type != model.RegionTypeSeparator && r.Type != model.RegionTypeImage && r.Text == "" {
+					warnings = append(warnings, fmt.Sprintf("%s page %d: region %s (%s) has empty text", stem, page.PageNumber, r.ID, r.Type))
 				}
 			}
-		}
-		for i := 1; i < len(allNumbers); i++ {
-			if allNumbers[i] != allNumbers[i-1]+1 {
-				warnings = append(warnings, fmt.Sprintf("%s: cross-page entry gap %d → %d", stem, allNumbers[i-1], allNumbers[i]))
+			// Check reading order references
+			regionIDs := make(map[string]bool)
+			for _, r := range page.Regions {
+				regionIDs[r.ID] = true
+			}
+			for _, id := range page.ReadingOrder {
+				if !regionIDs[id] {
+					warnings = append(warnings, fmt.Sprintf("%s page %d: reading_order references unknown region %s", stem, page.PageNumber, id))
+				}
 			}
 		}
 	}
 	return warnings
 }
 
-// loadReadPages loads ReadPage JSON files from a directory, sorted by page number.
-func loadReadPages(dir string) ([]*model.ReadPage, error) {
+// loadRegionPages loads RegionPage JSON files from a directory, sorted by page number.
+func loadRegionPages(dir string) ([]*model.RegionPage, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	var pages []*model.ReadPage
+	var pages []*model.RegionPage
 	for _, e := range entries {
 		if e.IsDir() || filepath.Ext(e.Name()) != ".json" {
 			continue
@@ -321,7 +317,7 @@ func loadReadPages(dir string) ([]*model.ReadPage, error) {
 		if err != nil {
 			continue
 		}
-		var page model.ReadPage
+		var page model.RegionPage
 		if err := json.Unmarshal(data, &page); err != nil {
 			continue
 		}

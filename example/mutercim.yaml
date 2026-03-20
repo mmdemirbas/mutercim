@@ -29,7 +29,7 @@ book:
 
 inputs:
   - path: ./input/Anfas1.pdf          # Path to input PDF or image directory (relative to workspace root)
-    pages: "156-157,159"              # Page range for this input: "1-10,20-30" or "all" (default)
+    pages: "156"              # Page range for this input: "1-10,20-30" or "all" (default)
 
 knowledge_dir: ./knowledge           # Knowledge YAML files directory (phrases, people, terms, places, sources)
                                      #   Merged with embedded defaults and auto-extracted memory/ entries
@@ -69,8 +69,8 @@ read:
     #- provider: gemini
     #  model: gemini-2.5-flash-lite
     # 2. Gemini Flash: higher quality, lower quota (250 RPD, 10 RPM)
-    - provider: gemini
-      model: gemini-2.5-flash
+    #- provider: gemini
+    #  model: gemini-2.5-flash
     # 3. Groq: fast, vision via Llama (1,000 RPD, 30 RPM)
     - provider: groq
       model: llama-3.2-90b-vision-preview

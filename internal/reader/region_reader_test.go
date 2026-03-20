@@ -8,6 +8,20 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
+type mockProvider struct {
+	response string
+	err      error
+}
+
+func (m *mockProvider) Name() string         { return "mock" }
+func (m *mockProvider) SupportsVision() bool { return true }
+func (m *mockProvider) ReadFromImage(_ context.Context, _ []byte, _, _ string) (string, error) {
+	return m.response, m.err
+}
+func (m *mockProvider) Translate(_ context.Context, _, _ string) (string, error) {
+	return m.response, m.err
+}
+
 // mockLayoutTool implements layout.Tool for testing.
 type mockLayoutTool struct {
 	name      string

@@ -27,19 +27,29 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config) {
 		}
 	}
 
-	// Create a translated page JSON
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{
-				PageNumber: 1,
-				Header:     &model.Header{Text: "\u062d\u0631\u0641 \u0627\u0644\u0623\u0644\u0641", Type: "section_title"},
-				Entries: []model.Entry{
-					{Number: intPtr(1), Type: "hadith", ArabicText: "\u0623\u064e\u0628\u0652\u0634\u0650\u0631\u064f\u0648\u0627"},
-				},
+	// Create a translated region page JSON
+	page := &model.TranslatedRegionPage{
+		Version:    "2.0",
+		PageNumber: 1,
+		SourceLang: "ar",
+		TargetLang: "tr",
+		Regions: []model.TranslatedRegion{
+			{
+				ID:             "r1",
+				BBox:           model.BBox{400, 50, 700, 60},
+				OriginalText:   "حرف الألف",
+				TranslatedText: "Elif Harfi",
+				Type:           model.RegionTypeHeader,
+			},
+			{
+				ID:             "r2",
+				BBox:           model.BBox{800, 150, 600, 400},
+				OriginalText:   "أَبْشِرُوا",
+				TranslatedText: "Müjdelenin!",
+				Type:           model.RegionTypeEntry,
 			},
 		},
-		TranslatedHeader:  &model.TranslatedHeader{Text: "Elif Harfi"},
-		TranslatedEntries: []model.TranslatedEntry{{Number: 1, TranslatedText: "M\u00fcjdelenin!"}},
+		ReadingOrder: []string{"r1", "r2"},
 	}
 
 	data, _ := json.MarshalIndent(page, "", "  ")
@@ -124,24 +134,18 @@ func TestWriteLatex(t *testing.T) {
 	}
 }
 
-func intPtr(n int) *int { return &n }
-
 func TestWritePartialFailure_DocxWithoutPandoc(t *testing.T) {
 	ws, cfg := setupWriteWorkspace(t)
-	// Request md + docx. Pandoc is almost certainly not in PATH during tests,
-	// but md should succeed regardless.
 	cfg.Write.Formats = []string{"md", "docx"}
 
 	err := Write(context.Background(), WriteOptions{
 		Workspace: ws,
 		Config:    cfg,
 	})
-	// Should NOT return error — md succeeded, only docx failed (partial success)
 	if err != nil {
 		t.Fatalf("Write() should not error on partial success, got: %v", err)
 	}
 
-	// md should be written
 	mdPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.md")
 	if _, err := os.Stat(mdPath); err != nil {
 		t.Error("md should have been written despite docx failure")
@@ -150,26 +154,19 @@ func TestWritePartialFailure_DocxWithoutPandoc(t *testing.T) {
 
 func TestWriteAllFormatsFail(t *testing.T) {
 	ws, cfg := setupWriteWorkspace(t)
-	// Request only docx (requires pandoc, likely missing in tests)
 	cfg.Write.Formats = []string{"docx"}
 
-	// First write md so docx has input (docx requires md to exist)
-	// Actually docx will fail at pandoc check before even looking for md
 	err := Write(context.Background(), WriteOptions{
 		Workspace: ws,
 		Config:    cfg,
 	})
-	// Should return error since ALL formats failed
 	if err == nil {
-		// pandoc might be installed; skip in that case
 		t.Skip("pandoc is available, cannot test all-formats-fail scenario")
 	}
 }
 
 func TestWriteLatexWithoutDocker(t *testing.T) {
 	ws, cfg := setupWriteWorkspace(t)
-	// Request latex + pdf. Docker may not be available,
-	// but latex (.tex generation) should succeed regardless.
 	cfg.Write.Formats = []string{"latex", "pdf"}
 
 	err := Write(context.Background(), WriteOptions{
@@ -177,12 +174,10 @@ func TestWriteLatexWithoutDocker(t *testing.T) {
 		Config:    cfg,
 	})
 
-	// latex should succeed, pdf may fail (if no docker) — partial success = no error
 	if err != nil {
 		t.Fatalf("Write() should not error on partial success, got: %v", err)
 	}
 
-	// .tex file should exist
 	texPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.tex")
 	if _, err := os.Stat(texPath); err != nil {
 		t.Error(".tex should have been written regardless of docker availability")

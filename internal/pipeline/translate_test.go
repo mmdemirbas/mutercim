@@ -13,8 +13,8 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-// setupTranslateWorkspace creates a workspace with solved page JSONs in solve/<stem>/.
-func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.SolvedPage) (*workspace.Workspace, *config.Config) {
+// setupTranslateWorkspace creates a workspace with solved region pages in solve/<stem>/.
+func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.SolvedRegionPage) (*workspace.Workspace, *config.Config) {
 	t.Helper()
 	dir := t.TempDir()
 
@@ -52,33 +52,31 @@ func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.Sol
 	return ws, cfg
 }
 
-// makeSolvedPage creates a minimal SolvedPage for testing.
-func makeSolvedPage(pageNum int) *model.SolvedPage {
-	entryNum := 1
-	return &model.SolvedPage{
-		ReadPage: model.ReadPage{
-			Version:    "1.0",
+// makeSolvedRegionPage creates a minimal SolvedRegionPage for testing.
+func makeSolvedRegionPage(pageNum int) *model.SolvedRegionPage {
+	return &model.SolvedRegionPage{
+		RegionPage: model.RegionPage{
+			Version:    "2.0",
 			PageNumber: pageNum,
-			Entries: []model.Entry{
-				{
-					Number:     &entryNum,
-					Type:       "hadith",
-					ArabicText: "test arabic text",
-				},
+			PageSize:   model.PageSize{Width: 1500, Height: 2200},
+			Regions: []model.Region{
+				{ID: "r1", BBox: model.BBox{400, 50, 700, 60}, Text: "header", Type: model.RegionTypeHeader},
+				{ID: "r2", BBox: model.BBox{800, 150, 600, 400}, Text: "entry text", Type: model.RegionTypeEntry},
 			},
+			ReadingOrder: []string{"r1", "r2"},
 		},
 	}
 }
 
-// translateResponseJSON returns a mock translation response JSON string.
-func translateResponseJSON() string {
-	return `{"translated_entries":[{"number":1,"translated_text":"test translation","translator_notes":""}],"warnings":[]}`
+// regionTranslateResponseJSON returns a mock region translation response JSON string.
+func regionTranslateResponseJSON() string {
+	return `{"regions":[{"id":"r1","translated_text":"translated header"},{"id":"r2","translated_text":"translated entry"}],"warnings":[]}`
 }
 
 func TestTranslatePipeline(t *testing.T) {
 	stem := "testbook"
-	pages := map[int]*model.SolvedPage{
-		1: makeSolvedPage(1),
+	pages := map[int]*model.SolvedRegionPage{
+		1: makeSolvedRegionPage(1),
 	}
 
 	ws, cfg := setupTranslateWorkspace(t, stem, pages)
@@ -86,7 +84,7 @@ func TestTranslatePipeline(t *testing.T) {
 	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws,
 		Config:    cfg,
-		Provider:  &mockProvider{response: translateResponseJSON()},
+		Provider:  &mockProvider{response: regionTranslateResponseJSON()},
 		Knowledge: &knowledge.Knowledge{},
 	})
 	if err != nil {
@@ -100,21 +98,30 @@ func TestTranslatePipeline(t *testing.T) {
 		t.Fatalf("read translated output: %v", err)
 	}
 
-	var translated model.TranslatedPage
+	var translated model.TranslatedRegionPage
 	if err := json.Unmarshal(data, &translated); err != nil {
 		t.Fatalf("unmarshal translated page: %v", err)
 	}
 	if translated.PageNumber != 1 {
 		t.Errorf("expected page number 1, got %d", translated.PageNumber)
 	}
-	if len(translated.TranslatedEntries) != 1 {
-		t.Errorf("expected 1 translated entry, got %d", len(translated.TranslatedEntries))
+	if translated.Version != "2.0" {
+		t.Errorf("expected version 2.0, got %q", translated.Version)
 	}
-	if translated.TranslatedEntries[0].TranslatedText != "test translation" {
-		t.Errorf("expected translated text %q, got %q", "test translation", translated.TranslatedEntries[0].TranslatedText)
+	if len(translated.Regions) != 2 {
+		t.Errorf("expected 2 translated regions, got %d", len(translated.Regions))
 	}
-	if translated.TranslationModel != "mock/test-model" {
-		t.Errorf("expected translation model %q, got %q", "mock/test-model", translated.TranslationModel)
+	if translated.Regions[0].TranslatedText != "translated header" {
+		t.Errorf("expected translated text %q, got %q", "translated header", translated.Regions[0].TranslatedText)
+	}
+	if translated.TranslateModel != "mock/test-model" {
+		t.Errorf("expected translate model %q, got %q", "mock/test-model", translated.TranslateModel)
+	}
+	if translated.SourceLang != "ar" {
+		t.Errorf("expected source lang %q, got %q", "ar", translated.SourceLang)
+	}
+	if translated.TargetLang != "tr" {
+		t.Errorf("expected target lang %q, got %q", "tr", translated.TargetLang)
 	}
 }
 
@@ -138,7 +145,7 @@ func TestTranslatePipelineNoSolvedPages(t *testing.T) {
 	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws,
 		Config:    cfg,
-		Provider:  &mockProvider{response: translateResponseJSON()},
+		Provider:  &mockProvider{response: regionTranslateResponseJSON()},
 		Knowledge: &knowledge.Knowledge{},
 	})
 	if err == nil {
@@ -152,8 +159,8 @@ func TestTranslatePipelineNoSolvedPages(t *testing.T) {
 
 func TestTranslatePipelineMultiLang(t *testing.T) {
 	stem := "testbook"
-	pages := map[int]*model.SolvedPage{
-		1: makeSolvedPage(1),
+	pages := map[int]*model.SolvedRegionPage{
+		1: makeSolvedRegionPage(1),
 	}
 
 	ws, cfg := setupTranslateWorkspace(t, stem, pages)
@@ -162,7 +169,7 @@ func TestTranslatePipelineMultiLang(t *testing.T) {
 	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws,
 		Config:    cfg,
-		Provider:  &mockProvider{response: translateResponseJSON()},
+		Provider:  &mockProvider{response: regionTranslateResponseJSON()},
 		Knowledge: &knowledge.Knowledge{},
 	})
 	if err != nil {

@@ -13,8 +13,8 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-// setupSolveWorkspace creates a workspace with read pages already in read/<stem>/.
-func setupSolveWorkspace(t *testing.T, stem string, pages map[int]*model.ReadPage) *workspace.Workspace {
+// setupSolveWorkspace creates a workspace with region pages in read/<stem>/.
+func setupSolveWorkspace(t *testing.T, stem string, pages map[int]*model.RegionPage) *workspace.Workspace {
 	t.Helper()
 	dir := t.TempDir()
 
@@ -68,23 +68,23 @@ func itoa(n int) string {
 	return digits
 }
 
-func TestSolvePipeline(t *testing.T) {
-	entryNum := 1
-	readPage := &model.ReadPage{
-		Version:    "1.0",
-		PageNumber: 1,
-		Entries: []model.Entry{
-			{
-				Number:     &entryNum,
-				Type:       "hadith",
-				ArabicText: "test arabic text",
-			},
+func makeRegionPage(pageNum int) *model.RegionPage {
+	return &model.RegionPage{
+		Version:    "2.0",
+		PageNumber: pageNum,
+		PageSize:   model.PageSize{Width: 1500, Height: 2200},
+		Regions: []model.Region{
+			{ID: "r1", BBox: model.BBox{400, 50, 700, 60}, Text: "header text", Type: model.RegionTypeHeader},
+			{ID: "r2", BBox: model.BBox{800, 150, 600, 400}, Text: "entry text", Type: model.RegionTypeEntry},
 		},
-		Footnotes:    []model.Footnote{},
-		ReadWarnings: []string{},
+		ReadingOrder: []string{"r1", "r2"},
 	}
+}
 
-	ws := setupSolveWorkspace(t, "testbook", map[int]*model.ReadPage{1: readPage})
+func TestSolvePipeline(t *testing.T) {
+	ws := setupSolveWorkspace(t, "testbook", map[int]*model.RegionPage{
+		1: makeRegionPage(1),
+	})
 
 	_, err := Solve(context.Background(), SolveOptions{
 		Workspace: ws,
@@ -94,49 +94,32 @@ func TestSolvePipeline(t *testing.T) {
 		t.Fatalf("Solve() error: %v", err)
 	}
 
-	// Verify output file was created
+	// Verify output file was created with SolvedRegionPage format
 	outputPath := filepath.Join(ws.SolveDir(), "testbook", "001.json")
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
 		t.Fatalf("read solved output: %v", err)
 	}
 
-	var solved model.SolvedPage
+	var solved model.SolvedRegionPage
 	if err := json.Unmarshal(data, &solved); err != nil {
 		t.Fatalf("unmarshal solved page: %v", err)
 	}
 	if solved.PageNumber != 1 {
 		t.Errorf("expected page number 1, got %d", solved.PageNumber)
 	}
-	if len(solved.Entries) != 1 {
-		t.Errorf("expected 1 entry, got %d", len(solved.Entries))
+	if solved.Version != "2.0" {
+		t.Errorf("expected version 2.0, got %q", solved.Version)
 	}
-	if solved.Validation == nil {
-		t.Error("expected validation to be set")
-	}
-	// ContinuationInfo is nil when there is no continuation detected (single page, no flags set)
-	if solved.TranslationContext == nil {
-		t.Error("expected translation_context to be set")
+	if len(solved.Regions) != 2 {
+		t.Errorf("expected 2 regions, got %d", len(solved.Regions))
 	}
 }
 
 func TestSolvePipelineSkipsCompleted(t *testing.T) {
-	entryNum := 1
-	readPage := &model.ReadPage{
-		Version:    "1.0",
-		PageNumber: 1,
-		Entries: []model.Entry{
-			{
-				Number:     &entryNum,
-				Type:       "hadith",
-				ArabicText: "test",
-			},
-		},
-		Footnotes:    []model.Footnote{},
-		ReadWarnings: []string{},
-	}
-
-	ws := setupSolveWorkspace(t, "testbook", map[int]*model.ReadPage{1: readPage})
+	ws := setupSolveWorkspace(t, "testbook", map[int]*model.RegionPage{
+		1: makeRegionPage(1),
+	})
 
 	// Set input mtime to the past so output appears newer
 	past := time.Now().Add(-10 * time.Second)
@@ -154,7 +137,7 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 		t.Fatalf("mkdir solved dir: %v", err)
 	}
 	outputPath := filepath.Join(solvedDir, "001.json")
-	originalContent := `{"version":"1.0","page_number":1,"entries":[]}`
+	originalContent := `{"version":"2.0","page_number":1}`
 	if err := os.WriteFile(outputPath, []byte(originalContent), 0644); err != nil {
 		t.Fatalf("write existing solved page: %v", err)
 	}

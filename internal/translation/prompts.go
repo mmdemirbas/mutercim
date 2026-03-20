@@ -3,6 +3,8 @@ package translation
 import (
 	"fmt"
 	"strings"
+
+	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 const translationSystemPrompt = `You are an expert translator of classical scholarly texts.
@@ -31,27 +33,19 @@ CONTEXT FROM PREVIOUS PAGES:
 %s
 
 INSTRUCTIONS:
-For each entry in the input JSON, produce a translation into the target language.
-For footnotes, translate the explanatory text and expand source abbreviations to their full names in the target language.
+You are translating text regions from a page. Each region has an ID and type.
+- Translate the text content of each region into the target language.
+- Do NOT merge or split regions — one translated_text per region.
+- Separators and page numbers: keep original text, do not translate.
+- For entry regions containing numbers (like 1060), keep the number.
 
 %s
 
 Return a JSON object with this exact schema:
 {
-  "translated_header": { "text": "<translated header>" } | null,
-  "translated_entries": [
-    {
-      "number": <int>,
-      "translated_text": "<translation>",
-      "translator_notes": "<any notes about difficult passages>"
-    }
-  ],
-  "translated_footnotes": [
-    {
-      "entry_numbers": [<int>],
-      "translated_text": "<translated footnote>",
-      "sources_expanded": ["<full source name in target language>"]
-    }
+  "regions": [
+    {"id": "r1", "translated_text": "<translated text>"},
+    {"id": "r2", "translated_text": "<translated text>"}
   ],
   "warnings": ["<any translation difficulties>"]
 }
@@ -84,9 +78,67 @@ func buildLanguageInstruction(sourceLangs []string, targetLang string) string {
 	return fmt.Sprintf("The source text is primarily %s but may contain %s fragments. Translate everything into %s.", primary, rest, targetLang)
 }
 
-// BuildUserPrompt constructs the user prompt with the solved page JSON.
-func BuildUserPrompt(inputJSON string) string {
-	return fmt.Sprintf("Translate this page:\n\n%s", inputJSON)
+// BuildRegionUserPrompt constructs the user prompt with all regions listed.
+func BuildRegionUserPrompt(page *model.SolvedRegionPage, sourceLangs []string, targetLang string) string {
+	var b strings.Builder
+
+	primary := "the source language"
+	if len(sourceLangs) > 0 {
+		primary = sourceLangs[0]
+	}
+
+	fmt.Fprintf(&b, "Translate the following page from %s to %s.\n", primary, targetLang)
+	b.WriteString("The page has these text regions in reading order:\n\n")
+
+	// List regions in reading order
+	orderMap := make(map[string]int, len(page.ReadingOrder))
+	for i, id := range page.ReadingOrder {
+		orderMap[id] = i
+	}
+
+	// Use reading order to iterate
+	type indexedRegion struct {
+		region model.Region
+		order  int
+	}
+	var ordered []indexedRegion
+	for _, r := range page.Regions {
+		o := len(page.ReadingOrder) // default: after all ordered
+		if idx, ok := orderMap[r.ID]; ok {
+			o = idx
+		}
+		ordered = append(ordered, indexedRegion{region: r, order: o})
+	}
+	// Sort by order
+	for i := 1; i < len(ordered); i++ {
+		for j := i; j > 0 && ordered[j].order < ordered[j-1].order; j-- {
+			ordered[j], ordered[j-1] = ordered[j-1], ordered[j]
+		}
+	}
+
+	for _, ir := range ordered {
+		r := ir.region
+		if r.Type == model.RegionTypeSeparator {
+			fmt.Fprintf(&b, "Region %s (separator): [separator line - do not translate]\n", r.ID)
+		} else if r.Type == model.RegionTypePageNumber {
+			fmt.Fprintf(&b, "Region %s (page_number): %s [do not translate]\n", r.ID, r.Text)
+		} else {
+			fmt.Fprintf(&b, "Region %s (%s): %s\n", r.ID, r.Type, r.Text)
+		}
+	}
+
+	if len(page.GlossaryContext) > 0 {
+		b.WriteString("\nGLOSSARY:\n")
+		for _, g := range page.GlossaryContext {
+			fmt.Fprintf(&b, "- %s\n", g)
+		}
+	}
+
+	if page.PreviousPageSummary != "" {
+		fmt.Fprintf(&b, "\nCONTEXT FROM PREVIOUS PAGE:\n%s\n", page.PreviousPageSummary)
+	}
+
+	return b.String()
 }
 
 // BuildContextSection builds the context section from previous pages.

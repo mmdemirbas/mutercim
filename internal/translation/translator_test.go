@@ -24,20 +24,9 @@ func (m *mockProvider) Translate(ctx context.Context, systemPrompt, userPrompt s
 
 func TestTranslatePage(t *testing.T) {
 	response := `{
-		"translated_header": {"text": "Elif Harfi"},
-		"translated_entries": [
-			{
-				"number": 1,
-				"translated_text": "Bu bir hadîs-i şerîftir.",
-				"translator_notes": ""
-			}
-		],
-		"translated_footnotes": [
-			{
-				"entry_numbers": [1],
-				"translated_text": "Sahîh-i Buhârî'de rivayet edilmiştir.",
-				"sources_expanded": ["Sahîh-i Buhârî"]
-			}
+		"regions": [
+			{"id": "r1", "translated_text": "Elif Harfi"},
+			{"id": "r2", "translated_text": "1060) Git ve aileni besle."}
 		],
 		"warnings": []
 	}`
@@ -51,13 +40,15 @@ func TestTranslatePage(t *testing.T) {
 	mock := &mockProvider{response: response}
 	translator := NewTranslator(mock, k, true, []string{"ar"}, "tr", nil)
 
-	page := &model.SolvedPage{
-		ReadPage: model.ReadPage{
+	page := &model.SolvedRegionPage{
+		RegionPage: model.RegionPage{
+			Version:    "2.0",
 			PageNumber: 1,
-			Header:     &model.Header{Text: "حرف الألف", Type: "section_title"},
-			Entries: []model.Entry{
-				{Number: intPtr(1), Type: "hadith", ArabicText: "text"},
+			Regions: []model.Region{
+				{ID: "r1", BBox: model.BBox{400, 50, 700, 60}, Text: "حرف الألف", Type: model.RegionTypeHeader},
+				{ID: "r2", BBox: model.BBox{800, 150, 600, 400}, Text: "١٠٦٠) اذْهَبِي", Type: model.RegionTypeEntry},
 			},
+			ReadingOrder: []string{"r1", "r2"},
 		},
 	}
 
@@ -66,39 +57,105 @@ func TestTranslatePage(t *testing.T) {
 		t.Fatalf("TranslatePage() error: %v", err)
 	}
 
-	if translated.TranslationModel != "test-model" {
-		t.Errorf("expected model 'test-model', got %q", translated.TranslationModel)
+	if translated.TranslateModel != "test-model" {
+		t.Errorf("TranslateModel = %q, want %q", translated.TranslateModel, "test-model")
 	}
-	if translated.TranslationTimestamp == "" {
+	if translated.TranslateTimestamp == "" {
 		t.Error("expected non-empty timestamp")
 	}
-	if translated.TranslatedHeader == nil || translated.TranslatedHeader.Text != "Elif Harfi" {
-		t.Errorf("unexpected header: %+v", translated.TranslatedHeader)
+	if translated.Version != "2.0" {
+		t.Errorf("Version = %q, want %q", translated.Version, "2.0")
 	}
-	if len(translated.TranslatedEntries) != 1 {
-		t.Fatalf("expected 1 entry, got %d", len(translated.TranslatedEntries))
+	if translated.SourceLang != "ar" {
+		t.Errorf("SourceLang = %q, want %q", translated.SourceLang, "ar")
 	}
-	if translated.TranslatedEntries[0].TranslatedText != "Bu bir hadîs-i şerîftir." {
-		t.Errorf("unexpected turkish text: %q", translated.TranslatedEntries[0].TranslatedText)
+	if translated.TargetLang != "tr" {
+		t.Errorf("TargetLang = %q, want %q", translated.TargetLang, "tr")
 	}
-	if len(translated.TranslatedFootnotes) != 1 {
-		t.Fatalf("expected 1 footnote, got %d", len(translated.TranslatedFootnotes))
+
+	if len(translated.Regions) != 2 {
+		t.Fatalf("len(Regions) = %d, want 2", len(translated.Regions))
+	}
+
+	r1 := translated.Regions[0]
+	if r1.ID != "r1" {
+		t.Errorf("Regions[0].ID = %q", r1.ID)
+	}
+	if r1.OriginalText != "حرف الألف" {
+		t.Errorf("Regions[0].OriginalText = %q", r1.OriginalText)
+	}
+	if r1.TranslatedText != "Elif Harfi" {
+		t.Errorf("Regions[0].TranslatedText = %q", r1.TranslatedText)
+	}
+	if r1.Type != model.RegionTypeHeader {
+		t.Errorf("Regions[0].Type = %q", r1.Type)
+	}
+
+	r2 := translated.Regions[1]
+	if r2.TranslatedText != "1060) Git ve aileni besle." {
+		t.Errorf("Regions[1].TranslatedText = %q", r2.TranslatedText)
+	}
+	if r2.BBox != (model.BBox{800, 150, 600, 400}) {
+		t.Errorf("BBox should be preserved, got %v", r2.BBox)
+	}
+
+	if len(translated.ReadingOrder) != 2 {
+		t.Errorf("len(ReadingOrder) = %d, want 2", len(translated.ReadingOrder))
 	}
 }
 
-func TestTranslatePageWithContext(t *testing.T) {
-	response := `{"translated_entries": [], "warnings": []}`
+func TestTranslatePage_SeparatorsNotTranslated(t *testing.T) {
+	response := `{
+		"regions": [
+			{"id": "r1", "translated_text": "translated entry"}
+		],
+		"warnings": []
+	}`
 
 	mock := &mockProvider{response: response}
 	translator := NewTranslator(mock, &knowledge.Knowledge{}, true, []string{"ar"}, "tr", nil)
 
-	page := &model.SolvedPage{
-		ReadPage: model.ReadPage{
+	page := &model.SolvedRegionPage{
+		RegionPage: model.RegionPage{
+			Version:    "2.0",
+			PageNumber: 1,
+			Regions: []model.Region{
+				{ID: "r1", Text: "entry", Type: model.RegionTypeEntry},
+				{ID: "sep1", Text: "---", Type: model.RegionTypeSeparator},
+				{ID: "pn1", Text: "42", Type: model.RegionTypePageNumber},
+			},
+			ReadingOrder: []string{"r1", "sep1", "pn1"},
+		},
+	}
+
+	translated, err := translator.TranslatePage(context.Background(), page, nil, "test-model")
+	if err != nil {
+		t.Fatalf("TranslatePage() error: %v", err)
+	}
+
+	// Separator and page_number should keep original text
+	if translated.Regions[1].TranslatedText != "---" {
+		t.Errorf("separator TranslatedText = %q, want %q", translated.Regions[1].TranslatedText, "---")
+	}
+	if translated.Regions[2].TranslatedText != "42" {
+		t.Errorf("page_number TranslatedText = %q, want %q", translated.Regions[2].TranslatedText, "42")
+	}
+}
+
+func TestTranslatePageWithContext(t *testing.T) {
+	response := `{"regions": [], "warnings": []}`
+
+	mock := &mockProvider{response: response}
+	translator := NewTranslator(mock, &knowledge.Knowledge{}, true, []string{"ar"}, "tr", nil)
+
+	page := &model.SolvedRegionPage{
+		RegionPage: model.RegionPage{
+			Version:    "2.0",
 			PageNumber: 5,
 		},
 	}
 
-	summaries := []string{"Page 3 — Section title. Entries 100-105", "Page 4 — Entries 106-110"}
+	summaries := []string{"Page 3 — Section title", "Page 4 — Entries"}
 	_, err := translator.TranslatePage(context.Background(), page, summaries, "test-model")
 	if err != nil {
 		t.Fatalf("TranslatePage() error: %v", err)
@@ -106,26 +163,17 @@ func TestTranslatePageWithContext(t *testing.T) {
 }
 
 func TestPageSummary(t *testing.T) {
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{PageNumber: 42},
-		},
-		TranslatedHeader: &model.TranslatedHeader{Text: "Bab"},
-		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 100, TranslatedText: "text1"},
-			{Number: 105, TranslatedText: "text5"},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 42,
+		Regions: []model.TranslatedRegion{
+			{ID: "r1", Type: model.RegionTypeHeader, TranslatedText: "Elif Harfi"},
+			{ID: "r2", Type: model.RegionTypeEntry, TranslatedText: "entry text"},
 		},
 	}
 
 	s := PageSummary(page)
-	if s == "" {
-		t.Fatal("expected non-empty summary")
-	}
-	// Should contain page number, header, and entry range
-	for _, want := range []string{"42", "Bab", "100", "105"} {
-		if !containsStr(s, want) {
-			t.Errorf("summary %q should contain %q", s, want)
-		}
+	if s != "Elif Harfi" {
+		t.Errorf("PageSummary = %q, want %q", s, "Elif Harfi")
 	}
 }
 
@@ -135,17 +183,14 @@ func TestPageSummaryNil(t *testing.T) {
 	}
 }
 
-func intPtr(n int) *int { return &n }
-
-func containsStr(s, sub string) bool {
-	return len(sub) > 0 && len(s) >= len(sub) && searchStr(s, sub)
-}
-
-func searchStr(s, sub string) bool {
-	for i := 0; i <= len(s)-len(sub); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
+func TestPageSummary_NoHeader(t *testing.T) {
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "r1", Type: model.RegionTypeEntry, TranslatedText: "text"},
+		},
 	}
-	return false
+	if s := PageSummary(page); s != "" {
+		t.Errorf("expected empty for page without header, got %q", s)
+	}
 }

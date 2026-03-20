@@ -270,6 +270,136 @@ func TestRegionPage_UnmarshalFromJSON(t *testing.T) {
 	}
 }
 
+func TestSolvedRegionPage_JSONRoundTrip(t *testing.T) {
+	solved := SolvedRegionPage{
+		RegionPage: RegionPage{
+			Version:    "2.0",
+			PageNumber: 10,
+			PageSize:   PageSize{Width: 1500, Height: 2200},
+			Regions: []Region{
+				{ID: "r1", BBox: BBox{0, 0, 100, 50}, Text: "test", Type: RegionTypeEntry},
+			},
+			ReadingOrder: []string{"r1"},
+		},
+		GlossaryContext:     []string{"حديث → hadîs-i şerîf"},
+		PreviousPageSummary: "Page 9 — Entries 100-105",
+		ValidationWarnings:  []string{"entry number gap"},
+	}
+
+	data, err := json.Marshal(solved)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+
+	var decoded SolvedRegionPage
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+
+	if decoded.PageNumber != 10 {
+		t.Errorf("PageNumber = %d, want 10", decoded.PageNumber)
+	}
+	if len(decoded.Regions) != 1 {
+		t.Errorf("len(Regions) = %d, want 1", len(decoded.Regions))
+	}
+	if len(decoded.GlossaryContext) != 1 || decoded.GlossaryContext[0] != "حديث → hadîs-i şerîf" {
+		t.Errorf("GlossaryContext = %v", decoded.GlossaryContext)
+	}
+	if decoded.PreviousPageSummary != "Page 9 — Entries 100-105" {
+		t.Errorf("PreviousPageSummary = %q", decoded.PreviousPageSummary)
+	}
+	if len(decoded.ValidationWarnings) != 1 {
+		t.Errorf("len(ValidationWarnings) = %d, want 1", len(decoded.ValidationWarnings))
+	}
+}
+
+func TestSolvedRegionPage_EmptyMetadata(t *testing.T) {
+	solved := SolvedRegionPage{
+		RegionPage: RegionPage{
+			Version:    "2.0",
+			PageNumber: 1,
+		},
+	}
+
+	data, err := json.Marshal(solved)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+
+	// Verify omitempty works — metadata fields should be absent
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatalf("Unmarshal to map: %v", err)
+	}
+	for _, key := range []string{"glossary_context", "previous_page_summary", "validation_warnings"} {
+		if _, ok := raw[key]; ok {
+			t.Errorf("%s should be omitted when empty", key)
+		}
+	}
+}
+
+func TestTranslatedRegionPage_JSONRoundTrip(t *testing.T) {
+	page := TranslatedRegionPage{
+		Version:            "2.0",
+		PageNumber:         161,
+		SourceLang:         "ar",
+		TargetLang:         "tr",
+		TranslateModel:     "groq/llama-3.3-70b-versatile",
+		TranslateTimestamp: "2026-03-20T19:00:00Z",
+		Regions: []TranslatedRegion{
+			{
+				ID:             "r1",
+				BBox:           BBox{400, 50, 700, 60},
+				OriginalText:   "حرف الألف مع الذال",
+				TranslatedText: "Elif Harfi - Zel Babı",
+				Type:           RegionTypeHeader,
+				Style:          &RegionStyle{FontSize: 18, Bold: true, Direction: "ltr", Alignment: "center"},
+			},
+			{
+				ID:             "r2",
+				BBox:           BBox{800, 150, 600, 100},
+				OriginalText:   "١٠٦٠) اذْهَبِي",
+				TranslatedText: "1060) Git.",
+				Type:           RegionTypeEntry,
+			},
+		},
+		ReadingOrder: []string{"r1", "r2"},
+		Warnings:     []string{},
+	}
+
+	data, err := json.Marshal(page)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+
+	var decoded TranslatedRegionPage
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+
+	if decoded.Version != "2.0" {
+		t.Errorf("Version = %q", decoded.Version)
+	}
+	if decoded.SourceLang != "ar" {
+		t.Errorf("SourceLang = %q", decoded.SourceLang)
+	}
+	if decoded.TargetLang != "tr" {
+		t.Errorf("TargetLang = %q", decoded.TargetLang)
+	}
+	if len(decoded.Regions) != 2 {
+		t.Fatalf("len(Regions) = %d, want 2", len(decoded.Regions))
+	}
+	if decoded.Regions[0].OriginalText != "حرف الألف مع الذال" {
+		t.Errorf("Regions[0].OriginalText = %q", decoded.Regions[0].OriginalText)
+	}
+	if decoded.Regions[0].TranslatedText != "Elif Harfi - Zel Babı" {
+		t.Errorf("Regions[0].TranslatedText = %q", decoded.Regions[0].TranslatedText)
+	}
+	if decoded.Regions[1].Type != RegionTypeEntry {
+		t.Errorf("Regions[1].Type = %q", decoded.Regions[1].Type)
+	}
+}
+
 func TestRegionTypeConstants(t *testing.T) {
 	// Verify constants match expected strings used in JSON schema
 	types := map[string]string{

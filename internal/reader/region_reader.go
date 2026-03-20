@@ -4,12 +4,28 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
 	"github.com/mmdemirbas/mutercim/internal/layout"
 	"github.com/mmdemirbas/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/provider"
 )
+
+// Reader reads structured data from page images using an AI provider.
+type Reader struct {
+	provider provider.Provider
+	logger   *slog.Logger
+}
+
+// NewReader creates a new Reader.
+func NewReader(p provider.Provider, logger *slog.Logger) *Reader {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &Reader{provider: p, logger: logger}
+}
 
 // regionResponse matches the JSON schema returned by the AI for region-based reads.
 type regionResponse struct {

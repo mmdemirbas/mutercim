@@ -9,7 +9,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
-// LaTeXRenderer renders translated pages as LaTeX with proper RTL support.
+// LaTeXRenderer renders translated region pages as LaTeX with proper RTL support.
 type LaTeXRenderer struct {
 	// Lang is the output language code (e.g. "ar", "tr", "en").
 	// Determines the main language in the preamble and text wrapping.
@@ -24,65 +24,47 @@ func isArabicLang(lang string) bool {
 	return lang == "ar"
 }
 
-// RenderPage renders a single translated page as LaTeX.
-// Arabic content (headers, original text) is wrapped in \textarabic{} for proper RTL rendering.
-func (r *LaTeXRenderer) RenderPage(page *model.TranslatedPage) string {
+// RenderPage renders a single translated region page as LaTeX.
+func (r *LaTeXRenderer) RenderPage(page *model.TranslatedRegionPage) string {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "%% Page %d\n", page.PageNumber)
 
-	// Header — use original Arabic header if available, otherwise translated
-	if page.TranslatedHeader != nil && page.TranslatedHeader.Text != "" {
-		headerText := latexEscape(page.TranslatedHeader.Text)
-		if page.Header != nil && page.Header.Text != "" && !isArabicLang(r.Lang) {
-			// For non-Arabic output, show Arabic original header in \textarabic
-			fmt.Fprintf(&b, "\\section*{%s}\n", headerText)
-			fmt.Fprintf(&b, "\\begin{center}\\textarabic{%s}\\end{center}\n\n", latexEscape(page.Header.Text))
-		} else if isArabicLang(r.Lang) && page.Header != nil && page.Header.Text != "" {
-			// For Arabic output, header is already Arabic
-			fmt.Fprintf(&b, "\\section*{%s}\n\n", latexEscape(page.Header.Text))
-		} else {
-			fmt.Fprintf(&b, "\\section*{%s}\n\n", headerText)
+	for _, id := range page.ReadingOrder {
+		region := findTranslatedRegion(page.Regions, id)
+		if region == nil {
+			continue
 		}
-	}
 
-	// Entries
-	for _, e := range page.TranslatedEntries {
-		if isArabicLang(r.Lang) {
-			// Arabic-primary output: entries are Arabic text
-			if e.Number > 0 {
-				fmt.Fprintf(&b, "\\textbf{%d.} %s\n\n", e.Number, latexEscape(e.TranslatedText))
+		switch region.Type {
+		case model.RegionTypeHeader:
+			if region.TranslatedText == "" {
+				continue
+			}
+			if isArabicLang(r.Lang) {
+				// Arabic output: use original text as header
+				fmt.Fprintf(&b, "\\section*{%s}\n\n", latexEscape(region.OriginalText))
 			} else {
-				fmt.Fprintf(&b, "%s\n\n", latexEscape(e.TranslatedText))
+				// Non-Arabic: translated header + Arabic original
+				fmt.Fprintf(&b, "\\section*{%s}\n", latexEscape(region.TranslatedText))
+				if region.OriginalText != "" {
+					fmt.Fprintf(&b, "\\begin{center}\\textarabic{%s}\\end{center}\n\n", latexEscape(region.OriginalText))
+				} else {
+					b.WriteString("\n")
+				}
 			}
-		} else {
-			// Non-Arabic output: translated text + original Arabic
-			if e.Number > 0 {
-				fmt.Fprintf(&b, "\\textbf{%d.} %s\n\n", e.Number, latexEscape(e.TranslatedText))
-			} else {
-				fmt.Fprintf(&b, "%s\n\n", latexEscape(e.TranslatedText))
+		case model.RegionTypeEntry:
+			b.WriteString(latexEscape(region.TranslatedText))
+			b.WriteString("\n\n")
+			// For non-Arabic output, include original Arabic
+			if !isArabicLang(r.Lang) && region.OriginalText != "" {
+				fmt.Fprintf(&b, "\\textarabic{%s}\n\n", latexEscape(region.OriginalText))
 			}
-			// Include original Arabic text if available from the read page
-			if idx := e.Number - 1; idx >= 0 && idx < len(page.Entries) && page.Entries[idx].ArabicText != "" {
-				fmt.Fprintf(&b, "\\textarabic{%s}\n\n", latexEscape(page.Entries[idx].ArabicText))
-			}
+		case model.RegionTypeFootnote:
+			fmt.Fprintf(&b, "\\begin{small}\n%s\n\\end{small}\n\n", latexEscape(region.TranslatedText))
+		case model.RegionTypeSeparator:
+			b.WriteString("\\hrule\\vspace{0.5em}\n")
 		}
-		if e.TranslatorNotes != "" {
-			fmt.Fprintf(&b, "\\emph{[Not: %s]}\n\n", latexEscape(e.TranslatorNotes))
-		}
-	}
-
-	// Footnotes
-	if len(page.TranslatedFootnotes) > 0 {
-		b.WriteString("\\begin{small}\n\\hrule\\vspace{0.5em}\n")
-		for _, fn := range page.TranslatedFootnotes {
-			if len(fn.EntryNumbers) > 0 {
-				fmt.Fprintf(&b, "[%s] %s\n\n", formatEntryNums(fn.EntryNumbers), latexEscape(fn.TranslatedText))
-			} else {
-				fmt.Fprintf(&b, "%s\n\n", latexEscape(fn.TranslatedText))
-			}
-		}
-		b.WriteString("\\end{small}\n")
 	}
 
 	b.WriteString("\\newpage\n")
@@ -90,7 +72,7 @@ func (r *LaTeXRenderer) RenderPage(page *model.TranslatedPage) string {
 }
 
 // RenderBook renders all translated pages as a complete LaTeX document.
-func (r *LaTeXRenderer) RenderBook(pages []*model.TranslatedPage) string {
+func (r *LaTeXRenderer) RenderBook(pages []*model.TranslatedRegionPage) string {
 	var b strings.Builder
 
 	b.WriteString(r.buildPreamble())

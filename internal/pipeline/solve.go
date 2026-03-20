@@ -70,9 +70,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 	ws := opts.Workspace
 	readDir := filepath.Join(ws.ReadDir(), stem)
 	solvedDir := filepath.Join(ws.SolveDir(), stem)
-	memoryDir := ws.MemoryDir()
 
-	// List read page files
 	pages, err := listPageFiles(readDir)
 	if err != nil {
 		return PhaseResult{}, fmt.Errorf("list read pages: %w", err)
@@ -81,19 +79,18 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		return PhaseResult{}, fmt.Errorf("no read pages in %s", readDir)
 	}
 
-	// Filter to requested pages
 	if len(opts.Pages) > 0 {
 		pages = filterPages(pages, opts.Pages)
 	}
 
 	if err := os.MkdirAll(solvedDir, 0755); err != nil {
-		return PhaseResult{}, fmt.Errorf("create solved dir: %w", err)
+		return PhaseResult{}, fmt.Errorf("create solve dir: %w", err)
 	}
 
 	// Load all read pages for cross-page context
-	allPages := make(map[int]*model.ReadPage)
+	allPages := make(map[int]*model.RegionPage)
 	for _, pf := range pages {
-		page, err := loadReadPage(pf.path)
+		page, err := loadRegionPage(pf.path)
 		if err != nil {
 			logger.Error("failed to load read page", "page", pf.pageNum, "error", err)
 			continue
@@ -109,16 +106,18 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 	completed := 0
 	failed := 0
 	skipped := 0
+	var previous *model.RegionPage
 
 	for _, pf := range pages {
 		if ctx.Err() != nil {
 			break
 		}
-		// Skip if output is up-to-date (mtime check)
+
 		outputPath := filepath.Join(solvedDir, fmt.Sprintf("%03d.json", pf.pageNum))
-		if !opts.Force && !rebuild.NeedsRebuild(outputPath, pf.path, ws.KnowledgeDir(), memoryDir) {
+		if !opts.Force && !rebuild.NeedsRebuild(outputPath, pf.path, ws.KnowledgeDir(), ws.MemoryDir()) {
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
 			skipped++
+			previous = allPages[pf.pageNum]
 			continue
 		}
 
@@ -127,18 +126,16 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 			continue
 		}
 
-		// Get previous page for continuation detection
-		var previous *model.ReadPage
-		if prev, ok := allPages[pf.pageNum-1]; ok {
-			previous = prev
+		// Build previous page summary
+		prevSummary := ""
+		if previous != nil {
+			prevSummary = solver.PageSummary(previous)
 		}
 
-		// Solve: solve page with knowledge resolution
-		solved := slvr.SolvePage(current, previous)
+		solved := slvr.SolvePage(current, previous, prevSummary)
 
-		// Save solved page
-		if err := saveSolvedPage(solvedDir, pf.pageNum, solved); err != nil {
-			logger.Error("failed to save solved page", "page", pf.pageNum, "error", err)
+		if err := saveSolvedRegionPage(solvedDir, pf.pageNum, solved); err != nil {
+			logger.Error("failed to save solved page", "input", stem, "page", pf.pageNum, "error", err)
 			failed++
 			if opts.Display != nil {
 				opts.Display.Update(display.PageResult{
@@ -150,11 +147,14 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		}
 
 		completed++
+		previous = current
+
 		if opts.Display != nil {
 			opts.Display.Update(display.PageResult{
 				Phase: display.PhaseSolve, Input: stem, PageNum: pf.pageNum,
 				Total: len(pages), Completed: completed, Failed: failed,
-				Entries: len(solved.Entries), Footnotes: len(solved.Footnotes),
+				Entries:   countRegionType(solved.Regions, model.RegionTypeEntry),
+				Footnotes: countRegionType(solved.Regions, model.RegionTypeFootnote),
 			})
 		}
 	}
@@ -166,38 +166,19 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 
-func loadReadPage(path string) (*model.ReadPage, error) {
+func loadRegionPage(path string) (*model.RegionPage, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-
-	// Detect format by checking the version field
-	var versionProbe struct {
-		Version string `json:"version"`
-	}
-	if err := json.Unmarshal(data, &versionProbe); err != nil {
-		return nil, err
-	}
-
-	if versionProbe.Version == "2.0" {
-		// New region-based format — convert via compatibility layer
-		var rp model.RegionPage
-		if err := json.Unmarshal(data, &rp); err != nil {
-			return nil, err
-		}
-		return model.RegionPageToReadPage(&rp), nil
-	}
-
-	// Legacy format (v1.0 or unversioned)
-	var page model.ReadPage
+	var page model.RegionPage
 	if err := json.Unmarshal(data, &page); err != nil {
 		return nil, err
 	}
 	return &page, nil
 }
 
-func saveSolvedPage(dir string, pageNum int, page *model.SolvedPage) error {
+func saveSolvedRegionPage(dir string, pageNum int, page *model.SolvedRegionPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
@@ -214,4 +195,15 @@ func saveSolvedPage(dir string, pageNum int, page *model.SolvedPage) error {
 		return fmt.Errorf("rename page %d: %w", pageNum, err)
 	}
 	return nil
+}
+
+// countRegionType counts regions of a specific type.
+func countRegionType(regions []model.Region, regionType string) int {
+	count := 0
+	for _, r := range regions {
+		if r.Type == regionType {
+			count++
+		}
+	}
+	return count
 }

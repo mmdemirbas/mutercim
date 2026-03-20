@@ -10,23 +10,22 @@ import (
 func TestLatexRenderPage(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{PageNumber: 5},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 5,
+		Regions: []model.TranslatedRegion{
+			{ID: "h1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "باب", TranslatedText: "Bab", Type: model.RegionTypeHeader},
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "نص عربي", TranslatedText: "Test text", Type: model.RegionTypeEntry},
 		},
-		TranslatedHeader: &model.TranslatedHeader{Text: "Bab"},
-		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 10, TranslatedText: "Test text"},
-		},
+		ReadingOrder: []string{"h1", "e1"},
 	}
 
 	result := r.RenderPage(page)
 
 	if !strings.Contains(result, `\section*{Bab}`) {
-		t.Error("expected section header")
+		t.Errorf("expected section header, got:\n%s", result)
 	}
-	if !strings.Contains(result, `\textbf{10.}`) {
-		t.Error("expected bold entry number")
+	if !strings.Contains(result, "Test text") {
+		t.Error("expected entry text")
 	}
 	if !strings.Contains(result, `\newpage`) {
 		t.Error("expected newpage")
@@ -36,12 +35,13 @@ func TestLatexRenderPage(t *testing.T) {
 func TestLatexRenderBook(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	pages := []*model.TranslatedPage{
+	pages := []*model.TranslatedRegionPage{
 		{
-			SolvedPage: model.SolvedPage{
-				ReadPage: model.ReadPage{PageNumber: 1},
+			PageNumber: 1,
+			Regions: []model.TranslatedRegion{
+				{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "test", Type: model.RegionTypeEntry},
 			},
-			TranslatedEntries: []model.TranslatedEntry{{Number: 1, TranslatedText: "test"}},
+			ReadingOrder: []string{"e1"},
 		},
 	}
 
@@ -105,21 +105,20 @@ func TestLatexEscapeAdditional(t *testing.T) {
 func TestLatexRenderPage_NoHeader(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{PageNumber: 1},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "Test", Type: model.RegionTypeEntry},
 		},
-		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 1, TranslatedText: "Test"},
-		},
+		ReadingOrder: []string{"e1"},
 	}
 
 	result := r.RenderPage(page)
 
 	if strings.Contains(result, `\section*`) {
-		t.Error("expected no section header when TranslatedHeader is nil")
+		t.Error("expected no section header when no header region exists")
 	}
-	if !strings.Contains(result, `\textbf{1.}`) {
+	if !strings.Contains(result, "Test") {
 		t.Error("expected entry text")
 	}
 }
@@ -127,75 +126,48 @@ func TestLatexRenderPage_NoHeader(t *testing.T) {
 func TestLatexRenderPage_EmptyHeaderText(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{PageNumber: 1},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "h1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "", Type: model.RegionTypeHeader},
 		},
-		TranslatedHeader: &model.TranslatedHeader{Text: ""},
+		ReadingOrder: []string{"h1"},
 	}
 
 	result := r.RenderPage(page)
 
 	if strings.Contains(result, `\section*`) {
-		t.Error("expected no section header when header text is empty")
+		t.Error("expected no section header when header translated text is empty")
 	}
 }
 
 func TestLatexRenderPage_EntryWithoutNumber(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{PageNumber: 1},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "Unnumbered plain text", Type: model.RegionTypeEntry},
 		},
-		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 0, TranslatedText: "Unnumbered"},
-		},
+		ReadingOrder: []string{"e1"},
 	}
 
 	result := r.RenderPage(page)
 
-	if strings.Contains(result, `\textbf`) {
-		t.Error("expected no textbf for entry with number 0")
-	}
-	if !strings.Contains(result, "Unnumbered") {
+	if !strings.Contains(result, "Unnumbered plain text") {
 		t.Error("expected entry text")
-	}
-}
-
-func TestLatexRenderPage_TranslatorNotes(t *testing.T) {
-	r := &LaTeXRenderer{Lang: "tr"}
-
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{PageNumber: 1},
-		},
-		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 1, TranslatedText: "Text", TranslatorNotes: "A note with $pecial chars"},
-		},
-	}
-
-	result := r.RenderPage(page)
-
-	if !strings.Contains(result, `\emph{[Not:`) {
-		t.Error("expected emph translator note")
-	}
-	if !strings.Contains(result, `\$pecial`) {
-		t.Error("expected escaped special char in note")
 	}
 }
 
 func TestLatexRenderPage_Footnotes(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{PageNumber: 1},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "f1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "Footnote text here", Type: model.RegionTypeFootnote},
 		},
-		TranslatedFootnotes: []model.TranslatedFootnote{
-			{EntryNumbers: []int{5}, TranslatedText: "Footnote with number"},
-			{EntryNumbers: nil, TranslatedText: "Footnote without number"},
-		},
+		ReadingOrder: []string{"f1"},
 	}
 
 	result := r.RenderPage(page)
@@ -206,24 +178,38 @@ func TestLatexRenderPage_Footnotes(t *testing.T) {
 	if !strings.Contains(result, `\end{small}`) {
 		t.Error("expected end small block")
 	}
-	if !strings.Contains(result, `\hrule`) {
+	if !strings.Contains(result, "Footnote text here") {
+		t.Error("expected footnote text")
+	}
+}
+
+func TestLatexRenderPage_Separator(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "tr"}
+
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "Before separator", Type: model.RegionTypeEntry},
+			{ID: "s1", BBox: model.BBox{0, 0, 100, 50}, Type: model.RegionTypeSeparator},
+			{ID: "e2", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "After separator", Type: model.RegionTypeEntry},
+		},
+		ReadingOrder: []string{"e1", "s1", "e2"},
+	}
+
+	result := r.RenderPage(page)
+
+	if !strings.Contains(result, `\hrule\vspace{0.5em}`) {
 		t.Error("expected hrule separator")
-	}
-	if !strings.Contains(result, "[5] Footnote with number") {
-		t.Error("expected numbered footnote")
-	}
-	if strings.Contains(result, "[0]") {
-		t.Error("expected no numbered marker for footnote with entry number 0")
 	}
 }
 
 func TestLatexRenderPage_EmptyPage(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{PageNumber: 7},
-		},
+	page := &model.TranslatedRegionPage{
+		PageNumber:   7,
+		Regions:      nil,
+		ReadingOrder: nil,
 	}
 
 	result := r.RenderPage(page)
@@ -239,20 +225,19 @@ func TestLatexRenderPage_EmptyPage(t *testing.T) {
 func TestLatexRenderPage_SpecialCharsInContent(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{PageNumber: 1},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "h1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "عنوان", TranslatedText: "Chapter #1 & $2", Type: model.RegionTypeHeader},
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "100% of the _data_ in {braces}", Type: model.RegionTypeEntry},
 		},
-		TranslatedHeader: &model.TranslatedHeader{Text: "Chapter #1 & $2"},
-		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 1, TranslatedText: "100% of the _data_ in {braces}"},
-		},
+		ReadingOrder: []string{"h1", "e1"},
 	}
 
 	result := r.RenderPage(page)
 
 	if !strings.Contains(result, `\section*{Chapter \#1 \& \$2}`) {
-		t.Errorf("expected escaped header, got relevant portion: %s", result)
+		t.Errorf("expected escaped header, got:\n%s", result)
 	}
 	if !strings.Contains(result, `100\%`) {
 		t.Error("expected escaped percent in entry")
@@ -265,23 +250,21 @@ func TestLatexRenderPage_SpecialCharsInContent(t *testing.T) {
 func TestLatexRenderBook_MultiplePages(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	pages := []*model.TranslatedPage{
+	pages := []*model.TranslatedRegionPage{
 		{
-			SolvedPage: model.SolvedPage{
-				ReadPage: model.ReadPage{PageNumber: 1},
+			PageNumber: 1,
+			Regions: []model.TranslatedRegion{
+				{ID: "h1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "عنوان", TranslatedText: "First", Type: model.RegionTypeHeader},
+				{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "Page one", Type: model.RegionTypeEntry},
 			},
-			TranslatedHeader: &model.TranslatedHeader{Text: "First"},
-			TranslatedEntries: []model.TranslatedEntry{
-				{Number: 1, TranslatedText: "Page one"},
-			},
+			ReadingOrder: []string{"h1", "e1"},
 		},
 		{
-			SolvedPage: model.SolvedPage{
-				ReadPage: model.ReadPage{PageNumber: 2},
+			PageNumber: 2,
+			Regions: []model.TranslatedRegion{
+				{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "Page two", Type: model.RegionTypeEntry},
 			},
-			TranslatedEntries: []model.TranslatedEntry{
-				{Number: 2, TranslatedText: "Page two"},
-			},
+			ReadingOrder: []string{"e1"},
 		},
 	}
 
@@ -317,7 +300,7 @@ func TestLatexRenderBook_EmptySlice(t *testing.T) {
 	}
 }
 
-// --- New RTL-specific tests ---
+// --- Preamble tests ---
 
 func TestLatexPreamble_TurkishMain(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
@@ -364,28 +347,21 @@ func TestLatexPreamble_EmptyLang(t *testing.T) {
 	}
 }
 
+// --- Arabic text wrapping tests ---
+
 func TestLatexRenderPage_ArabicTextWrapped(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	intPtr := func(n int) *int { return &n }
-
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{
-				PageNumber: 1,
-				Entries: []model.Entry{
-					{Number: intPtr(1), ArabicText: "أَبْشِرُوا", Type: "hadith"},
-				},
-			},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "أَبْشِرُوا", TranslatedText: "Müjdelenin!", Type: model.RegionTypeEntry},
 		},
-		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 1, TranslatedText: "Müjdelenin!"},
-		},
+		ReadingOrder: []string{"e1"},
 	}
 
 	result := r.RenderPage(page)
 
-	// Should contain the Arabic text wrapped in \textarabic{}
 	if !strings.Contains(result, `\textarabic{`) {
 		t.Errorf("expected \\textarabic wrapper for Arabic content, got:\n%s", result)
 	}
@@ -394,25 +370,42 @@ func TestLatexRenderPage_ArabicTextWrapped(t *testing.T) {
 	}
 }
 
-func TestLatexRenderPage_ArabicPrimary(t *testing.T) {
-	r := &LaTeXRenderer{Lang: "ar"}
+func TestLatexRenderPage_ArabicTextWrappedHeader(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "tr"}
 
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{
-				PageNumber: 1,
-				Header:     &model.Header{Text: "حرف الألف", Type: "section_title"},
-			},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "h1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "حرف الألف", TranslatedText: "Elif Harfi", Type: model.RegionTypeHeader},
 		},
-		TranslatedHeader: &model.TranslatedHeader{Text: "Elif Harfi"},
-		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 1, TranslatedText: "Arabic output text"},
-		},
+		ReadingOrder: []string{"h1"},
 	}
 
 	result := r.RenderPage(page)
 
-	// For Arabic output, the header should use the original Arabic header
+	if !strings.Contains(result, `\section*{Elif Harfi}`) {
+		t.Error("expected translated section header")
+	}
+	if !strings.Contains(result, `\textarabic{`) {
+		t.Error("expected \\textarabic wrapper for Arabic original header")
+	}
+}
+
+func TestLatexRenderPage_ArabicPrimary(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "ar"}
+
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "h1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "حرف الألف", TranslatedText: "Elif Harfi", Type: model.RegionTypeHeader},
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "نص عربي", TranslatedText: "Arabic output text", Type: model.RegionTypeEntry},
+		},
+		ReadingOrder: []string{"h1", "e1"},
+	}
+
+	result := r.RenderPage(page)
+
+	// For Arabic output, the header should use the original Arabic text
 	if !strings.Contains(result, latexEscape("حرف الألف")) {
 		t.Error("expected original Arabic header in Arabic-primary output")
 	}
@@ -422,27 +415,21 @@ func TestLatexRenderPage_ArabicPrimary(t *testing.T) {
 	}
 }
 
+// --- Mixed content test ---
+
 func TestLatexRenderPage_MixedContent(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 
-	intPtr := func(n int) *int { return &n }
-
-	page := &model.TranslatedPage{
-		SolvedPage: model.SolvedPage{
-			ReadPage: model.ReadPage{
-				PageNumber: 1,
-				Header:     &model.Header{Text: "حرف الألف", Type: "section_title"},
-				Entries: []model.Entry{
-					{Number: intPtr(1), ArabicText: "نص عربي", Type: "hadith"},
-					{Number: intPtr(2), ArabicText: "نص آخر", Type: "hadith"},
-				},
-			},
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "h1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "حرف الألف", TranslatedText: "Elif Harfi", Type: model.RegionTypeHeader},
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "نص عربي", TranslatedText: "Turkish translation 1", Type: model.RegionTypeEntry},
+			{ID: "s1", BBox: model.BBox{0, 0, 100, 50}, Type: model.RegionTypeSeparator},
+			{ID: "e2", BBox: model.BBox{0, 0, 100, 50}, OriginalText: "نص آخر", TranslatedText: "Turkish translation 2", Type: model.RegionTypeEntry},
+			{ID: "f1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "A footnote", Type: model.RegionTypeFootnote},
 		},
-		TranslatedHeader: &model.TranslatedHeader{Text: "Elif Harfi"},
-		TranslatedEntries: []model.TranslatedEntry{
-			{Number: 1, TranslatedText: "Turkish translation 1"},
-			{Number: 2, TranslatedText: "Turkish translation 2"},
-		},
+		ReadingOrder: []string{"h1", "e1", "s1", "e2", "f1"},
 	}
 
 	result := r.RenderPage(page)
@@ -451,7 +438,7 @@ func TestLatexRenderPage_MixedContent(t *testing.T) {
 	if !strings.Contains(result, `\section*{Elif Harfi}`) {
 		t.Error("expected Turkish section header")
 	}
-	// Arabic original header
+	// Arabic original header wrapped
 	if !strings.Contains(result, `\textarabic{`) {
 		t.Error("expected \\textarabic for Arabic header")
 	}
@@ -462,8 +449,83 @@ func TestLatexRenderPage_MixedContent(t *testing.T) {
 	if !strings.Contains(result, "Turkish translation 2") {
 		t.Error("expected second translation")
 	}
-	// Arabic originals wrapped
-	if strings.Count(result, `\textarabic{`) < 2 {
-		t.Errorf("expected at least 2 \\textarabic wrappers (header + entries), got %d", strings.Count(result, `\textarabic{`))
+	// Arabic originals wrapped (header + 2 entries = at least 3)
+	if strings.Count(result, `\textarabic{`) < 3 {
+		t.Errorf("expected at least 3 \\textarabic wrappers (header + entries), got %d", strings.Count(result, `\textarabic{`))
+	}
+	// Separator
+	if !strings.Contains(result, `\hrule\vspace{0.5em}`) {
+		t.Error("expected separator hrule")
+	}
+	// Footnote
+	if !strings.Contains(result, `\begin{small}`) {
+		t.Error("expected small block for footnote")
+	}
+	if !strings.Contains(result, "A footnote") {
+		t.Error("expected footnote text")
+	}
+}
+
+func TestLatexRenderPage_ReadingOrderSkipsMissingRegions(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "tr"}
+
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "Present", Type: model.RegionTypeEntry},
+		},
+		ReadingOrder: []string{"missing_id", "e1"},
+	}
+
+	result := r.RenderPage(page)
+
+	if !strings.Contains(result, "Present") {
+		t.Error("expected present entry text")
+	}
+	if !strings.Contains(result, `\newpage`) {
+		t.Error("expected newpage")
+	}
+}
+
+func TestLatexRenderPage_HeaderWithoutOriginalText(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "tr"}
+
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "h1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "Some Header", Type: model.RegionTypeHeader},
+		},
+		ReadingOrder: []string{"h1"},
+	}
+
+	result := r.RenderPage(page)
+
+	if !strings.Contains(result, `\section*{Some Header}`) {
+		t.Error("expected section header")
+	}
+	// Should not have textarabic when original text is empty
+	if strings.Contains(result, `\textarabic{`) {
+		t.Error("expected no \\textarabic when original text is empty")
+	}
+}
+
+func TestLatexRenderPage_EntryWithoutOriginalText(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "tr"}
+
+	page := &model.TranslatedRegionPage{
+		PageNumber: 1,
+		Regions: []model.TranslatedRegion{
+			{ID: "e1", BBox: model.BBox{0, 0, 100, 50}, TranslatedText: "Only translation", Type: model.RegionTypeEntry},
+		},
+		ReadingOrder: []string{"e1"},
+	}
+
+	result := r.RenderPage(page)
+
+	if !strings.Contains(result, "Only translation") {
+		t.Error("expected translation text")
+	}
+	if strings.Contains(result, `\textarabic{`) {
+		t.Error("expected no \\textarabic when original text is empty")
 	}
 }

@@ -65,3 +65,36 @@ const (
 	LayoutSourceSurya = "surya"
 	LayoutSourceAI    = "ai"
 )
+
+// SolvedRegionPage extends RegionPage with solver metadata.
+// The solver does NOT modify region text, bbox, or type — it only
+// adds metadata that helps the translate phase.
+type SolvedRegionPage struct {
+	RegionPage
+	GlossaryContext     []string `json:"glossary_context,omitempty"`
+	PreviousPageSummary string   `json:"previous_page_summary,omitempty"`
+	ValidationWarnings  []string `json:"validation_warnings,omitempty"`
+}
+
+// TranslatedRegion holds both original and translated text for a region.
+type TranslatedRegion struct {
+	ID             string       `json:"id"`
+	BBox           BBox         `json:"bbox"`
+	OriginalText   string       `json:"original_text"`
+	TranslatedText string       `json:"translated_text"`
+	Type           string       `json:"type"`
+	Style          *RegionStyle `json:"style,omitempty"`
+}
+
+// TranslatedRegionPage is the output of the translate phase.
+type TranslatedRegionPage struct {
+	Version            string             `json:"version"`
+	PageNumber         int                `json:"page_number"`
+	SourceLang         string             `json:"source_lang"`
+	TargetLang         string             `json:"target_lang"`
+	TranslateModel     string             `json:"translate_model"`
+	TranslateTimestamp string             `json:"translate_timestamp"`
+	Regions            []TranslatedRegion `json:"regions"`
+	ReadingOrder       []string           `json:"reading_order"`
+	Warnings           []string           `json:"warnings,omitempty"`
+}

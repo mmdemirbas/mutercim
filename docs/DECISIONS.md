@@ -168,12 +168,15 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - To move knowledge from memory/ to knowledge/, user copies files manually
 - `mutercim clean memory` resets what the tool learned
 
-## Layout-Aware Read Phase (v2.0 schema)
-- Read phase now outputs RegionPage (v2.0) instead of ReadPage (v1.0)
-- Each region has bounding box [x,y,w,h], semantic type, style, and reading order
+## Region-Based Pipeline (v2.0 schema — all phases)
+- All phases now use region-based schema exclusively. Old ReadPage/SolvedPage/TranslatedPage types removed.
+- Read phase: outputs RegionPage (regions with bbox, type, style, reading_order)
+- Solve phase: outputs SolvedRegionPage (RegionPage + glossary_context, previous_page_summary, validation_warnings)
+- Translate phase: outputs TranslatedRegionPage (regions with original_text + translated_text, source/target lang)
+- Write phase: renders from TranslatedRegionPage — markdown (# header, entries, > footnotes, --- separators), LaTeX (with RTL support)
 - Region types: header, entry, footnote, separator, page_number, column_header, table, image, margin_note, other
-- Two strategies (auto-selected): "local+ai" (Surya Docker + AI) or "ai-only" (AI detects everything)
+- Two read strategies (auto-selected): "local+ai" (Surya Docker + AI) or "ai-only" (AI detects everything)
 - Config field `read.layout_tool: "surya"` enables Docker-based layout detection
-- Compatibility layer: `loadReadPage()` auto-detects v1.0 vs v2.0 and converts RegionPage→ReadPage for solve/translate
-- New packages: `internal/layout/` (Tool interface, SuryaTool, NoneTool), `internal/model/region.go`, `internal/model/compat.go`
-- On-disk format changed to v2.0 but solve/translate phases transparently consume both formats
+- Translation prompt lists regions in reading order; AI returns [{id, translated_text}] per region
+- Solver validates region structure (empty text, reading order consistency) and injects glossary context
+- Removed: ReadPage, SolvedPage, TranslatedPage, Entry, Footnote, Header, compat layer, abbreviation resolver, continuation detector

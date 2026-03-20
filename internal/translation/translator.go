@@ -13,22 +13,18 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/provider"
 )
 
-// translationResponse matches the JSON schema returned by the AI model.
-type translationResponse struct {
-	TranslatedHeader    *model.TranslatedHeader  `json:"translated_header"`
-	TranslatedEntries   []model.TranslatedEntry  `json:"translated_entries"`
-	TranslatedFootnotes []translatedFootnoteResp `json:"translated_footnotes"`
-	Warnings            []string                 `json:"warnings"`
+// regionTranslationResponse matches the JSON returned by the AI for region translation.
+type regionTranslationResponse struct {
+	Regions  []translatedRegionResp `json:"regions"`
+	Warnings []string               `json:"warnings"`
 }
 
-// translatedFootnoteResp matches the footnote format in the translation prompt.
-type translatedFootnoteResp struct {
-	EntryNumbers    []int    `json:"entry_numbers"`
-	TranslatedText  string   `json:"translated_text"`
-	SourcesExpanded []string `json:"sources_expanded"`
+type translatedRegionResp struct {
+	ID             string `json:"id"`
+	TranslatedText string `json:"translated_text"`
 }
 
-// Translator translates solved pages using an AI provider.
+// Translator translates solved region pages using an AI provider.
 type Translator struct {
 	provider      provider.Provider
 	knowledge     *knowledge.Knowledge
@@ -53,10 +49,8 @@ func NewTranslator(p provider.Provider, k *knowledge.Knowledge, expandSources bo
 	}
 }
 
-// TranslatePage translates a single solved page. contextPages provides
-// summaries from previous pages for the sliding context window.
-func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedPage, contextSummaries []string, modelName string) (*model.TranslatedPage, error) {
-	// Build the system prompt with knowledge injected
+// TranslatePage translates a single solved region page.
+func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedRegionPage, contextSummaries []string, modelName string) (*model.TranslatedRegionPage, error) {
 	systemPrompt := BuildSystemPrompt(
 		t.knowledge.HonorificsSection(),
 		t.knowledge.PeopleSection(),
@@ -68,12 +62,7 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedPage, 
 		t.targetLang,
 	)
 
-	// Build user prompt with page JSON
-	pageJSON, err := json.Marshal(page)
-	if err != nil {
-		return nil, fmt.Errorf("marshal page %d: %w", page.PageNumber, err)
-	}
-	userPrompt := BuildUserPrompt(string(pageJSON))
+	userPrompt := BuildRegionUserPrompt(page, t.sourceLangs, t.targetLang)
 
 	t.logger.Info("translating page", "page", page.PageNumber)
 
@@ -87,52 +76,73 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedPage, 
 		return nil, fmt.Errorf("extract JSON from translation response for page %d: %w", page.PageNumber, err)
 	}
 
-	var resp translationResponse
+	var resp regionTranslationResponse
 	if err := json.Unmarshal([]byte(jsonStr), &resp); err != nil {
 		return nil, fmt.Errorf("unmarshal translation response for page %d: %w", page.PageNumber, err)
 	}
 
-	translated := &model.TranslatedPage{
-		SolvedPage:           *page,
-		TranslationModel:     modelName,
-		TranslationTimestamp: time.Now().UTC().Format(time.RFC3339),
-		TranslatedHeader:     resp.TranslatedHeader,
-		TranslatedEntries:    resp.TranslatedEntries,
-		TranslatedFootnotes:  convertTranslatedFootnotes(resp.TranslatedFootnotes),
-		TranslationWarnings:  resp.Warnings,
+	// Build translation map from AI response
+	translationMap := make(map[string]string)
+	for _, tr := range resp.Regions {
+		translationMap[tr.ID] = tr.TranslatedText
 	}
 
-	return translated, nil
-}
+	// Build translated regions preserving original structure
+	var translated []model.TranslatedRegion
+	for _, r := range page.Regions {
+		tr := model.TranslatedRegion{
+			ID:           r.ID,
+			BBox:         r.BBox,
+			OriginalText: r.Text,
+			Type:         r.Type,
+			Style:        r.Style,
+		}
 
-func convertTranslatedFootnotes(resps []translatedFootnoteResp) []model.TranslatedFootnote {
-	footnotes := make([]model.TranslatedFootnote, 0, len(resps))
-	for _, r := range resps {
-		footnotes = append(footnotes, model.TranslatedFootnote{
-			EntryNumbers:    r.EntryNumbers,
-			TranslatedText:  r.TranslatedText,
-			SourcesExpanded: r.SourcesExpanded,
-		})
+		// Apply translation if available
+		if text, ok := translationMap[r.ID]; ok {
+			tr.TranslatedText = text
+		} else if r.Type == model.RegionTypeSeparator || r.Type == model.RegionTypePageNumber || r.Type == model.RegionTypeImage {
+			// Non-translatable regions keep original text
+			tr.TranslatedText = r.Text
+		}
+
+		translated = append(translated, tr)
 	}
-	return footnotes
+
+	result := &model.TranslatedRegionPage{
+		Version:            "2.0",
+		PageNumber:         page.PageNumber,
+		SourceLang:         primaryLang(t.sourceLangs),
+		TargetLang:         t.targetLang,
+		TranslateModel:     modelName,
+		TranslateTimestamp: time.Now().UTC().Format(time.RFC3339),
+		Regions:            translated,
+		ReadingOrder:       page.ReadingOrder,
+		Warnings:           resp.Warnings,
+	}
+
+	return result, nil
 }
 
-// PageSummary creates a brief summary of a translated page for context injection.
-func PageSummary(page *model.TranslatedPage) string {
-	if page == nil {
+// PageSummary creates a brief summary of a translated region page for context injection.
+func PageSummary(page *model.TranslatedRegionPage) string {
+	if page == nil || len(page.Regions) == 0 {
 		return ""
 	}
 
-	summary := fmt.Sprintf("Page %d", page.PageNumber)
-	if page.TranslatedHeader != nil && page.TranslatedHeader.Text != "" {
-		summary += fmt.Sprintf(" — %s", page.TranslatedHeader.Text)
-	}
-	if len(page.TranslatedEntries) > 0 {
-		first := page.TranslatedEntries[0].Number
-		last := page.TranslatedEntries[len(page.TranslatedEntries)-1].Number
-		if first > 0 && last > 0 {
-			summary += fmt.Sprintf(". Entries %d-%d", first, last)
+	// Find header text
+	for _, r := range page.Regions {
+		if r.Type == model.RegionTypeHeader && r.TranslatedText != "" {
+			return r.TranslatedText
 		}
 	}
-	return summary
+
+	return ""
+}
+
+func primaryLang(langs []string) string {
+	if len(langs) > 0 {
+		return langs[0]
+	}
+	return ""
 }

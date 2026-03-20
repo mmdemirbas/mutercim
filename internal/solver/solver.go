@@ -7,7 +7,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
-// Solver orchestrates the solving of read pages.
+// Solver orchestrates the solving of region pages.
 type Solver struct {
 	knowledge *knowledge.Knowledge
 	logger    *slog.Logger
@@ -21,59 +21,125 @@ func NewSolver(k *knowledge.Knowledge, logger *slog.Logger) *Solver {
 	return &Solver{knowledge: k, logger: logger}
 }
 
-// SolvePage performs all solving steps on a read page.
-// The previous page is used for cross-page continuation detection.
-func (e *Solver) SolvePage(current *model.ReadPage, previous *model.ReadPage) *model.SolvedPage {
-	solved := model.SolvedPage{
-		ReadPage: *current,
+// SolvePage performs all solving steps on a region page.
+// It adds glossary context, validation warnings, and a previous page summary.
+// It does NOT modify region text, bbox, or type.
+func (s *Solver) SolvePage(current *model.RegionPage, previous *model.RegionPage, previousSummary string) *model.SolvedRegionPage {
+	solved := &model.SolvedRegionPage{
+		RegionPage: *current,
 	}
 
-	// 1. Resolve source abbreviations
-	solved.SourcesResolved, solved.UnresolvedSources = ResolveAbbreviations(current.Footnotes, e.knowledge)
+	// 1. Build glossary context from region text
+	solved.GlossaryContext = s.buildGlossaryContext(current)
 
-	if len(solved.UnresolvedSources) > 0 {
-		e.logger.Warn("unresolved sources", "page", current.PageNumber, "codes", solved.UnresolvedSources)
+	if len(solved.GlossaryContext) > 0 {
+		s.logger.Debug("glossary matches", "page", current.PageNumber, "count", len(solved.GlossaryContext))
 	}
 
-	// 2. Detect cross-page continuations
-	solved.ContinuationInfo = DetectContinuation(current, previous)
+	// 2. Validate region structure
+	solved.ValidationWarnings = validateRegions(current)
 
-	// 3. Validate structure
-	solved.Validation = Validate(current)
-
-	if solved.Validation.Status != "ok" {
-		e.logger.Warn("validation warnings", "page", current.PageNumber, "warnings", solved.Validation.Warnings)
+	if len(solved.ValidationWarnings) > 0 {
+		s.logger.Warn("validation warnings", "page", current.PageNumber, "warnings", solved.ValidationWarnings)
 	}
 
-	// 4. Build translation context
-	solved.TranslationContext = e.buildTranslationContext(current)
+	// 3. Set previous page summary for translation context
+	if previousSummary != "" {
+		solved.PreviousPageSummary = previousSummary
+	}
 
-	return &solved
+	return solved
 }
 
-func (e *Solver) buildTranslationContext(page *model.ReadPage) *model.TranslationContext {
-	ctx := &model.TranslationContext{}
+// PageSummary creates a brief summary of a region page for context injection.
+func PageSummary(page *model.RegionPage) string {
+	if page == nil || len(page.Regions) == 0 {
+		return ""
+	}
 
-	// Find relevant glossary terms that appear in this page's text
-	for _, entry := range page.Entries {
-		for _, term := range e.knowledge.Terminology {
-			if containsArabic(entry.ArabicText, term.Arabic) {
-				ctx.RelevantGlossaryTerms = append(ctx.RelevantGlossaryTerms,
-					term.Arabic+" → "+term.Turkish)
+	summary := ""
+	for _, r := range page.Regions {
+		if r.Type == model.RegionTypeHeader && r.Text != "" {
+			summary = r.Text
+			break
+		}
+	}
+
+	// Count entries
+	entryCount := 0
+	for _, r := range page.Regions {
+		if r.Type == model.RegionTypeEntry {
+			entryCount++
+		}
+	}
+
+	if summary == "" {
+		return ""
+	}
+	if entryCount > 0 {
+		return summary + " (" + itoa(entryCount) + " entries)"
+	}
+	return summary
+}
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var digits []byte
+	for n > 0 {
+		digits = append([]byte{byte('0' + n%10)}, digits...)
+		n /= 10
+	}
+	return string(digits)
+}
+
+// buildGlossaryContext finds relevant glossary terms that appear in the page's text.
+func (s *Solver) buildGlossaryContext(page *model.RegionPage) []string {
+	var terms []string
+
+	for _, region := range page.Regions {
+		if region.Text == "" {
+			continue
+		}
+		for _, term := range s.knowledge.Terminology {
+			if containsArabic(region.Text, term.Arabic) {
+				terms = append(terms, term.Arabic+" → "+term.Turkish)
 			}
 		}
-		for _, place := range e.knowledge.Places {
-			if containsArabic(entry.ArabicText, place.Arabic) {
-				ctx.RelevantGlossaryTerms = append(ctx.RelevantGlossaryTerms,
-					place.Arabic+" → "+place.Turkish)
+		for _, place := range s.knowledge.Places {
+			if containsArabic(region.Text, place.Arabic) {
+				terms = append(terms, place.Arabic+" → "+place.Turkish)
 			}
 		}
 	}
 
-	// Deduplicate
-	ctx.RelevantGlossaryTerms = dedupStrings(ctx.RelevantGlossaryTerms)
+	return dedupStrings(terms)
+}
 
-	return ctx
+// validateRegions checks structural consistency of regions.
+func validateRegions(page *model.RegionPage) []string {
+	var warnings []string
+
+	// Check for empty text in non-separator regions
+	for _, r := range page.Regions {
+		if r.Type != model.RegionTypeSeparator && r.Type != model.RegionTypeImage && r.Text == "" {
+			warnings = append(warnings, "region "+r.ID+" ("+r.Type+") has empty text")
+		}
+	}
+
+	// Check that reading order references valid region IDs
+	regionIDs := make(map[string]bool)
+	for _, r := range page.Regions {
+		regionIDs[r.ID] = true
+	}
+	for _, id := range page.ReadingOrder {
+		if !regionIDs[id] {
+			warnings = append(warnings, "reading_order references unknown region: "+id)
+		}
+	}
+
+	return warnings
 }
 
 func containsArabic(text, term string) bool {

@@ -121,9 +121,9 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	}
 
 	// Load all solved pages for context window
-	solvedPages := make(map[int]*model.SolvedPage)
+	solvedPages := make(map[int]*model.SolvedRegionPage)
 	for _, pf := range pages {
-		page, err := loadSolvedPage(pf.path)
+		page, err := loadSolvedRegionPage(pf.path)
 		if err != nil {
 			logger.Error("failed to load solved page", "page", pf.pageNum, "error", err)
 			continue
@@ -132,7 +132,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	}
 
 	// Track translated pages for context window
-	var recentTranslated []*model.TranslatedPage
+	var recentTranslated []*model.TranslatedRegionPage
 
 	// Start progress display
 	if opts.Display != nil {
@@ -149,13 +149,13 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
 			chain.OnFailover = func(from, to string) {
 				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("translating page %d via %s \u2014 failover from %s", statusPageNum, to, from),
+					Text:      fmt.Sprintf("translating page %d via %s — failover from %s", statusPageNum, to, from),
 					StartedAt: time.Now(),
 				})
 			}
 			chain.SetRetryCallback(func(attempt, maxRetries, statusCode int, backoff time.Duration) {
 				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("translating page %d \u2014 retry %d/%d (%d)", statusPageNum, attempt, maxRetries, statusCode),
+					Text:      fmt.Sprintf("translating page %d — retry %d/%d (%d)", statusPageNum, attempt, maxRetries, statusCode),
 					StartedAt: time.Now(),
 					Countdown: backoff,
 				})
@@ -197,8 +197,8 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		}
 
 		// Also add solver context if available
-		if solved.TranslationContext != nil && solved.TranslationContext.PreviousPageSummary != "" {
-			contextSummaries = append(contextSummaries, solved.TranslationContext.PreviousPageSummary)
+		if solved.PreviousPageSummary != "" {
+			contextSummaries = append(contextSummaries, solved.PreviousPageSummary)
 		}
 
 		// Translate
@@ -227,7 +227,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		}
 
 		// Save translated JSON atomically
-		if err := saveTranslatedPage(translatedDir, pf.pageNum, translated); err != nil {
+		if err := saveTranslatedRegionPage(translatedDir, pf.pageNum, translated); err != nil {
 			logger.Error("failed to save translated page", "input", stem, "page", pf.pageNum, "error", err)
 			failed++
 			if opts.Display != nil {
@@ -247,8 +247,8 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			opts.Display.Update(display.PageResult{
 				Phase: display.PhaseTranslate, Input: stem, PageNum: pf.pageNum,
 				Total: len(pages), Completed: completed, Failed: failed,
-				Lang: targetLang, Entries: len(translated.TranslatedEntries),
-				Footnotes: len(translated.TranslatedFootnotes),
+				Lang:    targetLang,
+				Entries: countTranslatedRegionType(translated.Regions, model.RegionTypeEntry),
 			})
 		}
 	}
@@ -260,19 +260,19 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 
-func loadSolvedPage(path string) (*model.SolvedPage, error) {
+func loadSolvedRegionPage(path string) (*model.SolvedRegionPage, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var page model.SolvedPage
+	var page model.SolvedRegionPage
 	if err := json.Unmarshal(data, &page); err != nil {
 		return nil, err
 	}
 	return &page, nil
 }
 
-func saveTranslatedPage(dir string, pageNum int, page *model.TranslatedPage) error {
+func saveTranslatedRegionPage(dir string, pageNum int, page *model.TranslatedRegionPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
@@ -289,4 +289,15 @@ func saveTranslatedPage(dir string, pageNum int, page *model.TranslatedPage) err
 		return fmt.Errorf("rename page %d: %w", pageNum, err)
 	}
 	return nil
+}
+
+// countTranslatedRegionType counts translated regions of a specific type.
+func countTranslatedRegionType(regions []model.TranslatedRegion, regionType string) int {
+	count := 0
+	for _, r := range regions {
+		if r.Type == regionType {
+			count++
+		}
+	}
+	return count
 }
