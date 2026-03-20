@@ -13,7 +13,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
-	"github.com/mmdemirbas/mutercim/internal/renderer"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -58,19 +57,6 @@ func newAllCmd() *cobra.Command {
 					break
 				}
 			}
-			for _, f := range cfg.Write.Formats {
-				switch f {
-				case "pdf":
-					if err := renderer.CheckDocker(); err != nil {
-						return err
-					}
-				case "docx":
-					if err := renderer.CheckPandoc(); err != nil {
-						return err
-					}
-				}
-			}
-
 			logger := slog.Default()
 			disp := display.FromContext(cmd.Context())
 			if disp != nil {

@@ -8,7 +8,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
-	"github.com/mmdemirbas/mutercim/internal/renderer"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -56,20 +55,6 @@ func newWriteCmd() *cobra.Command {
 			if latexDockerImage != "" {
 				cfg.Write.LaTeXDockerImage = latexDockerImage
 			}
-			// Preflight checks
-			for _, f := range cfg.Write.Formats {
-				switch f {
-				case "pdf":
-					if err := renderer.CheckDocker(); err != nil {
-						return err
-					}
-				case "docx":
-					if err := renderer.CheckPandoc(); err != nil {
-						return err
-					}
-				}
-			}
-
 			// Determine page range
 			pageSpec := pages
 			var pagesToProcess []int

@@ -123,6 +123,14 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - `latex` format generates only `.tex` without compiling
 - Removed `skip_pdf` config field and `--skip-pdf` CLI flag
 
+## Write Phase Partial Failure Resilience
+- Each output format (md, latex, pdf, docx) is attempted independently
+- Tool checks (docker for pdf, pandoc for docx) happen just-in-time per format, not at startup
+- If one format fails, logged as WARN and remaining formats continue
+- Exit error only if ALL requested formats fail; partial success = exit 0
+- Preflight checks removed from cli/write.go and cli/make.go (moved into pipeline)
+- Summary logged: `wrote: [md latex], failed: [docx (pandoc not found)]`
+
 ## Arabic RTL and Letter Shaping in LaTeX/PDF
 - LaTeXRenderer accepts `Lang` field to configure language-aware preamble
 - Arabic-primary output (`Lang: "ar"`): `\setmainlanguage[numerals=maghrib]{arabic}`, no `\textarabic{}` wrappers

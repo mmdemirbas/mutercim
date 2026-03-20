@@ -126,3 +126,66 @@ func TestWriteLatex(t *testing.T) {
 }
 
 func intPtr(n int) *int { return &n }
+
+func TestWritePartialFailure_DocxWithoutPandoc(t *testing.T) {
+	ws, cfg := setupWriteWorkspace(t)
+	// Request md + docx. Pandoc is almost certainly not in PATH during tests,
+	// but md should succeed regardless.
+	cfg.Write.Formats = []string{"md", "docx"}
+
+	err := Write(context.Background(), WriteOptions{
+		Workspace: ws,
+		Config:    cfg,
+	})
+	// Should NOT return error — md succeeded, only docx failed (partial success)
+	if err != nil {
+		t.Fatalf("Write() should not error on partial success, got: %v", err)
+	}
+
+	// md should be written
+	mdPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.md")
+	if _, err := os.Stat(mdPath); err != nil {
+		t.Error("md should have been written despite docx failure")
+	}
+}
+
+func TestWriteAllFormatsFail(t *testing.T) {
+	ws, cfg := setupWriteWorkspace(t)
+	// Request only docx (requires pandoc, likely missing in tests)
+	cfg.Write.Formats = []string{"docx"}
+
+	// First write md so docx has input (docx requires md to exist)
+	// Actually docx will fail at pandoc check before even looking for md
+	err := Write(context.Background(), WriteOptions{
+		Workspace: ws,
+		Config:    cfg,
+	})
+	// Should return error since ALL formats failed
+	if err == nil {
+		// pandoc might be installed; skip in that case
+		t.Skip("pandoc is available, cannot test all-formats-fail scenario")
+	}
+}
+
+func TestWriteLatexWithoutDocker(t *testing.T) {
+	ws, cfg := setupWriteWorkspace(t)
+	// Request latex + pdf. Docker may not be available,
+	// but latex (.tex generation) should succeed regardless.
+	cfg.Write.Formats = []string{"latex", "pdf"}
+
+	err := Write(context.Background(), WriteOptions{
+		Workspace: ws,
+		Config:    cfg,
+	})
+
+	// latex should succeed, pdf may fail (if no docker) — partial success = no error
+	if err != nil {
+		t.Fatalf("Write() should not error on partial success, got: %v", err)
+	}
+
+	// .tex file should exist
+	texPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.tex")
+	if _, err := os.Stat(texPath); err != nil {
+		t.Error(".tex should have been written regardless of docker availability")
+	}
+}

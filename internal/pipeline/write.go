@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
@@ -120,38 +121,37 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 		opts.Display.StartPhase(display.PhaseWrite, stem, len(pages), targetLang)
 	}
 
-	// Render each requested format
-	var formatErrors []string
+	// Render each requested format independently — partial success is OK
+	var succeeded, failed []string
 	for _, format := range cfg.Write.Formats {
+		var err error
 		switch format {
 		case "md":
-			if err := compileMarkdown(ws, cfg, stem, targetLang, pages, logger); err != nil {
-				logger.Error("markdown compilation failed", "input", stem, "error", err)
-				formatErrors = append(formatErrors, fmt.Sprintf("md: %v", err))
-			}
+			err = compileMarkdown(ws, cfg, stem, targetLang, pages, logger)
 		case "latex":
-			if err := compileLatex(ctx, ws, cfg, stem, targetLang, pages, false, logger); err != nil {
-				logger.Error("latex compilation failed", "input", stem, "error", err)
-				formatErrors = append(formatErrors, fmt.Sprintf("latex: %v", err))
-			}
+			err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, false, logger)
 		case "pdf":
-			if err := compileLatex(ctx, ws, cfg, stem, targetLang, pages, true, logger); err != nil {
-				logger.Error("PDF compilation failed", "input", stem, "error", err)
-				formatErrors = append(formatErrors, fmt.Sprintf("pdf: %v", err))
+			if checkErr := renderer.CheckDocker(); checkErr != nil {
+				err = checkErr
+			} else {
+				err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, true, logger)
 			}
 		case "docx":
-			if err := compileDocx(ctx, ws, cfg, stem, targetLang, logger); err != nil {
-				logger.Error("docx compilation failed", "input", stem, "error", err)
-				formatErrors = append(formatErrors, fmt.Sprintf("docx: %v", err))
+			if checkErr := renderer.CheckPandoc(); checkErr != nil {
+				err = checkErr
+			} else {
+				err = compileDocx(ctx, ws, cfg, stem, targetLang, logger)
 			}
 		default:
 			logger.Warn("unknown format", "format", format)
+			continue
 		}
-	}
-	if len(formatErrors) > 0 {
-		fmt.Fprintf(os.Stderr, "WARNING: some output formats failed for %s [%s]:\n", stem, targetLang)
-		for _, e := range formatErrors {
-			fmt.Fprintf(os.Stderr, "  - %s\n", e)
+
+		if err != nil {
+			logger.Warn("format failed", "format", format, "input", stem, "error", err)
+			failed = append(failed, fmt.Sprintf("%s (%v)", format, err))
+		} else {
+			succeeded = append(succeeded, format)
 		}
 	}
 
@@ -163,7 +163,14 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 		opts.Display.FinishPhase(display.PhaseWrite, stem, targetLang)
 	}
 
-	logger.Info("write complete", "input", stem, "pages", len(pages), "formats", cfg.Write.Formats)
+	if len(succeeded) > 0 {
+		logger.Info("write complete", "input", stem, "wrote", succeeded, "failed", failed)
+	}
+
+	// Only return error if ALL formats failed
+	if len(succeeded) == 0 && len(failed) > 0 {
+		return fmt.Errorf("all formats failed for %s [%s]: %s", stem, targetLang, strings.Join(failed, "; "))
+	}
 	return nil
 }
 
