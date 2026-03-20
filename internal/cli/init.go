@@ -10,7 +10,6 @@ import (
 var (
 	initNonInteractive bool
 	initTitle          string
-	initAuthor         string
 	initSourceLangs    string
 	initTargetLangs    string
 )
@@ -19,13 +18,12 @@ func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize a new book workspace in current directory",
-		Long:  `Creates workspace directory structure (input/, output/, midstate/, knowledge/, reports/) and a default mutercim.yaml config file.`,
+		Long:  `Creates workspace directory structure (input/, knowledge/, log/, memory/, pages/, read/, solve/, translate/, write/) and a default mutercim.yaml config file.`,
 		RunE:  runInit,
 	}
 
 	cmd.Flags().BoolVar(&initNonInteractive, "non-interactive", false, "scaffold workspace with defaults, no prompts")
 	cmd.Flags().StringVar(&initTitle, "title", "", "book title (non-interactive mode)")
-	cmd.Flags().StringVar(&initAuthor, "author", "", "book author (non-interactive mode)")
 	cmd.Flags().StringVar(&initSourceLangs, "source-langs", "ar", "source languages, comma-separated (e.g. ar,fa)")
 	cmd.Flags().StringVar(&initTargetLangs, "target-langs", "tr", "target languages, comma-separated (e.g. tr,en)")
 
@@ -35,7 +33,6 @@ func newInitCmd() *cobra.Command {
 func runInit(cmd *cobra.Command, args []string) error {
 	opts := workspace.InitOptions{
 		Title:       initTitle,
-		Author:      initAuthor,
 		SourceLangs: initSourceLangs,
 		TargetLangs: initTargetLangs,
 	}
@@ -44,9 +41,6 @@ func runInit(cmd *cobra.Command, args []string) error {
 		// Interactive mode: prompt for inputs
 		fmt.Print("Book title: ")
 		fmt.Scanln(&opts.Title)
-
-		fmt.Print("Book author: ")
-		fmt.Scanln(&opts.Author)
 
 		fmt.Printf("Source languages (comma-separated) [%s]: ", initSourceLangs)
 		var sl string

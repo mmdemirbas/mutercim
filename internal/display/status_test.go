@@ -11,7 +11,6 @@ func TestRenderStatus_AllDone(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
 		BookTitle:   "el-Camiu's-Sagir",
-		BookAuthor:  "Imam Suyuti",
 		InputName:   "book.pdf",
 		InputPages:  612,
 		SourceLangs: []string{"ar"},
@@ -32,7 +31,6 @@ func TestRenderStatus_AllDone(t *testing.T) {
 
 	for _, want := range []string{
 		"el-Camiu's-Sagir",
-		"Imam Suyuti",
 		"book.pdf (612 pages)",
 		"ar",
 		"tr",

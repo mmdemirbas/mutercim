@@ -12,7 +12,6 @@ func TestInit(t *testing.T) {
 	ws, err := Init(InitOptions{
 		Dir:         dir,
 		Title:       "Test Book",
-		Author:      "Test Author",
 		SourceLangs: "ar",
 		TargetLangs: "tr",
 	})
@@ -56,9 +55,6 @@ func TestInit(t *testing.T) {
 	content := string(data)
 	if !contains(content, "Test Book") {
 		t.Error("config missing title")
-	}
-	if !contains(content, "Test Author") {
-		t.Error("config missing author")
 	}
 }
 

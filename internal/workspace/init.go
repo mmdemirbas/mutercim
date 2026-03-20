@@ -11,7 +11,6 @@ import (
 type InitOptions struct {
 	Dir         string
 	Title       string
-	Author      string
 	SourceLangs string // comma-separated, e.g. "ar" or "ar,fa"
 	TargetLangs string // comma-separated, e.g. "tr" or "tr,en"
 }
@@ -77,14 +76,8 @@ func generateConfig(opts InitOptions, sourceLangs, targetLangs []string) string 
 	if title == "" {
 		title = "Untitled Book"
 	}
-	author := opts.Author
-	if author == "" {
-		author = "Unknown Author"
-	}
-
 	return fmt.Sprintf(`book:
   title: %q
-  author: %q
   source_langs: [%s]
   target_langs: [%s]
 
@@ -144,7 +137,7 @@ retry:
 
 rate_limit:
   requests_per_minute: 14
-`, title, author, strings.Join(sourceLangs, ", "), strings.Join(targetLangs, ", "))
+`, title, strings.Join(sourceLangs, ", "), strings.Join(targetLangs, ", "))
 }
 
 // splitLangs splits a comma-separated language string into a slice.

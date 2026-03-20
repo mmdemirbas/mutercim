@@ -272,7 +272,6 @@ func TestRenderHeader_ColonAlignment(t *testing.T) {
 	var buf bytes.Buffer
 	RenderHeader(&buf, HeaderData{
 		BookTitle:   "Test Book",
-		BookAuthor:  "Author",
 		InputName:   "vol1.pdf",
 		InputPages:  100,
 		SourceLangs: []string{"ar"},

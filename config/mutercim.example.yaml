@@ -8,8 +8,7 @@
 # ─── Book metadata ───────────────────────────────────────────────────────────
 
 book:
-  title: "Test Book"                 # Book title (shown in dashboard and output)
-  author: "Unknown Author"           # Book author
+  title: "Test Book"                 # Book title (used as output filename for md, tex, pdf, docx)
   source_langs: [ ar ]               # Source language codes
   target_langs: [ tr ]               # Target language codes
 

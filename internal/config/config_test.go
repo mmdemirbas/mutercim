@@ -67,7 +67,6 @@ func TestLoadFromFile(t *testing.T) {
 	yaml := `
 book:
   title: "Test Book"
-  author: "Test Author"
   source_langs: [ar]
   target_langs: [tr]
 dpi: 600
@@ -97,9 +96,6 @@ rate_limit:
 
 	if cfg.Book.Title != "Test Book" {
 		t.Errorf("Book.Title = %q, want %q", cfg.Book.Title, "Test Book")
-	}
-	if cfg.Book.Author != "Test Author" {
-		t.Errorf("Book.Author = %q, want %q", cfg.Book.Author, "Test Author")
 	}
 	if cfg.DPI != 600 {
 		t.Errorf("DPI = %d, want 600", cfg.DPI)

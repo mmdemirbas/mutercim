@@ -33,7 +33,6 @@
 
 # NEXT
 
-- What is the purpose of the author field? Is it used anywhere? If not, then remove it.
 - Enrich schema documentation. Make purpose of each field clear. For example, where the "title" used, etc.
 
 - Dashboard is not stable. It should update the output, not re-write it. The mechanism should be

@@ -91,7 +91,6 @@ func newAllCmd() *cobra.Command {
 				}
 				disp.SetHeader(display.HeaderData{
 					BookTitle:   cfg.Book.Title,
-					BookAuthor:  cfg.Book.Author,
 					InputName:   inputName,
 					PageRange:   pageSpec,
 					SourceLangs: cfg.Book.SourceLangs,

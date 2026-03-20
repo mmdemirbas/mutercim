@@ -13,7 +13,6 @@ const barWidth = 20
 // HeaderData holds metadata shown in the header section of both live and status displays.
 type HeaderData struct {
 	BookTitle   string
-	BookAuthor  string
 	InputName   string
 	InputPages  int    // total pages available
 	PageRange   string // e.g. "1-50", empty means all
@@ -25,11 +24,7 @@ type HeaderData struct {
 func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 	lines := 0
 	if h.BookTitle != "" {
-		title := colors.Bold(h.BookTitle)
-		if h.BookAuthor != "" {
-			title += " " + colors.dim("\u2014") + " " + h.BookAuthor
-		}
-		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Book")), title)
+		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Book")), colors.Bold(h.BookTitle))
 		lines++
 	}
 	if h.InputName != "" {

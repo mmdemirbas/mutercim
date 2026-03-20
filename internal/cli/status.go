@@ -81,7 +81,6 @@ func runStatus(cmd *cobra.Command, args []string) error {
 
 	data := display.StatusData{
 		BookTitle:   cfg.Book.Title,
-		BookAuthor:  cfg.Book.Author,
 		InputName:   inputName,
 		InputPages:  totalImages,
 		PageRange:   "",

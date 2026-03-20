@@ -8,10 +8,6 @@
       "additionalProperties": false,
       "description": "Book metadata.",
       "properties": {
-        "author": {
-          "description": "Book author.",
-          "type": "string"
-        },
         "source_langs": {
           "default": [
             "ar"
@@ -33,7 +29,7 @@
           "type": "array"
         },
         "title": {
-          "description": "Book title.",
+          "description": "Book title. Used as the output filename for rendered files (md, tex, pdf, docx).",
           "type": "string"
         }
       },

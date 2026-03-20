@@ -36,8 +36,7 @@ func sectionTypeEnums() []string {
 var schemaAnnotations = map[string]schemaMeta{
 	// book
 	"book":              {Description: "Book metadata."},
-	"book.title":        {Description: "Book title."},
-	"book.author":       {Description: "Book author."},
+	"book.title":        {Description: "Book title. Used as the output filename for rendered files (md, tex, pdf, docx)."},
 	"book.source_langs": {Description: `Source language codes (e.g. ["ar"]).`, Default: []string{"ar"}},
 	"book.target_langs": {Description: `Target language codes (e.g. ["tr"]).`, Default: []string{"tr"}},
 
