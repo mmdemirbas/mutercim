@@ -33,8 +33,6 @@
 
 # NEXT
 
-- Enrich schema documentation. Make purpose of each field clear. For example, where the "title" used, etc.
-
 - Dashboard is not stable. It should update the output, not re-write it. The mechanism should be
   rewrite but user should experience it like in-place update. Also the output is reporting 'tr' 3 times while it should report 'tr', 'en' and 'ar' according to the given input.
 
@@ -73,3 +71,4 @@
 
 - Support fixing / completing tashkeels optionally in the arabic script.
 
+- continue writing other formats in case one fails. (for example, pandoc is not installed, so we cannot save docx, we should report it and continue saving other selected formats)

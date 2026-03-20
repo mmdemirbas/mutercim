@@ -8,13 +8,17 @@
 # ─── Book metadata ───────────────────────────────────────────────────────────
 
 book:
-  title: "Anfas1-demo"               # Book title (used as output filename for md, tex, pdf, docx)
-  source_langs: [ ar ]               # Source language codes
-  target_langs: [ ar, en, tr ]       # Target language codes
+  title: "Anfas1-demo"               # Book title — used as output filename: write/tr/<title>.md, .tex, .pdf, .docx
+                                     #   OS-prohibited chars replaced with -, falls back to "book" if empty
+  source_langs: [ ar ]               # Source language codes — primary (first) used for source markdown and AI prompts
+  target_langs: [ ar, en, tr ]       # Target language codes — each gets its own translate/ and write/ subdirectory
 
 # ─── Inputs ──────────────────────────────────────────────────────────────────
 #
-# Input files to process. Each entry has a path and optional page range.
+# Input files or directories to process.
+# PDFs are converted to page images via pdftoppm; image directories used as-is.
+# Filename stem (e.g. "vol1" from "vol1.pdf") becomes subdirectory name under pages/, read/, solve/.
+# Multiple inputs are processed independently, then merged in the write phase.
 #
 #   inputs:
 #     - path: ./input/vol1.pdf
@@ -24,49 +28,47 @@ book:
 #     - path: ./input/vol3.pdf       # all pages (default when pages omitted)
 
 inputs:
-  - path: ./input/Anfas1.pdf                    # Path relative to workspace root
-    pages: "155-160"
+  - path: ./input/Anfas1.pdf          # Path to input PDF or image directory (relative to workspace root)
+    pages: "155-160"                  # Page range for this input: "1-10,20-30" or "all" (default)
 
-# ─── Directories ─────────────────────────────────────────────────────────────
+# ─── Knowledge ───────────────────────────────────────────────────────────────
 
-knowledge_dir: ./knowledge           # Knowledge YAML files directory
+knowledge_dir: ./knowledge           # Knowledge YAML files directory (phrases, people, terms, places, sources)
+                                     #   Merged with embedded defaults and auto-extracted memory/ entries
 
 # ─── PDF conversion ──────────────────────────────────────────────────────────
 
-dpi: 300                             # DPI for PDF-to-image conversion (min: 72)
+dpi: 300                             # DPI for PDF-to-image conversion (min: 72) — higher = better OCR, larger files
 
 # ─── Sections ────────────────────────────────────────────────────────────────
 #
-# Define the book's internal layout structure.
+# Book section definitions — controls how the AI reads and translates page ranges.
 # Pages not covered by any section default to type: auto.
-# If no sections are defined, the entire book is type: auto.
 #
 # Section types:
-#   skip              — Don't process these pages
+#   skip              — Exclude from processing entirely
 #   prose             — Continuous paragraphs (introductions, prefaces)
-#   scholarly_entries  — Numbered entries + footnotes with source codes
-#   reference_table   — Key-value reference data (auto-staged to knowledge)
+#   scholarly_entries  — Numbered entries + footnotes with source codes (hadith collections)
+#   reference_table   — Source abbreviation lists (auto-staged to memory/ for resolution)
 #   toc               — Table of contents
 #   index             — Alphabetical index
-#   auto              — AI detects layout (default)
+#   auto              — AI detects layout (default for uncovered pages)
 
 sections: []
 # sections:
-#   - name: Front matter
-#     pages: "1-10"
-#     type: skip
-#     translate: false
+#   - name: Front matter             # Section name — shown in logs and status display
+#     pages: "1-10"                  # Page range this section covers
+#     type: skip                     # Layout type (see list above)
+#     translate: false               # Whether to translate (default: true)
 #   - name: Introduction
 #     pages: "11-20"
 #     type: prose
-#     translate: true                # default: true
 #   - name: Main content
 #     pages: "21-600"
 #     type: scholarly_entries
-#     translate: true
 #   - name: Abbreviations
 #     pages: "601-605"
-#     type: reference_table
+#     type: reference_table          # Entries auto-staged to memory/ for source resolution
 #     translate: false
 #   - name: Index
 #     pages: "606-612"
@@ -75,30 +77,27 @@ sections: []
 
 # ─── Read phase (OCR/vision) ─────────────────────────────────────────────────
 #
-# Models are tried in order. On 429 / quota exhaustion, fails over to next.
-# Models without vision support are automatically skipped for read phase.
+# Sends page images to AI vision models to extract structured JSON.
+# Models are tried in order; on 429/quota exhaustion, fails over to next.
+# All models here must support vision (image input).
 #
 # Providers:  gemini | claude | openai | groq | mistral | openrouter | xai | ollama
 # Default RPMs: gemini=10, groq=30, mistral=60, openrouter=20, openai=500, ollama=1000
 #
 # Per-model options:
-#   rpm:      Override default rate limit (requests per minute)
-#   vision:   Override vision auto-detection (true/false)
-#   base_url: Override API base URL (for custom/self-hosted endpoints)
+#   rpm:      Requests per minute override (0 = provider default)
+#   vision:   Vision support override (true/false, null = auto-detect)
+#   base_url: Custom API URL (for self-hosted OpenAI-compatible endpoints)
 #
-# Maximum free throughput configuration
-# Combined capacity: ~3,250+ pages/day for read, ~3,250+ for translate
-#
-# Sign up for API keys:
-#   Gemini: aistudio.google.com
-#   Groq: console.groq.com — instant, no credit card
-#   Mistral: console.mistral.ai — no credit card for free tier
-#   xAI: console.x.ai — $25 free credits on signup
+# API keys: put in .env file (GEMINI_API_KEY, GROQ_API_KEY, etc.)
+#   Gemini:     aistudio.google.com
+#   Groq:       console.groq.com — instant, no credit card
+#   Mistral:    console.mistral.ai — free tier available
+#   xAI:        console.x.ai — $25 free credits on signup
 #   OpenRouter: openrouter.ai — free models available immediately
-# Put the keys into .env file.
 
 read:
-  models:
+  models:                            # Ordered failover chain — first is primary
     # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
     - provider: gemini
       model: gemini-2.5-flash-lite
@@ -114,12 +113,16 @@ read:
     # 5. Local fallback: always available, slow
     - provider: ollama
       model: qwen2.5vl:7b
-  concurrency: 1                     # Reserved for future parallel processing (min: 1)
+  concurrency: 1                     # Parallel read workers (min: 1) — currently only 1 supported
 
 # ─── Translation phase ───────────────────────────────────────────────────────
+#
+# Sends structured page data to AI with knowledge-enriched prompts.
+# Vision is NOT required — text-only models work here.
+# Knowledge (honorifics, sources, terminology) is injected into the system prompt.
 
 translate:
-  models:
+  models:                            # Ordered failover chain — vision not required
     # 1. Groq: fastest inference, good Arabic (1,000 RPD, 30 RPM)
     - provider: groq
       model: llama-3.3-70b-versatile
@@ -141,24 +144,31 @@ translate:
     # 7. Local fallback
     - provider: ollama
       model: qwen3:14b
-  context_window: 2                  # Previous pages included for context (min: 0)
+  context_window: 2                  # Previous pages included for continuity (min: 0, higher = more tokens)
 
 # ─── Write phase ─────────────────────────────────────────────────────────────
+#
+# Renders translated data into final output files under write/<lang>/.
+# Files are named after book.title (sanitized).
 
 write:
-  formats: [md, latex, docx, pdf]    # Output formats: md | latex | pdf | docx
-  expand_sources: true               # Expand source abbreviations in output
-  latex_docker_image: mutercim/xelatex:latest  # Docker image for PDF compilation
+  formats: [md, latex, docx, pdf]    # Output formats: md | latex (.tex only) | pdf (.tex + compile) | docx (via pandoc)
+  expand_sources: true               # Expand source abbreviations in output (e.g. خ → Sahîh-i Buhârî)
+  latex_docker_image: mutercim/xelatex:latest  # Docker image for LaTeX→PDF compilation (needs xelatex + Arabic fonts)
 
 # ─── Retry settings ──────────────────────────────────────────────────────────
+#
+# Applies to both read and translate API calls.
+# Respects Retry-After headers (capped at 30s).
 
 retry:
-  max_attempts: 3                    # Maximum retry attempts (min: 0)
-  backoff_seconds: 2                 # Base backoff in seconds, exponential: 2s, 4s, 8s (min: 1)
+  max_attempts: 3                    # Max retries per API call before marking page as failed (min: 0)
+  backoff_seconds: 2                 # Base backoff in seconds, exponential: 2s, 4s, 8s... (min: 1)
 
 # ─── Rate limiting (global fallback) ─────────────────────────────────────────
-# Per-model RPM in the models list takes precedence over this global setting.
+#
+# Per-model RPM in the models list takes precedence.
+# Only used when a model doesn't specify its own rpm value.
 
-# TODO: Redundant section, remove?
 rate_limit:
   requests_per_minute: 14            # Max API requests per minute (min: 1)

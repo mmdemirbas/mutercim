@@ -6,13 +6,13 @@
   "properties": {
     "book": {
       "additionalProperties": false,
-      "description": "Book metadata.",
+      "description": "Book metadata used in output filenames and display headers.",
       "properties": {
         "source_langs": {
           "default": [
             "ar"
           ],
-          "description": "Source language codes (e.g. [\"ar\"]).",
+          "description": "Source language codes. The primary (first) language is used for source-language markdown output and AI prompt configuration.",
           "items": {
             "type": "string"
           },
@@ -22,14 +22,14 @@
           "default": [
             "tr"
           ],
-          "description": "Target language codes (e.g. [\"tr\"]).",
+          "description": "Target language codes. Each language gets its own translate/ and write/ subdirectory. Translation runs once per target language.",
           "items": {
             "type": "string"
           },
           "type": "array"
         },
         "title": {
-          "description": "Book title. Used as the output filename for rendered files (md, tex, pdf, docx).",
+          "description": "Book title. Sanitized and used as the output filename stem for write/ deliverables (e.g. write/tr/\u003ctitle\u003e.md). OS-prohibited characters are replaced with dashes; falls back to 'book' if empty.",
           "type": "string"
         }
       },
@@ -37,7 +37,7 @@
     },
     "dpi": {
       "default": 300,
-      "description": "DPI for PDF-to-image conversion.",
+      "description": "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.",
       "minimum": 72,
       "type": "integer"
     },
@@ -47,16 +47,16 @@
           "path": "./input"
         }
       ],
-      "description": "Input files with optional per-input page ranges.",
+      "description": "Input files or directories. PDFs are converted to page images via pdftoppm; image directories are used as-is. Multiple inputs are processed independently through read/solve/translate, then merged in write.",
       "items": {
         "additionalProperties": false,
         "properties": {
           "pages": {
-            "description": "Page range for this input (e.g. \"1-50\", \"1,5,10-20\", \"all\").",
+            "description": "Optional page range to process from this input (e.g. \"1-50\", \"1,5,10-20\"). If omitted, all pages are processed. Can also be set globally via the --pages CLI flag.",
             "type": "string"
           },
           "path": {
-            "description": "Path to the input file (relative to workspace root).",
+            "description": "Path to input PDF or image directory (relative to workspace root). The filename stem becomes the subdirectory name under pages/, read/, solve/.",
             "type": "string"
           }
         },
@@ -69,16 +69,16 @@
     },
     "knowledge_dir": {
       "default": "./knowledge",
-      "description": "Knowledge YAML files directory (relative to workspace root).",
+      "description": "Directory containing knowledge YAML files (phrases, people, terms, places, sources). These are merged with embedded defaults and auto-extracted memory/ entries. Relative to workspace root.",
       "type": "string"
     },
     "rate_limit": {
       "additionalProperties": false,
-      "description": "Rate limiting settings for API calls.",
+      "description": "Global rate limiting fallback for API calls. Per-model RPM in the models list takes precedence over this setting.",
       "properties": {
         "requests_per_minute": {
           "default": 14,
-          "description": "Maximum requests per minute.",
+          "description": "Maximum requests per minute across all API calls. Only used when a model doesn't specify its own rpm value.",
           "minimum": 1,
           "type": "integer"
         }
@@ -87,29 +87,29 @@
     },
     "read": {
       "additionalProperties": false,
-      "description": "Read phase (OCR/vision) settings.",
+      "description": "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata).",
       "properties": {
         "concurrency": {
           "default": 1,
-          "description": "Reserved for future parallel processing.",
+          "description": "Number of parallel page-reading workers. Currently only 1 is supported.",
           "minimum": 1,
           "type": "integer"
         },
         "models": {
-          "description": "Ordered failover chain of models. First model is primary; on 429/quota exhaustion, fails over to next.",
+          "description": "Ordered failover chain of AI models for OCR. The first model is primary; if it returns 429/quota errors, the next model is tried. All models must support vision for the read phase.",
           "items": {
             "additionalProperties": false,
             "properties": {
               "base_url": {
-                "description": "Override base URL for OpenAI-compatible providers.",
+                "description": "Custom API base URL. Only needed for self-hosted or non-standard OpenAI-compatible endpoints. Standard providers use built-in URLs.",
                 "type": "string"
               },
               "model": {
-                "description": "Model name.",
+                "description": "Model identifier as expected by the provider's API (e.g. 'gemini-2.5-flash-lite', 'claude-sonnet-4-20250514').",
                 "type": "string"
               },
               "provider": {
-                "description": "AI provider name.",
+                "description": "AI provider name. Determines the API endpoint and authentication method.",
                 "enum": [
                   "gemini",
                   "claude",
@@ -123,7 +123,7 @@
                 "type": "string"
               },
               "rpm": {
-                "description": "Requests per minute (0 = use provider default).",
+                "description": "Requests per minute limit for this model. Overrides the provider default. Set to 0 to use the provider's default RPM.",
                 "type": "integer"
               },
               "vision": {}
@@ -137,17 +137,17 @@
     },
     "retry": {
       "additionalProperties": false,
-      "description": "Retry settings for API calls.",
+      "description": "Retry settings for failed API calls. Applies to both read and translate phases.",
       "properties": {
         "backoff_seconds": {
           "default": 2,
-          "description": "Base backoff duration in seconds (exponential: 2s, 4s, 8s).",
+          "description": "Base backoff duration in seconds. Uses exponential backoff: 2s, 4s, 8s, etc. Retry-After headers from the API are respected but capped at 30s.",
           "minimum": 1,
           "type": "integer"
         },
         "max_attempts": {
           "default": 3,
-          "description": "Maximum number of retry attempts.",
+          "description": "Maximum number of retry attempts per API call before marking the page as failed and moving to the next one.",
           "minimum": 0,
           "type": "integer"
         }
@@ -156,25 +156,25 @@
     },
     "sections": {
       "default": [],
-      "description": "Book section definitions. Pages not covered default to type: auto.",
+      "description": "Book section definitions that control how pages are processed. Sections define the layout type for page ranges, which affects OCR parsing and translation prompts. Pages not covered by any section default to type 'auto'.",
       "items": {
         "additionalProperties": false,
         "properties": {
           "name": {
-            "description": "Section name (for display/logging).",
+            "description": "Human-readable section name shown in logs and status display.",
             "type": "string"
           },
           "pages": {
-            "description": "Page range (e.g. \"1-50\", \"1,5,10-20\").",
+            "description": "Page range this section covers (e.g. \"1-5\", \"6-100\"). Pages can only belong to one section.",
             "type": "string"
           },
           "translate": {
             "default": true,
-            "description": "Whether to translate this section.",
+            "description": "Whether to translate this section. Set to false for reference_table or appendix sections that should be read but not translated.",
             "type": "boolean"
           },
           "type": {
-            "description": "Section layout type.",
+            "description": "Layout type that determines how the AI reads and translates pages. 'scholarly_entries' for hadith collections, 'prose' for continuous text, 'reference_table' for source abbreviation lists (auto-staged to memory/), 'skip' to exclude pages.",
             "enum": [
               "skip",
               "prose",
@@ -198,25 +198,25 @@
     },
     "translate": {
       "additionalProperties": false,
-      "description": "Translation phase settings.",
+      "description": "Translation phase settings. The translate phase sends structured page data to an AI model with knowledge-enriched prompts to produce translated text.",
       "properties": {
         "context_window": {
           "default": 2,
-          "description": "Number of previous pages to include as context.",
+          "description": "Number of previous pages included in the translation prompt for continuity. Higher values give better cross-page consistency but use more tokens.",
           "minimum": 0,
           "type": "integer"
         },
         "models": {
-          "description": "Ordered failover chain of models for translation.",
+          "description": "Ordered failover chain of AI models for translation. Vision support is not required for translation (text-only). Non-vision models like Groq llama are valid here.",
           "items": {
             "additionalProperties": false,
             "properties": {
               "base_url": {
-                "description": "Override base URL for OpenAI-compatible providers.",
+                "description": "Custom API base URL for OpenAI-compatible endpoints.",
                 "type": "string"
               },
               "model": {
-                "description": "Model name.",
+                "description": "Model identifier as expected by the provider's API.",
                 "type": "string"
               },
               "provider": {
@@ -234,7 +234,7 @@
                 "type": "string"
               },
               "rpm": {
-                "description": "Requests per minute (0 = use provider default).",
+                "description": "Requests per minute limit for this model. Overrides the provider default.",
                 "type": "integer"
               },
               "vision": {}
@@ -248,11 +248,11 @@
     },
     "write": {
       "additionalProperties": false,
-      "description": "Write/compilation phase settings.",
+      "description": "Write phase settings. The write phase renders translated data into final output files (markdown, LaTeX, PDF, DOCX) under write/\u003clang\u003e/.",
       "properties": {
         "expand_sources": {
           "default": true,
-          "description": "Expand source abbreviations in output.",
+          "description": "When true, source abbreviations in footnotes are expanded to full names in the rendered output (e.g. 'خ' becomes 'Sahîh-i Buhârî').",
           "type": "boolean"
         },
         "formats": {
@@ -262,7 +262,7 @@
             "docx",
             "pdf"
           ],
-          "description": "Output formats to generate.",
+          "description": "Output formats to generate. 'md' produces markdown, 'latex' produces .tex only, 'pdf' produces .tex and compiles to PDF via Docker, 'docx' converts markdown to Word via pandoc.",
           "items": {
             "enum": [
               "md",
@@ -276,7 +276,7 @@
         },
         "latex_docker_image": {
           "default": "mutercim/xelatex:latest",
-          "description": "Docker image for LaTeX/PDF compilation.",
+          "description": "Docker image used to compile LaTeX to PDF. Must have xelatex with Arabic/Turkish font support. The image is invoked as: docker run --rm -v \u003cdir\u003e:/data \u003cimage\u003e book.tex",
           "type": "string"
         }
       },

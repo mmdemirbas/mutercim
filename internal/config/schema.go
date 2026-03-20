@@ -35,67 +35,67 @@ func sectionTypeEnums() []string {
 // Structure (field names, types, nesting) comes from reflection on the Go types.
 var schemaAnnotations = map[string]schemaMeta{
 	// book
-	"book":              {Description: "Book metadata."},
-	"book.title":        {Description: "Book title. Used as the output filename for rendered files (md, tex, pdf, docx)."},
-	"book.source_langs": {Description: `Source language codes (e.g. ["ar"]).`, Default: []string{"ar"}},
-	"book.target_langs": {Description: `Target language codes (e.g. ["tr"]).`, Default: []string{"tr"}},
+	"book":              {Description: "Book metadata used in output filenames and display headers."},
+	"book.title":        {Description: "Book title. Sanitized and used as the output filename stem for write/ deliverables (e.g. write/tr/<title>.md). OS-prohibited characters are replaced with dashes; falls back to 'book' if empty."},
+	"book.source_langs": {Description: `Source language codes. The primary (first) language is used for source-language markdown output and AI prompt configuration.`, Default: []string{"ar"}},
+	"book.target_langs": {Description: `Target language codes. Each language gets its own translate/ and write/ subdirectory. Translation runs once per target language.`, Default: []string{"tr"}},
 
 	// inputs
-	"inputs":         {Description: "Input files with optional per-input page ranges.", Default: []map[string]string{{"path": "./input"}}},
+	"inputs":         {Description: "Input files or directories. PDFs are converted to page images via pdftoppm; image directories are used as-is. Multiple inputs are processed independently through read/solve/translate, then merged in write.", Default: []map[string]string{{"path": "./input"}}},
 	"inputs[]":       {Required: []string{"path"}},
-	"inputs[].path":  {Description: "Path to the input file (relative to workspace root)."},
-	"inputs[].pages": {Description: `Page range for this input (e.g. "1-50", "1,5,10-20", "all").`},
+	"inputs[].path":  {Description: "Path to input PDF or image directory (relative to workspace root). The filename stem becomes the subdirectory name under pages/, read/, solve/."},
+	"inputs[].pages": {Description: `Optional page range to process from this input (e.g. "1-50", "1,5,10-20"). If omitted, all pages are processed. Can also be set globally via the --pages CLI flag.`},
 
 	// top-level
-	"dpi": {Description: "DPI for PDF-to-image conversion.", Default: 300, Minimum: intPtr(72)},
+	"dpi": {Description: "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.", Default: 300, Minimum: intPtr(72)},
 
 	// sections
-	"sections":             {Description: "Book section definitions. Pages not covered default to type: auto.", Default: []any{}},
+	"sections":             {Description: "Book section definitions that control how pages are processed. Sections define the layout type for page ranges, which affects OCR parsing and translation prompts. Pages not covered by any section default to type 'auto'.", Default: []any{}},
 	"sections[]":           {Required: []string{"name", "pages", "type"}},
-	"sections[].name":      {Description: "Section name (for display/logging)."},
-	"sections[].pages":     {Description: `Page range (e.g. "1-50", "1,5,10-20").`},
-	"sections[].type":      {Description: "Section layout type.", Enum: sectionTypeEnums()},
-	"sections[].translate": {Description: "Whether to translate this section.", Default: true},
+	"sections[].name":      {Description: "Human-readable section name shown in logs and status display."},
+	"sections[].pages":     {Description: `Page range this section covers (e.g. "1-5", "6-100"). Pages can only belong to one section.`},
+	"sections[].type":      {Description: "Layout type that determines how the AI reads and translates pages. 'scholarly_entries' for hadith collections, 'prose' for continuous text, 'reference_table' for source abbreviation lists (auto-staged to memory/), 'skip' to exclude pages.", Enum: sectionTypeEnums()},
+	"sections[].translate": {Description: "Whether to translate this section. Set to false for reference_table or appendix sections that should be read but not translated.", Default: true},
 
 	// read
-	"read":                   {Description: "Read phase (OCR/vision) settings."},
-	"read.models":            {Description: "Ordered failover chain of models. First model is primary; on 429/quota exhaustion, fails over to next."},
+	"read":                   {Description: "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata)."},
+	"read.models":            {Description: "Ordered failover chain of AI models for OCR. The first model is primary; if it returns 429/quota errors, the next model is tried. All models must support vision for the read phase."},
 	"read.models[]":          {},
-	"read.models[].provider": {Description: "AI provider name.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
-	"read.models[].model":    {Description: "Model name."},
-	"read.models[].rpm":      {Description: "Requests per minute (0 = use provider default)."},
-	"read.models[].vision":   {Description: "Whether this model supports vision. Null = auto-detect from provider."},
-	"read.models[].base_url": {Description: "Override base URL for OpenAI-compatible providers."},
-	"read.concurrency":       {Description: "Reserved for future parallel processing.", Default: 1, Minimum: intPtr(1)},
+	"read.models[].provider": {Description: "AI provider name. Determines the API endpoint and authentication method.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
+	"read.models[].model":    {Description: "Model identifier as expected by the provider's API (e.g. 'gemini-2.5-flash-lite', 'claude-sonnet-4-20250514')."},
+	"read.models[].rpm":      {Description: "Requests per minute limit for this model. Overrides the provider default. Set to 0 to use the provider's default RPM."},
+	"read.models[].vision":   {Description: "Whether this model supports image input. Required for the read phase. Set explicitly to override auto-detection (e.g. some Groq models support vision but aren't detected automatically)."},
+	"read.models[].base_url": {Description: "Custom API base URL. Only needed for self-hosted or non-standard OpenAI-compatible endpoints. Standard providers use built-in URLs."},
+	"read.concurrency":       {Description: "Number of parallel page-reading workers. Currently only 1 is supported.", Default: 1, Minimum: intPtr(1)},
 
 	// translate
-	"translate":                   {Description: "Translation phase settings."},
-	"translate.models":            {Description: "Ordered failover chain of models for translation."},
+	"translate":                   {Description: "Translation phase settings. The translate phase sends structured page data to an AI model with knowledge-enriched prompts to produce translated text."},
+	"translate.models":            {Description: "Ordered failover chain of AI models for translation. Vision support is not required for translation (text-only). Non-vision models like Groq llama are valid here."},
 	"translate.models[]":          {},
 	"translate.models[].provider": {Description: "AI provider name.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
-	"translate.models[].model":    {Description: "Model name."},
-	"translate.models[].rpm":      {Description: "Requests per minute (0 = use provider default)."},
-	"translate.models[].vision":   {Description: "Whether this model supports vision."},
-	"translate.models[].base_url": {Description: "Override base URL for OpenAI-compatible providers."},
-	"translate.context_window":    {Description: "Number of previous pages to include as context.", Default: 2, Minimum: intPtr(0)},
+	"translate.models[].model":    {Description: "Model identifier as expected by the provider's API."},
+	"translate.models[].rpm":      {Description: "Requests per minute limit for this model. Overrides the provider default."},
+	"translate.models[].vision":   {Description: "Whether this model supports vision. Not required for translation."},
+	"translate.models[].base_url": {Description: "Custom API base URL for OpenAI-compatible endpoints."},
+	"translate.context_window":    {Description: "Number of previous pages included in the translation prompt for continuity. Higher values give better cross-page consistency but use more tokens.", Default: 2, Minimum: intPtr(0)},
 
 	// write
-	"write":                    {Description: "Write/compilation phase settings."},
-	"write.formats":            {Description: "Output formats to generate.", Default: []string{"md", "latex", "docx", "pdf"}, ItemEnum: []string{"md", "latex", "pdf", "docx"}},
-	"write.expand_sources":     {Description: "Expand source abbreviations in output.", Default: true},
-	"write.latex_docker_image": {Description: "Docker image for LaTeX/PDF compilation.", Default: "mutercim/xelatex:latest"},
+	"write":                    {Description: "Write phase settings. The write phase renders translated data into final output files (markdown, LaTeX, PDF, DOCX) under write/<lang>/."},
+	"write.formats":            {Description: "Output formats to generate. 'md' produces markdown, 'latex' produces .tex only, 'pdf' produces .tex and compiles to PDF via Docker, 'docx' converts markdown to Word via pandoc.", Default: []string{"md", "latex", "docx", "pdf"}, ItemEnum: []string{"md", "latex", "pdf", "docx"}},
+	"write.expand_sources":     {Description: "When true, source abbreviations in footnotes are expanded to full names in the rendered output (e.g. 'خ' becomes 'Sahîh-i Buhârî').", Default: true},
+	"write.latex_docker_image": {Description: "Docker image used to compile LaTeX to PDF. Must have xelatex with Arabic/Turkish font support. The image is invoked as: docker run --rm -v <dir>:/data <image> book.tex", Default: "mutercim/xelatex:latest"},
 
 	// knowledge
-	"knowledge_dir": {Description: "Knowledge YAML files directory (relative to workspace root).", Default: "./knowledge"},
+	"knowledge_dir": {Description: "Directory containing knowledge YAML files (phrases, people, terms, places, sources). These are merged with embedded defaults and auto-extracted memory/ entries. Relative to workspace root.", Default: "./knowledge"},
 
 	// retry
-	"retry":                 {Description: "Retry settings for API calls."},
-	"retry.max_attempts":    {Description: "Maximum number of retry attempts.", Default: 3, Minimum: intPtr(0)},
-	"retry.backoff_seconds": {Description: "Base backoff duration in seconds (exponential: 2s, 4s, 8s).", Default: 2, Minimum: intPtr(1)},
+	"retry":                 {Description: "Retry settings for failed API calls. Applies to both read and translate phases."},
+	"retry.max_attempts":    {Description: "Maximum number of retry attempts per API call before marking the page as failed and moving to the next one.", Default: 3, Minimum: intPtr(0)},
+	"retry.backoff_seconds": {Description: "Base backoff duration in seconds. Uses exponential backoff: 2s, 4s, 8s, etc. Retry-After headers from the API are respected but capped at 30s.", Default: 2, Minimum: intPtr(1)},
 
 	// rate_limit
-	"rate_limit":                     {Description: "Rate limiting settings for API calls."},
-	"rate_limit.requests_per_minute": {Description: "Maximum requests per minute.", Default: 14, Minimum: intPtr(1)},
+	"rate_limit":                     {Description: "Global rate limiting fallback for API calls. Per-model RPM in the models list takes precedence over this setting."},
+	"rate_limit.requests_per_minute": {Description: "Maximum requests per minute across all API calls. Only used when a model doesn't specify its own rpm value.", Default: 14, Minimum: intPtr(1)},
 }
 
 // GenerateSchema produces a JSON Schema for the mutercim configuration file.
