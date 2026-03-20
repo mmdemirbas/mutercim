@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -46,11 +45,12 @@ between languages, preserving layout, structure, and domain-specific terminology
 			var logFileHandle *os.File
 			ws, wsErr := workspace.Discover(".")
 			if wsErr == nil {
-				logPath := filepath.Join(ws.Root, "mutercim.log")
-				f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-				if err == nil {
-					logFileHandle = f
-					fileLogger = slog.New(newHumanHandler(f, level))
+				if err := os.MkdirAll(ws.LogDir(), 0755); err == nil {
+					f, err := os.OpenFile(ws.LogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+					if err == nil {
+						logFileHandle = f
+						fileLogger = slog.New(newHumanHandler(f, level))
+					}
 				}
 			}
 			if fileLogger == nil {
@@ -94,7 +94,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 
 	// Pipeline commands — ordered by phase
 	addToGroup(rootCmd, "pipeline",
-		ordered(1, newMakeCmd()),
+		ordered(1, newAllCmd()),
 		ordered(2, newPagesCmd()),
 		ordered(3, newReadCmd()),
 		ordered(4, newSolveCmd()),
@@ -108,6 +108,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 		ordered(2, newStatusCmd()),
 		ordered(3, newConfigCmd()),
 		ordered(4, newKnowledgeCmd()),
+		ordered(5, newCleanCmd()),
 	)
 
 	// Custom help template that respects our ordering

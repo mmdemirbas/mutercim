@@ -45,7 +45,7 @@ func newKnowledgeListCmd() *cobra.Command {
 			}
 
 			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
-			k, err := knowledge.Load(knowledgeDir, ws.StagedDir())
+			k, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
 			}
@@ -95,7 +95,7 @@ func newKnowledgeStagedCmd() *cobra.Command {
 
 			fmt.Printf("%d staged file(s):\n", len(files))
 			for _, f := range files {
-				path := filepath.Join(ws.StagedDir(), f)
+				path := filepath.Join(ws.MemoryDir(), f)
 				info, err := os.Stat(path)
 				if err != nil {
 					fmt.Printf("  %s\n", f)
@@ -136,7 +136,7 @@ func newKnowledgeDiffCmd() *cobra.Command {
 			}
 
 			// Load all three layers (including staged)
-			merged, err := knowledge.Load(knowledgeDir, ws.StagedDir())
+			merged, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
 			if err != nil {
 				return fmt.Errorf("load merged knowledge: %w", err)
 			}

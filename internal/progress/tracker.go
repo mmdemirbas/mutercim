@@ -162,6 +162,24 @@ func (t *Tracker) SetBookID(id string) {
 	t.state.BookID = id
 }
 
+// DeletePhase removes a phase entry from the tracker state.
+func (t *Tracker) DeletePhase(phase PhaseName) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.state.Phases, phase)
+}
+
+// PhaseNames returns all phase names in the tracker state.
+func (t *Tracker) PhaseNames() []PhaseName {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	names := make([]PhaseName, 0, len(t.state.Phases))
+	for name := range t.state.Phases {
+		names = append(names, name)
+	}
+	return names
+}
+
 func (t *Tracker) ensurePhase(phase PhaseName) *PhaseState {
 	ps, ok := t.state.Phases[phase]
 	if !ok {

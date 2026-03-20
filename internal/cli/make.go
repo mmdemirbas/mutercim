@@ -18,11 +18,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newMakeCmd() *cobra.Command {
+func newAllCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:       "make [formats...]",
+		Use:       "all [formats...]",
 		Short:     "(Phase *) Run all phases: pages -> read -> solve -> translate -> write",
-		Long:      "Executes the full pipeline sequentially. Validates system dependencies before starting.\n\nOptional format arguments override the write phase output formats:\n  mutercim make pdf\n  mutercim make md docx",
+		Long:      "Executes the full pipeline sequentially. Validates system dependencies before starting.\n\nOptional format arguments override the write phase output formats:\n  mutercim all pdf\n  mutercim all md docx",
 		ValidArgs: []string{"md", "latex", "tex", "pdf", "docx"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
@@ -153,7 +153,7 @@ func newMakeCmd() *cobra.Command {
 			// Phase 2: Solve
 			logger.Info("=== Phase 2: SOLVE ===")
 			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
-			k, err := knowledge.Load(knowledgeDir, ws.StagedDir())
+			k, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
 			}
@@ -223,7 +223,7 @@ func newMakeCmd() *cobra.Command {
 			fmt.Fprintf(os.Stderr, "  Read:      %d pages (%d failed)\n", readResult.Completed, readResult.Failed)
 			fmt.Fprintf(os.Stderr, "  Solve:     %d pages (%d failed)\n", solveResult.Completed, solveResult.Failed)
 			fmt.Fprintf(os.Stderr, "  Translate: %d pages (%d failed)\n", translateResult.Completed, translateResult.Failed)
-			fmt.Fprintf(os.Stderr, "  Output:    %s\n", filepath.Join(ws.Root, cfg.Output))
+			fmt.Fprintf(os.Stderr, "  Output:    %s\n", ws.WriteDir())
 			fmt.Fprintln(os.Stderr)
 			return nil
 		},

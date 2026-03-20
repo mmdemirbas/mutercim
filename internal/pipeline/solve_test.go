@@ -13,12 +13,12 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-// setupSolveWorkspace creates a workspace with read pages already in midstate/read/<stem>/.
+// setupSolveWorkspace creates a workspace with read pages already in read/<stem>/.
 func setupSolveWorkspace(t *testing.T, stem string, pages map[int]*model.ReadPage) (*workspace.Workspace, *progress.Tracker) {
 	t.Helper()
 	dir := t.TempDir()
 
-	readDir := filepath.Join(dir, "midstate", "read", stem)
+	readDir := filepath.Join(dir, "read", stem)
 	if err := os.MkdirAll(readDir, 0755); err != nil {
 		t.Fatalf("mkdir read dir: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestSolvePipeline(t *testing.T) {
 	}
 
 	// Verify output file was created
-	outputPath := filepath.Join(ws.SolvedDir(), "testbook", "page_001.json")
+	outputPath := filepath.Join(ws.SolveDir(), "testbook", "page_001.json")
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
 		t.Fatalf("read solved output: %v", err)
@@ -166,7 +166,7 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 	}
 
 	// Create the output file so skip logic sees it as truly complete
-	solvedDir := filepath.Join(ws.SolvedDir(), "testbook")
+	solvedDir := filepath.Join(ws.SolveDir(), "testbook")
 	if err := os.MkdirAll(solvedDir, 0755); err != nil {
 		t.Fatalf("mkdir solved dir: %v", err)
 	}
@@ -198,8 +198,8 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 func TestSolvePipelineNoReadPages(t *testing.T) {
 	dir := t.TempDir()
 
-	// midstate/read/ exists but is empty (no subdirs)
-	if err := os.MkdirAll(filepath.Join(dir, "midstate", "read"), 0755); err != nil {
+	// read/ exists but is empty (no subdirs)
+	if err := os.MkdirAll(filepath.Join(dir, "read"), 0755); err != nil {
 		t.Fatalf("mkdir read dir: %v", err)
 	}
 
@@ -224,7 +224,7 @@ func TestSolvePipelineNoReadPages(t *testing.T) {
 func TestSolvePipelineMissingReadDir(t *testing.T) {
 	dir := t.TempDir()
 
-	// midstate/read/ doesn't exist at all
+	// read/ doesn't exist at all
 	ws := &workspace.Workspace{Root: dir}
 	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 

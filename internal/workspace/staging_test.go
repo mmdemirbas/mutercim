@@ -20,7 +20,7 @@ func TestListStagedFiles(t *testing.T) {
 	}
 
 	// Create staged dir with files
-	stagedDir := ws.StagedDir()
+	stagedDir := ws.MemoryDir()
 	os.MkdirAll(stagedDir, 0755)
 	os.WriteFile(filepath.Join(stagedDir, "sources.yaml"), []byte("entries: []"), 0644)
 	os.WriteFile(filepath.Join(stagedDir, "other.txt"), []byte("x"), 0644)
@@ -43,12 +43,12 @@ func TestPromoteStagedFile(t *testing.T) {
 	ws := &Workspace{Root: dir}
 
 	// Create staged and knowledge dirs
-	os.MkdirAll(ws.StagedDir(), 0755)
+	os.MkdirAll(ws.MemoryDir(), 0755)
 	os.MkdirAll(ws.KnowledgeDir(), 0755)
 
 	// Create a staged file
 	content := []byte("entries:\n  - code: test\n")
-	os.WriteFile(filepath.Join(ws.StagedDir(), "sources.yaml"), content, 0644)
+	os.WriteFile(filepath.Join(ws.MemoryDir(), "sources.yaml"), content, 0644)
 
 	err := ws.PromoteStagedFile("sources.yaml", false)
 	if err != nil {
@@ -69,10 +69,10 @@ func TestPromoteStagedFileAlreadyExists(t *testing.T) {
 	dir := t.TempDir()
 	ws := &Workspace{Root: dir}
 
-	os.MkdirAll(ws.StagedDir(), 0755)
+	os.MkdirAll(ws.MemoryDir(), 0755)
 	os.MkdirAll(ws.KnowledgeDir(), 0755)
 
-	os.WriteFile(filepath.Join(ws.StagedDir(), "sources.yaml"), []byte("new"), 0644)
+	os.WriteFile(filepath.Join(ws.MemoryDir(), "sources.yaml"), []byte("new"), 0644)
 	os.WriteFile(filepath.Join(ws.KnowledgeDir(), "sources.yaml"), []byte("existing"), 0644)
 
 	// Without replace — should error
@@ -96,7 +96,7 @@ func TestPromoteStagedFileAlreadyExists(t *testing.T) {
 func TestPromoteStagedFileNotFound(t *testing.T) {
 	dir := t.TempDir()
 	ws := &Workspace{Root: dir}
-	os.MkdirAll(ws.StagedDir(), 0755)
+	os.MkdirAll(ws.MemoryDir(), 0755)
 
 	err := ws.PromoteStagedFile("nonexistent.yaml", false)
 	if err == nil {

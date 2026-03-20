@@ -32,10 +32,10 @@ func TestPagesSkipsImageDirectory(t *testing.T) {
 		t.Fatalf("Pages() error: %v", err)
 	}
 
-	// midstate/images/ should NOT have been created since input isn't a PDF
-	stemDir := filepath.Join(ws.ImagesDir(), filepath.Base(imagesDir))
+	// pages/ should NOT have been created since input isn't a PDF
+	stemDir := filepath.Join(ws.PagesDir(), filepath.Base(imagesDir))
 	if _, err := os.Stat(stemDir); err == nil {
-		t.Error("expected no midstate/images/<stem> dir for non-PDF input")
+		t.Error("expected no pages/<stem> dir for non-PDF input")
 	}
 }
 

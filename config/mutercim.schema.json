@@ -76,16 +76,6 @@
       "description": "Knowledge YAML files directory (relative to workspace root).",
       "type": "string"
     },
-    "midstate_dir": {
-      "default": "./midstate",
-      "description": "Intermediate state directory (relative to workspace root).",
-      "type": "string"
-    },
-    "output": {
-      "default": "./output",
-      "description": "Output directory (relative to workspace root).",
-      "type": "string"
-    },
     "rate_limit": {
       "additionalProperties": false,
       "description": "Rate limiting settings for API calls.",

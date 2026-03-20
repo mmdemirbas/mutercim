@@ -14,12 +14,12 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-// setupTranslateWorkspace creates a workspace with solved page JSONs in midstate/solved/<stem>/.
+// setupTranslateWorkspace creates a workspace with solved page JSONs in solve/<stem>/.
 func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.SolvedPage) (*workspace.Workspace, *config.Config, *progress.Tracker) {
 	t.Helper()
 	dir := t.TempDir()
 
-	solvedDir := filepath.Join(dir, "midstate", "solved", stem)
+	solvedDir := filepath.Join(dir, "solve", stem)
 	if err := os.MkdirAll(solvedDir, 0755); err != nil {
 		t.Fatalf("mkdir solved: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestTranslatePipeline(t *testing.T) {
 	}
 
 	// Verify translated JSON was created
-	translatedPath := filepath.Join(ws.TranslatedDir(), "tr", stem, "page_001.json")
+	translatedPath := filepath.Join(ws.TranslateDir(), "tr", stem, "page_001.json")
 	data, err := os.ReadFile(translatedPath)
 	if err != nil {
 		t.Fatalf("read translated output: %v", err)
@@ -129,12 +129,6 @@ func TestTranslatePipeline(t *testing.T) {
 		t.Errorf("expected translation model %q, got %q", "mock/test-model", translated.TranslationModel)
 	}
 
-	// Verify incremental markdown output was written
-	mdPath := filepath.Join(ws.OutputDir(), "tr", "pages", stem, "page_001.md")
-	if _, err := os.Stat(mdPath); err != nil {
-		t.Errorf("expected markdown output at %s: %v", mdPath, err)
-	}
-
 	// Verify progress was updated
 	state := tracker.State()
 	phaseName := progress.PhaseName("translate:tr:" + stem)
@@ -150,8 +144,8 @@ func TestTranslatePipeline(t *testing.T) {
 func TestTranslatePipelineNoSolvedPages(t *testing.T) {
 	dir := t.TempDir()
 
-	// Create midstate/solved/ but leave it empty (no subdirs)
-	os.MkdirAll(filepath.Join(dir, "midstate", "solved"), 0755)
+	// Create solve/ but leave it empty (no subdirs)
+	os.MkdirAll(filepath.Join(dir, "solve"), 0755)
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
@@ -175,7 +169,7 @@ func TestTranslatePipelineNoSolvedPages(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when no solved pages found")
 	}
-	expectedMsg := "no solved pages found in " + ws.SolvedDir() + " (run solve first)"
+	expectedMsg := "no solved pages found in " + ws.SolveDir() + " (run solve first)"
 	if err.Error() != expectedMsg {
 		t.Errorf("unexpected error message:\n  got:  %q\n  want: %q", err.Error(), expectedMsg)
 	}
@@ -203,15 +197,9 @@ func TestTranslatePipelineMultiLang(t *testing.T) {
 
 	// Verify translated JSON exists for both languages
 	for _, lang := range []string{"tr", "en"} {
-		translatedPath := filepath.Join(ws.TranslatedDir(), lang, stem, "page_001.json")
+		translatedPath := filepath.Join(ws.TranslateDir(), lang, stem, "page_001.json")
 		if _, err := os.Stat(translatedPath); err != nil {
 			t.Errorf("expected translated output for lang %q at %s: %v", lang, translatedPath, err)
-		}
-
-		// Verify markdown output for each language
-		mdPath := filepath.Join(ws.OutputDir(), lang, "pages", stem, "page_001.md")
-		if _, err := os.Stat(mdPath); err != nil {
-			t.Errorf("expected markdown output for lang %q at %s: %v", lang, mdPath, err)
 		}
 
 		// Verify progress for each language

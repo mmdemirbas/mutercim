@@ -44,52 +44,52 @@ func (w *Workspace) InputDir() string {
 	return filepath.Join(w.Root, "input")
 }
 
-// OutputDir returns the output directory path.
-func (w *Workspace) OutputDir() string {
-	return filepath.Join(w.Root, "output")
-}
-
-// MidstateDir returns the midstate directory path.
-func (w *Workspace) MidstateDir() string {
-	return filepath.Join(w.Root, "midstate")
-}
-
 // KnowledgeDir returns the knowledge directory path.
 func (w *Workspace) KnowledgeDir() string {
 	return filepath.Join(w.Root, "knowledge")
 }
 
+// LogDir returns the log directory path.
+func (w *Workspace) LogDir() string {
+	return filepath.Join(w.Root, "log")
+}
+
+// LogPath returns the path to the log file.
+func (w *Workspace) LogPath() string {
+	return filepath.Join(w.Root, "log", "mutercim.log")
+}
+
+// MemoryDir returns the auto-extracted knowledge directory path.
+func (w *Workspace) MemoryDir() string {
+	return filepath.Join(w.Root, "memory")
+}
+
+// PagesDir returns the page images directory path.
+func (w *Workspace) PagesDir() string {
+	return filepath.Join(w.Root, "pages")
+}
+
+// ReadDir returns the OCR extraction directory path.
+func (w *Workspace) ReadDir() string {
+	return filepath.Join(w.Root, "read")
+}
+
+// SolveDir returns the enriched data directory path.
+func (w *Workspace) SolveDir() string {
+	return filepath.Join(w.Root, "solve")
+}
+
+// TranslateDir returns the translated data directory path.
+func (w *Workspace) TranslateDir() string {
+	return filepath.Join(w.Root, "translate")
+}
+
+// WriteDir returns the final output directory path.
+func (w *Workspace) WriteDir() string {
+	return filepath.Join(w.Root, "write")
+}
+
 // ProgressPath returns the path to the progress file.
 func (w *Workspace) ProgressPath() string {
 	return filepath.Join(w.Root, "progress.json")
-}
-
-// ReportsDir returns the reports directory path.
-func (w *Workspace) ReportsDir() string {
-	return filepath.Join(w.Root, "reports")
-}
-
-// StagedDir returns the staged knowledge directory path.
-func (w *Workspace) StagedDir() string {
-	return filepath.Join(w.Root, "midstate", "staged")
-}
-
-// ReadDir returns the read midstate directory path.
-func (w *Workspace) ReadDir() string {
-	return filepath.Join(w.Root, "midstate", "read")
-}
-
-// SolvedDir returns the solved midstate directory path.
-func (w *Workspace) SolvedDir() string {
-	return filepath.Join(w.Root, "midstate", "solved")
-}
-
-// TranslatedDir returns the translated midstate directory path.
-func (w *Workspace) TranslatedDir() string {
-	return filepath.Join(w.Root, "midstate", "translated")
-}
-
-// ImagesDir returns the images midstate directory path.
-func (w *Workspace) ImagesDir() string {
-	return filepath.Join(w.Root, "midstate", "images")
 }

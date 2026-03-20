@@ -9,7 +9,7 @@ import (
 
 // ListStagedFiles returns the names of all YAML files in the staging area.
 func (w *Workspace) ListStagedFiles() ([]string, error) {
-	entries, err := os.ReadDir(w.StagedDir())
+	entries, err := os.ReadDir(w.MemoryDir())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -33,7 +33,7 @@ func (w *Workspace) ListStagedFiles() ([]string, error) {
 // PromoteStagedFile copies a staged file into the persistent knowledge directory.
 // If replace is true, it overwrites any existing file. Otherwise it's a simple copy.
 func (w *Workspace) PromoteStagedFile(filename string, replace bool) error {
-	srcPath := filepath.Join(w.StagedDir(), filename)
+	srcPath := filepath.Join(w.MemoryDir(), filename)
 	dstPath := filepath.Join(w.KnowledgeDir(), filename)
 
 	if _, err := os.Stat(srcPath); err != nil {

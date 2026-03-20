@@ -48,9 +48,7 @@ var schemaAnnotations = map[string]schemaMeta{
 	"inputs[].pages": {Description: `Page range for this input (e.g. "1-50", "1,5,10-20", "all").`},
 
 	// top-level
-	"output":       {Description: "Output directory (relative to workspace root).", Default: "./output"},
-	"midstate_dir": {Description: "Intermediate state directory (relative to workspace root).", Default: "./midstate"},
-	"dpi":          {Description: "DPI for PDF-to-image conversion.", Default: 300, Minimum: intPtr(72)},
+	"dpi": {Description: "DPI for PDF-to-image conversion.", Default: 300, Minimum: intPtr(72)},
 
 	// sections
 	"sections":             {Description: "Book section definitions. Pages not covered default to type: auto.", Default: []any{}},

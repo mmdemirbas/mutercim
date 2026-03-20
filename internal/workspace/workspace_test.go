@@ -27,16 +27,14 @@ func TestInit(t *testing.T) {
 	// Verify directories exist
 	dirs := []string{
 		"input",
-		"output/tr/pages",
-		"output/tr/latex",
-		"output/ar",
-		"midstate/images",
-		"midstate/read",
-		"midstate/solved",
-		"midstate/translated",
-		"midstate/staged",
 		"knowledge",
-		"reports",
+		"log",
+		"memory",
+		"pages",
+		"read",
+		"solve",
+		"translate",
+		"write",
 	}
 	for _, d := range dirs {
 		fullPath := filepath.Join(dir, d)
@@ -149,14 +147,17 @@ func TestWorkspacePaths(t *testing.T) {
 	if ws.InputDir() != "/tmp/test/input" {
 		t.Errorf("InputDir() = %q", ws.InputDir())
 	}
-	if ws.MidstateDir() != "/tmp/test/midstate" {
-		t.Errorf("MidstateDir() = %q", ws.MidstateDir())
+	if ws.MemoryDir() != "/tmp/test/memory" {
+		t.Errorf("MemoryDir() = %q", ws.MemoryDir())
 	}
 	if ws.ProgressPath() != "/tmp/test/progress.json" {
 		t.Errorf("ProgressPath() = %q", ws.ProgressPath())
 	}
-	if ws.StagedDir() != "/tmp/test/midstate/staged" {
-		t.Errorf("StagedDir() = %q", ws.StagedDir())
+	if ws.LogDir() != "/tmp/test/log" {
+		t.Errorf("LogDir() = %q", ws.LogDir())
+	}
+	if ws.LogPath() != "/tmp/test/log/mutercim.log" {
+		t.Errorf("LogPath() = %q", ws.LogPath())
 	}
 }
 

@@ -9,8 +9,26 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - compile → write
 - run → make
 
-## Directory Names
-- cache/ → midstate/
+## Workspace Directory Layout (replaces midstate/ and output/)
+- Removed midstate/ — phase directories are now top-level: pages/, read/, solve/, translate/
+- Removed output/ — renamed to write/
+- Log file moved from workspace root to log/mutercim.log
+- Staged knowledge moved from midstate/staged/ to memory/
+- Removed `midstate_dir` and `output` config fields (directories are now fixed)
+- Per-page markdown output removed from translate phase (translations live in translate/)
+
+## Write Output Structure
+- write/{lang}/{title}.md, .tex, .pdf, .docx — all deliverables at same level per language
+- latex-build/ subdirectory holds compilation artifacts (.aux, .log, .out)
+- {title} derived from book.title via SanitizeTitle: replaces OS-prohibited chars, trims, falls back to "book"
+- Unicode preserved — Arabic, Turkish, Chinese titles stay as-is
+
+## Clean Command
+- `mutercim clean <targets...>` deletes generated directories and resets progress
+- Targets: log, memory, pages, read, solve, translate, write, all
+- "+" suffix cascades downstream: `clean read+` → read/ solve/ translate/ write/
+- Never deletes input/ or knowledge/
+- Prints sizes before deleting, resets progress.json entries for cleaned phases
 
 ## Gemini Model
 - Default: gemini-2.5-flash-lite (not gemini-2.0-flash)

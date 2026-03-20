@@ -30,8 +30,6 @@ inputs:
 
 # ─── Directories ─────────────────────────────────────────────────────────────
 
-output: ./output                     # Final output directory
-midstate_dir: ./midstate             # Intermediate state (images, JSONs, progress)
 knowledge_dir: ./knowledge           # Knowledge YAML files directory
 
 # ─── PDF conversion ──────────────────────────────────────────────────────────

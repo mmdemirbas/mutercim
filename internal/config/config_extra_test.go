@@ -189,14 +189,6 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 		t.Errorf("Inputs = %v, want [{Path: ./input}]", cfg.Inputs)
 	}
 
-	// Output & MidstateDir
-	if cfg.Output != "./output" {
-		t.Errorf("Output = %q, want %q", cfg.Output, "./output")
-	}
-	if cfg.MidstateDir != "./midstate" {
-		t.Errorf("MidstateDir = %q, want %q", cfg.MidstateDir, "./midstate")
-	}
-
 	// DPI
 	if cfg.DPI != 300 {
 		t.Errorf("DPI = %d, want 300", cfg.DPI)
@@ -256,8 +248,6 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 
 func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	cfg := &Config{
-		Output:       "/custom/output",
-		MidstateDir:  "/custom/midstate",
 		DPI:          600,
 		Inputs:       []InputSpec{{Path: "./custom.pdf"}},
 		Read:         ReadConfig{Models: []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}}, Concurrency: 4},
@@ -270,12 +260,6 @@ func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	}
 	applyDefaults(cfg)
 
-	if cfg.Output != "/custom/output" {
-		t.Errorf("Output was overwritten: got %q", cfg.Output)
-	}
-	if cfg.MidstateDir != "/custom/midstate" {
-		t.Errorf("MidstateDir was overwritten: got %q", cfg.MidstateDir)
-	}
 	if cfg.DPI != 600 {
 		t.Errorf("DPI was overwritten: got %d", cfg.DPI)
 	}

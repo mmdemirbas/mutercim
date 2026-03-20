@@ -47,23 +47,14 @@ func Init(opts InitOptions) (*Workspace, error) {
 	// Create directory structure
 	dirs := []string{
 		"input",
-		"midstate/images",
-		"midstate/read",
-		"midstate/solved",
-		"midstate/translated",
-		"midstate/staged",
 		"knowledge",
-		"reports",
-	}
-
-	// Source language output dirs
-	for _, lang := range sourceLangs {
-		dirs = append(dirs, "output/"+lang)
-	}
-	// Target language output dirs
-	for _, lang := range targetLangs {
-		dirs = append(dirs, "output/"+lang+"/pages")
-		dirs = append(dirs, "output/"+lang+"/latex")
+		"log",
+		"memory",
+		"pages",
+		"read",
+		"solve",
+		"translate",
+		"write",
 	}
 
 	for _, d := range dirs {
@@ -116,8 +107,6 @@ inputs: [./input]
 # Page range to process: "1-50", "1,5,10-20", "all"
 # pages: all
 
-output: ./output
-midstate_dir: ./midstate
 dpi: 300
 
 # Sections define the book's internal layout structure.

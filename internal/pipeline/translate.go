@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
@@ -49,12 +48,12 @@ func Translate(ctx context.Context, opts TranslateOptions) (PhaseResult, error) 
 	}
 
 	// Discover inputs from solved directory
-	inputs, err := discoverSubdirs(ws.SolvedDir())
+	inputs, err := discoverSubdirs(ws.SolveDir())
 	if err != nil {
 		return PhaseResult{}, fmt.Errorf("discover solved inputs: %w", err)
 	}
 	if len(inputs) == 0 {
-		return PhaseResult{}, fmt.Errorf("no solved pages found in %s (run solve first)", ws.SolvedDir())
+		return PhaseResult{}, fmt.Errorf("no solved pages found in %s (run solve first)", ws.SolveDir())
 	}
 
 	contextWindow := opts.ContextWindow
@@ -102,9 +101,8 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 
 	ws := opts.Workspace
 	cfg := opts.Config
-	solvedDir := filepath.Join(ws.SolvedDir(), stem)
-	translatedDir := filepath.Join(ws.TranslatedDir(), targetLang, stem)
-	outputPagesDir := filepath.Join(ws.OutputDir(), targetLang, "pages", stem)
+	solvedDir := filepath.Join(ws.SolveDir(), stem)
+	translatedDir := filepath.Join(ws.TranslateDir(), targetLang, stem)
 
 	// Build section lookup for translate checks
 	lookup, _ := config.NewSectionLookup(cfg.Sections)
@@ -124,9 +122,6 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 
 	if err := os.MkdirAll(translatedDir, 0755); err != nil {
 		return PhaseResult{}, fmt.Errorf("create translated dir: %w", err)
-	}
-	if err := os.MkdirAll(outputPagesDir, 0755); err != nil {
-		return PhaseResult{}, fmt.Errorf("create output pages dir: %w", err)
 	}
 
 	phaseName := progress.PhaseName("translate:" + targetLang + ":" + stem)
@@ -270,11 +265,6 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			continue
 		}
 
-		// Write incremental per-page output
-		if err := writePageOutput(outputPagesDir, pf.pageNum, translated); err != nil {
-			logger.Warn("failed to write page output", "page", pf.pageNum, "error", err)
-		}
-
 		opts.Tracker.MarkCompleted(phaseName, pf.pageNum)
 		if err := opts.Tracker.Save(); err != nil {
 			logger.Error("failed to save progress", "error", err)
@@ -329,52 +319,4 @@ func saveTranslatedPage(dir string, pageNum int, page *model.TranslatedPage) err
 		return fmt.Errorf("rename page %d: %w", pageNum, err)
 	}
 	return nil
-}
-
-// writePageOutput writes a simple per-page markdown file for incremental review.
-func writePageOutput(dir string, pageNum int, page *model.TranslatedPage) error {
-	var lines []string
-
-	// Header
-	if page.TranslatedHeader != nil && page.TranslatedHeader.Text != "" {
-		lines = append(lines, fmt.Sprintf("# %s\n", page.TranslatedHeader.Text))
-	}
-
-	// Entries
-	for _, e := range page.TranslatedEntries {
-		if e.Number > 0 {
-			lines = append(lines, fmt.Sprintf("**%d.** %s\n", e.Number, e.TranslatedText))
-		} else {
-			lines = append(lines, e.TranslatedText+"\n")
-		}
-		if e.TranslatorNotes != "" {
-			lines = append(lines, fmt.Sprintf("_[Not: %s]_\n", e.TranslatorNotes))
-		}
-	}
-
-	// Footnotes
-	if len(page.TranslatedFootnotes) > 0 {
-		lines = append(lines, "---\n")
-		for _, fn := range page.TranslatedFootnotes {
-			if len(fn.EntryNumbers) > 0 {
-				nums := make([]string, len(fn.EntryNumbers))
-				for i, n := range fn.EntryNumbers {
-					nums[i] = fmt.Sprintf("%d", n)
-				}
-				lines = append(lines, fmt.Sprintf("[%s] %s\n", strings.Join(nums, ","), fn.TranslatedText))
-			} else {
-				lines = append(lines, fn.TranslatedText+"\n")
-			}
-		}
-	}
-
-	content := strings.Join(lines, "\n")
-
-	filename := fmt.Sprintf("page_%03d.md", pageNum)
-	tmpPath := filepath.Join(dir, filename+".tmp")
-	finalPath := filepath.Join(dir, filename)
-	if err := os.WriteFile(tmpPath, []byte(content), 0644); err != nil {
-		return fmt.Errorf("write page %d md tmp: %w", pageNum, err)
-	}
-	return os.Rename(tmpPath, finalPath)
 }

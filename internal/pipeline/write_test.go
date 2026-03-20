@@ -19,10 +19,9 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 
 	// Create workspace structure with per-lang translated dir
 	for _, d := range []string{
-		"midstate/translated/tr/TestBook",
-		"output/tr",
-		"output/ar",
-		"output/tr/latex",
+		"translate/tr/TestBook",
+		"write/tr",
+		"write/ar",
 	} {
 		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
 			t.Fatalf("mkdir %s: %v", d, err)
@@ -46,7 +45,7 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 	}
 
 	data, _ := json.MarshalIndent(page, "", "  ")
-	if err := os.WriteFile(filepath.Join(dir, "midstate/translated/tr/TestBook/page_001.json"), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "translate/tr/TestBook/page_001.json"), data, 0644); err != nil {
 		t.Fatalf("write translated page: %v", err)
 	}
 
@@ -57,7 +56,7 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Book: model.Book{SourceLangs: []string{"ar"}, TargetLangs: []string{"tr"}},
+		Book: model.Book{Title: "TestBook", SourceLangs: []string{"ar"}, TargetLangs: []string{"tr"}},
 		Write: config.WriteConfig{
 			Formats:       []string{"md"},
 			ExpandSources: true,
@@ -84,7 +83,7 @@ func TestWriteMarkdown(t *testing.T) {
 	}
 
 	// Check target language markdown was written
-	trPath := filepath.Join(ws.OutputDir(), "tr", "TestBook.md")
+	trPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.md")
 	data, err := os.ReadFile(trPath)
 	if err != nil {
 		t.Fatalf("read target markdown: %v", err)
@@ -94,7 +93,7 @@ func TestWriteMarkdown(t *testing.T) {
 	}
 
 	// Check source language markdown was written
-	arPath := filepath.Join(ws.OutputDir(), "ar", "TestBook.md")
+	arPath := filepath.Join(ws.WriteDir(), "ar", "TestBook.md")
 	data, err = os.ReadFile(arPath)
 	if err != nil {
 		t.Fatalf("read source markdown: %v", err)
@@ -124,13 +123,24 @@ func TestWriteLatex(t *testing.T) {
 		t.Fatalf("Write() error: %v", err)
 	}
 
-	texPath := filepath.Join(ws.OutputDir(), "tr", "latex", "book.tex")
+	// Check .tex was written to lang root with title-based name
+	texPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.tex")
 	data, err := os.ReadFile(texPath)
 	if err != nil {
 		t.Fatalf("read latex: %v", err)
 	}
 	if len(data) == 0 {
 		t.Fatal("empty latex")
+	}
+
+	// Check .tex was also written to latex-build for compilation
+	buildTexPath := filepath.Join(ws.WriteDir(), "tr", "latex-build", "book.tex")
+	buildData, err := os.ReadFile(buildTexPath)
+	if err != nil {
+		t.Fatalf("read latex build: %v", err)
+	}
+	if len(buildData) == 0 {
+		t.Fatal("empty latex build")
 	}
 }
 

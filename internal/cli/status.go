@@ -58,7 +58,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	// Count total images
 	totalImages := 0
 	for _, stem := range inputs {
-		totalImages += countFiles(filepath.Join(ws.ImagesDir(), stem))
+		totalImages += countFiles(filepath.Join(ws.PagesDir(), stem))
 	}
 
 	// Build input name from config
@@ -86,9 +86,9 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	warnings = append(warnings, collectValidationWarnings(ws, inputs)...)
 
 	// Log file info
-	logPath := "mutercim.log"
+	logPath := "log/mutercim.log"
 	var logSize int64
-	if info, err := os.Stat(filepath.Join(ws.Root, logPath)); err == nil {
+	if info, err := os.Stat(ws.LogPath()); err == nil {
 		logSize = info.Size()
 	}
 
@@ -211,7 +211,7 @@ func aggregateAllLang(state progress.State, prefix, lang string, inputs []string
 // discoverInputs finds input stems by scanning midstate subdirectories.
 func discoverInputs(ws *workspace.Workspace) []string {
 	seen := make(map[string]bool)
-	for _, dir := range []string{ws.ImagesDir(), ws.ReadDir(), ws.SolvedDir()} {
+	for _, dir := range []string{ws.PagesDir(), ws.ReadDir(), ws.SolveDir()} {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue
@@ -223,13 +223,13 @@ func discoverInputs(ws *workspace.Workspace) []string {
 		}
 	}
 	// Also check translated dir (has per-lang subdirs)
-	entries, err := os.ReadDir(ws.TranslatedDir())
+	entries, err := os.ReadDir(ws.TranslateDir())
 	if err == nil {
 		for _, langDir := range entries {
 			if !langDir.IsDir() {
 				continue
 			}
-			subEntries, err := os.ReadDir(filepath.Join(ws.TranslatedDir(), langDir.Name()))
+			subEntries, err := os.ReadDir(filepath.Join(ws.TranslateDir(), langDir.Name()))
 			if err != nil {
 				continue
 			}

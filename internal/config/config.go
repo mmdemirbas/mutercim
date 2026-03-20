@@ -19,8 +19,6 @@ type InputSpec struct {
 type Config struct {
 	Book         model.Book      `yaml:"book" mapstructure:"book" json:"book"`
 	Inputs       []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
-	Output       string          `yaml:"output" mapstructure:"output" json:"output"`
-	MidstateDir  string          `yaml:"midstate_dir" mapstructure:"midstate_dir" json:"midstate_dir"`
 	DPI          int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
 	Sections     []model.Section `yaml:"sections" mapstructure:"sections" json:"sections"`
 	Read         ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
@@ -74,8 +72,6 @@ type RateLimitConfig struct {
 func SetDefaults(v *viper.Viper) {
 	v.SetDefault("book.source_langs", []string{"ar"})
 	v.SetDefault("book.target_langs", []string{"tr"})
-	v.SetDefault("output", "./output")
-	v.SetDefault("midstate_dir", "./midstate")
 	v.SetDefault("dpi", 300)
 
 	v.SetDefault("read.concurrency", 1)
@@ -137,12 +133,6 @@ func applyDefaults(cfg *Config) {
 	}
 	if len(cfg.Inputs) == 0 {
 		cfg.Inputs = []InputSpec{{Path: "./input"}}
-	}
-	if cfg.Output == "" {
-		cfg.Output = "./output"
-	}
-	if cfg.MidstateDir == "" {
-		cfg.MidstateDir = "./midstate"
 	}
 	if cfg.DPI == 0 {
 		cfg.DPI = 300

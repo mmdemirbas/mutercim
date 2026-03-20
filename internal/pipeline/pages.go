@@ -67,7 +67,7 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 		logger = slog.Default()
 	}
 
-	imagesDir := filepath.Join(opts.Workspace.ImagesDir(), stem)
+	imagesDir := filepath.Join(opts.Workspace.PagesDir(), stem)
 
 	if !config.IsPDF(inputPath) {
 		logger.Info("images already available, skipping pagination", "input", stem)

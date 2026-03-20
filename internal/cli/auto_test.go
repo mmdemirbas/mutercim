@@ -31,41 +31,41 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 		Book: model.Book{TargetLangs: []string{"tr"}},
 	}
 
-	// Create images output
-	imgDir := filepath.Join(dir, "midstate", "images", "TestBook")
+	// Create pages output
+	imgDir := filepath.Join(dir, "pages", "TestBook")
 	os.MkdirAll(imgDir, 0755)
 	os.WriteFile(filepath.Join(imgDir, "page_001.png"), []byte("fake"), 0644)
 	if !hasPhaseOutput(phasePages, ws, cfg) {
-		t.Error("hasPhaseOutput(pages) = false after creating images")
+		t.Error("hasPhaseOutput(pages) = false after creating pages")
 	}
 
 	// Create read output
-	readDir := filepath.Join(dir, "midstate", "read", "TestBook")
+	readDir := filepath.Join(dir, "read", "TestBook")
 	os.MkdirAll(readDir, 0755)
 	os.WriteFile(filepath.Join(readDir, "page_001.json"), []byte("{}"), 0644)
 	if !hasPhaseOutput(phaseRead, ws, cfg) {
 		t.Error("hasPhaseOutput(read) = false after creating read output")
 	}
 
-	// Create solved output
-	solvedDir := filepath.Join(dir, "midstate", "solved", "TestBook")
+	// Create solve output
+	solvedDir := filepath.Join(dir, "solve", "TestBook")
 	os.MkdirAll(solvedDir, 0755)
 	os.WriteFile(filepath.Join(solvedDir, "page_001.json"), []byte("{}"), 0644)
 	if !hasPhaseOutput(phaseSolve, ws, cfg) {
-		t.Error("hasPhaseOutput(solve) = false after creating solved output")
+		t.Error("hasPhaseOutput(solve) = false after creating solve output")
 	}
 
 	// Translate not yet present
 	if hasPhaseOutput(phaseTranslate, ws, cfg) {
-		t.Error("hasPhaseOutput(translate) = true before creating translated output")
+		t.Error("hasPhaseOutput(translate) = true before creating translate output")
 	}
 
-	// Create translated output
-	translatedDir := filepath.Join(dir, "midstate", "translated", "tr", "TestBook")
+	// Create translate output
+	translatedDir := filepath.Join(dir, "translate", "tr", "TestBook")
 	os.MkdirAll(translatedDir, 0755)
 	os.WriteFile(filepath.Join(translatedDir, "page_001.json"), []byte("{}"), 0644)
 	if !hasPhaseOutput(phaseTranslate, ws, cfg) {
-		t.Error("hasPhaseOutput(translate) = false after creating translated output")
+		t.Error("hasPhaseOutput(translate) = false after creating translate output")
 	}
 }
 
@@ -82,7 +82,7 @@ func TestHasPhaseOutput_translate_multiple_langs(t *testing.T) {
 	}
 
 	// Output for one language is sufficient
-	translatedDir := filepath.Join(dir, "midstate", "translated", "en", "TestBook")
+	translatedDir := filepath.Join(dir, "translate", "en", "TestBook")
 	os.MkdirAll(translatedDir, 0755)
 	os.WriteFile(filepath.Join(translatedDir, "page_001.json"), []byte("{}"), 0644)
 	if !hasPhaseOutput(phaseTranslate, ws, cfg) {

@@ -70,8 +70,8 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 
 	ws := opts.Workspace
 	readDir := filepath.Join(ws.ReadDir(), stem)
-	solvedDir := filepath.Join(ws.SolvedDir(), stem)
-	stagedDir := ws.StagedDir()
+	solvedDir := filepath.Join(ws.SolveDir(), stem)
+	memoryDir := ws.MemoryDir()
 
 	// List read page files
 	pages, err := listPageFiles(readDir)
@@ -148,7 +148,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 
 		// Auto-stage from reference_table pages
 		if current.SectionType == "reference_table" {
-			if err := solver.StageFromReferenceTable(current, stagedDir); err != nil {
+			if err := solver.StageFromReferenceTable(current, memoryDir); err != nil {
 				logger.Warn("staging failed", "page", pf.pageNum, "error", err)
 			}
 		}

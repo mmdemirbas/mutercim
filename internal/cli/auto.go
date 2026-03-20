@@ -31,14 +31,14 @@ const (
 func hasPhaseOutput(p phase, ws *workspace.Workspace, cfg *config.Config) bool {
 	switch p {
 	case phasePages:
-		return dirHasEntries(ws.ImagesDir())
+		return dirHasEntries(ws.PagesDir())
 	case phaseRead:
 		return dirHasEntries(ws.ReadDir())
 	case phaseSolve:
-		return dirHasEntries(ws.SolvedDir())
+		return dirHasEntries(ws.SolveDir())
 	case phaseTranslate:
 		for _, lang := range cfg.Book.TargetLangs {
-			if dirHasEntries(filepath.Join(ws.TranslatedDir(), lang)) {
+			if dirHasEntries(filepath.Join(ws.TranslateDir(), lang)) {
 				return true
 			}
 		}
@@ -119,7 +119,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 
 	if startPhase <= phaseSolve && phaseSolve < targetPhase {
 		knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
-		k, err := knowledge.Load(knowledgeDir, ws.StagedDir())
+		k, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
 		if err != nil {
 			return fmt.Errorf("auto load knowledge: %w", err)
 		}
@@ -139,7 +139,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 
 	if startPhase <= phaseTranslate && phaseTranslate < targetPhase {
 		knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
-		k, err := knowledge.Load(knowledgeDir, ws.StagedDir())
+		k, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
 		if err != nil {
 			return fmt.Errorf("auto load knowledge: %w", err)
 		}
