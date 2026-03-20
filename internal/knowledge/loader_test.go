@@ -56,9 +56,9 @@ func TestLoadWorkspaceOverrides(t *testing.T) {
 	}
 }
 
-func TestLoadStagedOverrides(t *testing.T) {
+func TestLoadMemoryOverrides(t *testing.T) {
 	workDir := t.TempDir()
-	stagedDir := t.TempDir()
+	memoryDir := t.TempDir()
 
 	// Workspace source
 	wsYaml := `entries:
@@ -70,17 +70,17 @@ func TestLoadStagedOverrides(t *testing.T) {
 		t.Fatalf("write workspace sources: %v", err)
 	}
 
-	// Staged source overrides workspace
-	stagedYaml := `entries:
+	// Memory source overrides workspace
+	memoryYaml := `entries:
   - code: "خ"
     name_ar: "صحيح البخاري"
-    name_tr: "Sahîh-i Buhârî (staged)"
+    name_tr: "Sahîh-i Buhârî (memory)"
 `
-	if err := os.WriteFile(filepath.Join(stagedDir, "sources.yaml"), []byte(stagedYaml), 0644); err != nil {
-		t.Fatalf("write staged sources: %v", err)
+	if err := os.WriteFile(filepath.Join(memoryDir, "sources.yaml"), []byte(memoryYaml), 0644); err != nil {
+		t.Fatalf("write memory sources: %v", err)
 	}
 
-	k, err := Load(workDir, stagedDir)
+	k, err := Load(workDir, memoryDir)
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
@@ -89,17 +89,17 @@ func TestLoadStagedOverrides(t *testing.T) {
 	if !ok {
 		t.Fatal("expected source 'خ' to exist")
 	}
-	// Staged should override workspace
-	if src.NameTr != "Sahîh-i Buhârî (staged)" {
-		t.Errorf("expected staged override, got %q", src.NameTr)
+	// Memory should override workspace
+	if src.NameTr != "Sahîh-i Buhârî (memory)" {
+		t.Errorf("expected memory override, got %q", src.NameTr)
 	}
-	if src.Layer != "staged" {
-		t.Errorf("expected layer 'staged', got %q", src.Layer)
+	if src.Layer != "memory" {
+		t.Errorf("expected layer 'memory', got %q", src.Layer)
 	}
 }
 
 func TestLoadNonexistentDirs(t *testing.T) {
-	k, err := Load("/nonexistent/knowledge", "/nonexistent/staged")
+	k, err := Load("/nonexistent/knowledge", "/nonexistent/memory")
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}

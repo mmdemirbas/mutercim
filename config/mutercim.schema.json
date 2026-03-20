@@ -174,7 +174,7 @@
             "type": "boolean"
           },
           "type": {
-            "description": "Layout type that determines how the AI reads and translates pages. 'scholarly_entries' for hadith collections, 'prose' for continuous text, 'reference_table' for source abbreviation lists (auto-staged to memory/), 'skip' to exclude pages.",
+            "description": "Layout type that determines how the AI reads and translates pages. 'scholarly_entries' for hadith collections, 'prose' for continuous text, 'reference_table' for source abbreviation lists (auto-extracted to memory/), 'skip' to exclude pages.",
             "enum": [
               "skip",
               "prose",

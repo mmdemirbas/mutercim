@@ -8,7 +8,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
-func TestStageFromReferenceTable(t *testing.T) {
+func TestExtractToMemory(t *testing.T) {
 	dir := t.TempDir()
 
 	page := &model.ReadPage{
@@ -20,15 +20,15 @@ func TestStageFromReferenceTable(t *testing.T) {
 		},
 	}
 
-	err := StageFromReferenceTable(page, dir)
+	err := ExtractToMemory(page, dir)
 	if err != nil {
-		t.Fatalf("StageFromReferenceTable() error: %v", err)
+		t.Fatalf("ExtractToMemory() error: %v", err)
 	}
 
 	// Verify file was created
 	path := filepath.Join(dir, "sources_007.yaml")
 	if _, err := os.Stat(path); err != nil {
-		t.Fatalf("expected staged file at %s", path)
+		t.Fatalf("expected memory file at %s", path)
 	}
 
 	// Verify no .tmp file left behind
@@ -38,7 +38,7 @@ func TestStageFromReferenceTable(t *testing.T) {
 	}
 }
 
-func TestStageFromReferenceTableSkipsNonRefTable(t *testing.T) {
+func TestExtractToMemorySkipsNonRefTable(t *testing.T) {
 	dir := t.TempDir()
 
 	page := &model.ReadPage{
@@ -47,7 +47,7 @@ func TestStageFromReferenceTableSkipsNonRefTable(t *testing.T) {
 		Entries:     []model.Entry{{ArabicText: "text"}},
 	}
 
-	err := StageFromReferenceTable(page, dir)
+	err := ExtractToMemory(page, dir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -55,11 +55,11 @@ func TestStageFromReferenceTableSkipsNonRefTable(t *testing.T) {
 	// No file should be created
 	entries, _ := os.ReadDir(dir)
 	if len(entries) != 0 {
-		t.Errorf("expected no staged files, got %d", len(entries))
+		t.Errorf("expected no memory files, got %d", len(entries))
 	}
 }
 
-func TestStageFromReferenceTableEmptyEntries(t *testing.T) {
+func TestExtractToMemoryEmptyEntries(t *testing.T) {
 	dir := t.TempDir()
 
 	page := &model.ReadPage{
@@ -68,13 +68,13 @@ func TestStageFromReferenceTableEmptyEntries(t *testing.T) {
 		Entries:     []model.Entry{},
 	}
 
-	err := StageFromReferenceTable(page, dir)
+	err := ExtractToMemory(page, dir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	entries, _ := os.ReadDir(dir)
 	if len(entries) != 0 {
-		t.Errorf("expected no staged files for empty entries, got %d", len(entries))
+		t.Errorf("expected no memory files for empty entries, got %d", len(entries))
 	}
 }

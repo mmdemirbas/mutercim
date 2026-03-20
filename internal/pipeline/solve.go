@@ -136,10 +136,10 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		// Solve: solve page with knowledge resolution
 		solved := slvr.SolvePage(current, previous)
 
-		// Auto-stage from reference_table pages
+		// Auto-extract knowledge from reference_table pages into memory/
 		if current.SectionType == "reference_table" {
-			if err := solver.StageFromReferenceTable(current, memoryDir); err != nil {
-				logger.Warn("staging failed", "page", pf.pageNum, "error", err)
+			if err := solver.ExtractToMemory(current, memoryDir); err != nil {
+				logger.Warn("memory extraction failed", "page", pf.pageNum, "error", err)
 			}
 		}
 

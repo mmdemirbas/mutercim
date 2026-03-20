@@ -36,7 +36,7 @@ type SourceResolved struct {
 	NameAr string `json:"name_ar"`
 	NameTr string `json:"name_tr"`
 	Number string `json:"number,omitempty"`
-	Layer  string `json:"layer"` // embedded, workspace, staged
+	Layer  string `json:"layer"` // embedded, workspace, memory
 }
 
 // ContinuationInfo represents cross-page continuation linkage.

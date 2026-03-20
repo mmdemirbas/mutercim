@@ -54,7 +54,7 @@ var schemaAnnotations = map[string]schemaMeta{
 	"sections[]":           {Required: []string{"name", "pages", "type"}},
 	"sections[].name":      {Description: "Human-readable section name shown in logs and status display."},
 	"sections[].pages":     {Description: `Page range this section covers (e.g. "1-5", "6-100"). Pages can only belong to one section.`},
-	"sections[].type":      {Description: "Layout type that determines how the AI reads and translates pages. 'scholarly_entries' for hadith collections, 'prose' for continuous text, 'reference_table' for source abbreviation lists (auto-staged to memory/), 'skip' to exclude pages.", Enum: sectionTypeEnums()},
+	"sections[].type":      {Description: "Layout type that determines how the AI reads and translates pages. 'scholarly_entries' for hadith collections, 'prose' for continuous text, 'reference_table' for source abbreviation lists (auto-extracted to memory/), 'skip' to exclude pages.", Enum: sectionTypeEnums()},
 	"sections[].translate": {Description: "Whether to translate this section. Set to false for reference_table or appendix sections that should be read but not translated.", Default: true},
 
 	// read

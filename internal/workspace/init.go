@@ -104,7 +104,7 @@ dpi: 300
 #   skip              - Don't process these pages
 #   prose             - Continuous paragraphs (introductions, prefaces)
 #   scholarly_entries  - Numbered entries + footnotes with source codes (hadith, athar)
-#   reference_table   - Key-value reference data (abbreviation keys → auto-staged)
+#   reference_table   - Key-value reference data (abbreviation keys → auto-extracted to memory/)
 #   toc               - Table of contents
 #   index             - Alphabetical index
 #   auto              - AI detects layout (default for unconfigured pages)

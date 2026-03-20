@@ -84,7 +84,7 @@ Create DEVIATIONS.md if it doesn't exist.
 
 ## File Writes
 
-- All state files (progress.json, midstate JSONs, staged knowledge YAMLs) must use atomic write:
+- All state files (progress.json, midstate JSONs, memory knowledge YAMLs) must use atomic write:
   write
   to `.tmp` then `os.Rename`
 - Per-page output files (markdown, translated JSON) should be written immediately after processing
