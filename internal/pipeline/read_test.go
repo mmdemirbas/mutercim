@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -41,6 +42,10 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 			t.Fatalf("write image %s: %v", pf, err)
 		}
 	}
+
+	// Create a minimal config file so mtime checks can reference it
+	os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("book:\n  title: test\n"), 0644)
+	os.MkdirAll(filepath.Join(dir, "knowledge"), 0755)
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
@@ -103,7 +108,15 @@ func TestReadPipeline(t *testing.T) {
 func TestReadPipelineSkipsCompleted(t *testing.T) {
 	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png")
 
-	// Create the output file so skip logic sees it as already done
+	// Set all inputs to the past so output appears newer
+	past := time.Now().Add(-10 * time.Second)
+	imgPath := filepath.Join(ws.PagesDir(), "testinput", "page-01.png")
+	os.Chtimes(imgPath, past, past)
+	os.MkdirAll(ws.KnowledgeDir(), 0755)
+	os.Chtimes(ws.KnowledgeDir(), past, past)
+	os.Chtimes(ws.ConfigPath(), past, past)
+
+	// Create the output file so skip logic sees it as up-to-date
 	outputDir := filepath.Join(ws.ReadDir(), "testinput")
 	os.MkdirAll(outputDir, 0755)
 	outputPath := filepath.Join(outputDir, "001.json")

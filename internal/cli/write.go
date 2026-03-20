@@ -92,6 +92,7 @@ func newWriteCmd() *cobra.Command {
 				Workspace: ws,
 				Config:    cfg,
 				Pages:     pagesToProcess,
+				Force:     force,
 				Display:   display.FromContext(cmd.Context()),
 			})
 		},

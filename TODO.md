@@ -33,8 +33,6 @@
 
 # NEXT
 
-- Arabic output is wrong! Both direction and letter combination looks wrong.
-
 - Allow prompt customization by user to teach adab to the tool:
   Custom prompt & âdâb: Three-layer prompt injection (built-in adab.md embedded in binary +
   workspace knowledge/prompt.md per book + config extra_prompt inline). Built-in ships with Islamic

@@ -14,6 +14,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/provider"
+	"github.com/mmdemirbas/mutercim/internal/rebuild"
 	"github.com/mmdemirbas/mutercim/internal/translation"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
@@ -173,13 +174,12 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		if ctx.Err() != nil {
 			break
 		}
-		// Skip pages whose output already exists
-		if !opts.Force {
-			outputPath := filepath.Join(translatedDir, fmt.Sprintf("%03d.json", pf.pageNum))
-			if fileExists(outputPath) {
-				skipped++
-				continue
-			}
+		// Skip if output is up-to-date (mtime check)
+		outputPath := filepath.Join(translatedDir, fmt.Sprintf("%03d.json", pf.pageNum))
+		if !opts.Force && !rebuild.NeedsRebuild(outputPath, pf.path, ws.ConfigPath(), ws.KnowledgeDir(), ws.MemoryDir()) {
+			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
+			skipped++
+			continue
 		}
 
 		// Check section translate flag

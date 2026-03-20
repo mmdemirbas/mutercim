@@ -12,6 +12,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/rebuild"
 	"github.com/mmdemirbas/mutercim/internal/renderer"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
@@ -21,6 +22,7 @@ type WriteOptions struct {
 	Workspace *workspace.Workspace
 	Config    *config.Config
 	Pages     []int
+	Force     bool // force regeneration of all output files
 	Logger    *slog.Logger
 	Display   display.Display
 }
@@ -72,6 +74,15 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 	ws := opts.Workspace
 	cfg := opts.Config
 	translatedDir := filepath.Join(ws.TranslateDir(), targetLang, stem)
+
+	// Skip if output is up-to-date (check write dir against translate dir + config + knowledge)
+	title := workspace.SanitizeTitle(cfg.Book.Title)
+	langWriteDir := filepath.Join(ws.WriteDir(), targetLang)
+	mdOutput := filepath.Join(langWriteDir, title+".md")
+	if !opts.Force && !rebuild.NeedsRebuild(mdOutput, translatedDir, ws.ConfigPath(), ws.KnowledgeDir()) {
+		logger.Debug("skipping write (up-to-date)", "input", stem, "lang", targetLang)
+		return nil
+	}
 
 	// Load translated pages
 	pageFiles, err := listPageFiles(translatedDir)

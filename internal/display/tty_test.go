@@ -252,6 +252,9 @@ func TestTTYDisplayStatusLine(t *testing.T) {
 		StartedAt: now.Add(-5 * time.Second),
 	})
 
+	// Clear status to stop the ticker before reading the buffer
+	d.SetStatus(StatusLine{})
+
 	out := buf.String()
 	if !strings.Contains(out, "reading page 1") {
 		t.Errorf("should show status text, got: %q", out)

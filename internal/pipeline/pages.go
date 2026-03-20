@@ -11,6 +11,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/rebuild"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
@@ -19,6 +20,7 @@ type PagesOptions struct {
 	Workspace *workspace.Workspace
 	Config    *config.Config
 	Pages     []int // CLI override pages; nil means use per-input or global config
+	Force     bool  // force re-conversion of already existing page images
 	Logger    *slog.Logger
 	Display   display.Display
 }
@@ -71,6 +73,21 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 
 	if !config.IsPDF(inputPath) {
 		logger.Info("images already available, skipping pagination", "input", stem)
+		return nil
+	}
+
+	// Skip if pages directory is up-to-date (images newer than PDF)
+	if !opts.Force && dirHasEntries(imagesDir) && !rebuild.NeedsRebuild(imagesDir, inputPath) {
+		logger.Debug("skipping pagination (up-to-date)", "input", stem)
+		images, _ := input.ListImages(imagesDir)
+		if opts.Display != nil {
+			opts.Display.StartPhase(display.PhasePages, stem, len(images), "")
+			opts.Display.Update(display.PageResult{
+				Phase: display.PhasePages, Input: stem,
+				Total: len(images), Completed: len(images),
+			})
+			opts.Display.FinishPhase(display.PhasePages, stem, "")
+		}
 		return nil
 	}
 

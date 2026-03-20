@@ -68,6 +68,7 @@ func newPagesCmd() *cobra.Command {
 				Workspace: ws,
 				Config:    cfg,
 				Pages:     pagesToProcess,
+				Force:     force,
 				Logger:    logger,
 				Display:   display.FromContext(cmd.Context()),
 			})

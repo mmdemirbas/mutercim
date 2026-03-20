@@ -112,6 +112,7 @@ func newAllCmd() *cobra.Command {
 				Workspace: ws,
 				Config:    cfg,
 				Pages:     pagesToProcess,
+				Force:     force,
 				Logger:    logger,
 				Display:   disp,
 			}); err != nil {
@@ -199,6 +200,7 @@ func newAllCmd() *cobra.Command {
 				Workspace: ws,
 				Config:    cfg,
 				Pages:     pagesToProcess,
+				Force:     force,
 				Logger:    logger,
 				Display:   disp,
 			}); err != nil {

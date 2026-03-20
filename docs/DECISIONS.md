@@ -90,12 +90,19 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Status collects per-page validation warnings + cross-page entry number gap checks
 - Deleted `cli/validate.go` and `pipeline/export.go` (DiscoverSubdirs wrapper, no longer needed)
 
-## Idempotent Pipeline with --force Override
-- Pipeline is idempotent by default: pages are skipped if progress tracker marks them completed AND output file exists
-- If output file is missing but progress says completed → re-processes automatically with a warning
-- `--force` persistent flag bypasses all skip logic, re-processing every page unconditionally
-- `--force` applies to read, solve, translate phases (write always regenerates)
-- `--auto` prerequisite runs do NOT use force (they only fill gaps)
+## Smart Timestamp-Based Rebuild (replaces progress.json)
+- Every phase compares output mtime against ALL its input mtimes via `rebuild.NeedsRebuild()`
+- If any input is newer than the output → regenerate. Otherwise skip.
+- Directory inputs include the directory's own mtime (catches file additions/deletions)
+- Missing output → always rebuild. Missing input → error (treated as rebuild needed).
+- Per-phase dependencies:
+  - pages: input PDF → pages/{input}/ images
+  - read: page image + mutercim.yaml + knowledge/ → read/{input}/NNN.json
+  - solve: read JSON + knowledge/ + memory/ → solve/{input}/NNN.json
+  - translate: solve JSON + mutercim.yaml + knowledge/ + memory/ → translate/{input}/{lang}/NNN.json
+  - write: translate dir + mutercim.yaml + knowledge/ → write/{lang}/{title}.md etc.
+- `--force` flag bypasses all timestamp checks, reprocesses everything
+- progress.json removed entirely — filesystem mtimes are the source of truth
 
 ## On-Demand Output Formats (positional args)
 - `write` and `make` accept positional format arguments: `mutercim write pdf`, `mutercim make md docx`

@@ -100,6 +100,12 @@ func fileExists(path string) bool {
 	return err == nil && !info.IsDir()
 }
 
+// dirHasEntries returns true if the directory exists and has at least one entry.
+func dirHasEntries(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	return err == nil && len(entries) > 0
+}
+
 // containsInt returns true if s contains v.
 func containsInt(s []int, v int) bool {
 	for _, x := range s {

@@ -11,6 +11,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/rebuild"
 	"github.com/mmdemirbas/mutercim/internal/solver"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
@@ -113,13 +114,12 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		if ctx.Err() != nil {
 			break
 		}
-		// Skip pages whose output already exists
-		if !opts.Force {
-			outputPath := filepath.Join(solvedDir, fmt.Sprintf("%03d.json", pf.pageNum))
-			if fileExists(outputPath) {
-				skipped++
-				continue
-			}
+		// Skip if output is up-to-date (mtime check)
+		outputPath := filepath.Join(solvedDir, fmt.Sprintf("%03d.json", pf.pageNum))
+		if !opts.Force && !rebuild.NeedsRebuild(outputPath, pf.path, ws.KnowledgeDir(), memoryDir) {
+			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
+			skipped++
+			continue
 		}
 
 		current, ok := allPages[pf.pageNum]

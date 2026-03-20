@@ -15,6 +15,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/provider"
 	"github.com/mmdemirbas/mutercim/internal/reader"
+	"github.com/mmdemirbas/mutercim/internal/rebuild"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
@@ -175,20 +176,18 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		if ctx.Err() != nil {
 			break
 		}
-		// Skip pages whose output already exists
-		if !opts.Force {
-			outputPath := filepath.Join(readDir, fmt.Sprintf("%03d.json", pageNum))
-			if fileExists(outputPath) {
-				logger.Debug("skipping already completed page", "input", stem, "page", pageNum)
-				skipped++
-				continue
-			}
-		}
-
 		// Skip pages not in the image set
 		imgPath, ok := imageMap[pageNum]
 		if !ok {
 			logger.Warn("no image found for page", "input", stem, "page", pageNum)
+			continue
+		}
+
+		// Skip if output is up-to-date (mtime check)
+		outputPath := filepath.Join(readDir, fmt.Sprintf("%03d.json", pageNum))
+		if !opts.Force && !rebuild.NeedsRebuild(outputPath, imgPath, ws.ConfigPath(), ws.KnowledgeDir()) {
+			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pageNum)
+			skipped++
 			continue
 		}
 

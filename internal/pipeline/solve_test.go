@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -137,7 +138,17 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 
 	ws := setupSolveWorkspace(t, "testbook", map[int]*model.ReadPage{1: readPage})
 
-	// Create the output file so skip logic sees it as already done
+	// Set input mtime to the past so output appears newer
+	past := time.Now().Add(-10 * time.Second)
+	readDir := filepath.Join(ws.ReadDir(), "testbook")
+	os.Chtimes(filepath.Join(readDir, "001.json"), past, past)
+	os.Chtimes(readDir, past, past)
+	os.MkdirAll(ws.KnowledgeDir(), 0755)
+	os.Chtimes(ws.KnowledgeDir(), past, past)
+	os.MkdirAll(ws.MemoryDir(), 0755)
+	os.Chtimes(ws.MemoryDir(), past, past)
+
+	// Create the output file so skip logic sees it as up-to-date
 	solvedDir := filepath.Join(ws.SolveDir(), "testbook")
 	if err := os.MkdirAll(solvedDir, 0755); err != nil {
 		t.Fatalf("mkdir solved dir: %v", err)
