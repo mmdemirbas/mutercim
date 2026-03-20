@@ -13,6 +13,7 @@ RUN tlmgr install \
     enumitem \
     titlesec \
     amiri \
+    etoolbox \
     tools \
     zref \
     auxhook \

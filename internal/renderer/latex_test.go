@@ -8,7 +8,7 @@ import (
 )
 
 func TestLatexRenderPage(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	page := &model.TranslatedPage{
 		SolvedPage: model.SolvedPage{
@@ -34,7 +34,7 @@ func TestLatexRenderPage(t *testing.T) {
 }
 
 func TestLatexRenderBook(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	pages := []*model.TranslatedPage{
 		{
@@ -103,7 +103,7 @@ func TestLatexEscapeAdditional(t *testing.T) {
 }
 
 func TestLatexRenderPage_NoHeader(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	page := &model.TranslatedPage{
 		SolvedPage: model.SolvedPage{
@@ -125,7 +125,7 @@ func TestLatexRenderPage_NoHeader(t *testing.T) {
 }
 
 func TestLatexRenderPage_EmptyHeaderText(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	page := &model.TranslatedPage{
 		SolvedPage: model.SolvedPage{
@@ -142,7 +142,7 @@ func TestLatexRenderPage_EmptyHeaderText(t *testing.T) {
 }
 
 func TestLatexRenderPage_EntryWithoutNumber(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	page := &model.TranslatedPage{
 		SolvedPage: model.SolvedPage{
@@ -164,7 +164,7 @@ func TestLatexRenderPage_EntryWithoutNumber(t *testing.T) {
 }
 
 func TestLatexRenderPage_TranslatorNotes(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	page := &model.TranslatedPage{
 		SolvedPage: model.SolvedPage{
@@ -186,7 +186,7 @@ func TestLatexRenderPage_TranslatorNotes(t *testing.T) {
 }
 
 func TestLatexRenderPage_Footnotes(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	page := &model.TranslatedPage{
 		SolvedPage: model.SolvedPage{
@@ -218,7 +218,7 @@ func TestLatexRenderPage_Footnotes(t *testing.T) {
 }
 
 func TestLatexRenderPage_EmptyPage(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	page := &model.TranslatedPage{
 		SolvedPage: model.SolvedPage{
@@ -237,7 +237,7 @@ func TestLatexRenderPage_EmptyPage(t *testing.T) {
 }
 
 func TestLatexRenderPage_SpecialCharsInContent(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	page := &model.TranslatedPage{
 		SolvedPage: model.SolvedPage{
@@ -263,7 +263,7 @@ func TestLatexRenderPage_SpecialCharsInContent(t *testing.T) {
 }
 
 func TestLatexRenderBook_MultiplePages(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	pages := []*model.TranslatedPage{
 		{
@@ -299,14 +299,13 @@ func TestLatexRenderBook_MultiplePages(t *testing.T) {
 	if !strings.Contains(result, "% Page 2") {
 		t.Error("expected page 2 comment")
 	}
-	// Both pages should have \newpage
 	if strings.Count(result, `\newpage`) != 2 {
 		t.Errorf("expected 2 newpage commands, got %d", strings.Count(result, `\newpage`))
 	}
 }
 
 func TestLatexRenderBook_EmptySlice(t *testing.T) {
-	r := &LaTeXRenderer{}
+	r := &LaTeXRenderer{Lang: "tr"}
 
 	result := r.RenderBook(nil)
 
@@ -315,5 +314,156 @@ func TestLatexRenderBook_EmptySlice(t *testing.T) {
 	}
 	if !strings.Contains(result, `\end{document}`) {
 		t.Error("expected document end even with no pages")
+	}
+}
+
+// --- New RTL-specific tests ---
+
+func TestLatexPreamble_TurkishMain(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "tr"}
+	preamble := r.buildPreamble()
+
+	if !strings.Contains(preamble, `\setmainlanguage{turkish}`) {
+		t.Error("expected turkish as main language")
+	}
+	if !strings.Contains(preamble, `\setotherlanguage{arabic}`) {
+		t.Error("expected arabic as other language")
+	}
+	if !strings.Contains(preamble, `\newfontfamily\arabicfont[Script=Arabic`) {
+		t.Error("expected arabicfont definition")
+	}
+}
+
+func TestLatexPreamble_ArabicMain(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "ar"}
+	preamble := r.buildPreamble()
+
+	if !strings.Contains(preamble, `\setmainlanguage[numerals=maghrib]{arabic}`) {
+		t.Error("expected arabic as main language with maghrib numerals")
+	}
+	if !strings.Contains(preamble, `\setotherlanguage{turkish}`) {
+		t.Error("expected turkish as other language")
+	}
+}
+
+func TestLatexPreamble_EnglishMain(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "en"}
+	preamble := r.buildPreamble()
+
+	if !strings.Contains(preamble, `\setmainlanguage{english}`) {
+		t.Error("expected english as main language")
+	}
+}
+
+func TestLatexPreamble_EmptyLang(t *testing.T) {
+	r := &LaTeXRenderer{Lang: ""}
+	preamble := r.buildPreamble()
+
+	if !strings.Contains(preamble, `\setmainlanguage{turkish}`) {
+		t.Error("expected turkish as default main language")
+	}
+}
+
+func TestLatexRenderPage_ArabicTextWrapped(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "tr"}
+
+	intPtr := func(n int) *int { return &n }
+
+	page := &model.TranslatedPage{
+		SolvedPage: model.SolvedPage{
+			ReadPage: model.ReadPage{
+				PageNumber: 1,
+				Entries: []model.Entry{
+					{Number: intPtr(1), ArabicText: "أَبْشِرُوا", Type: "hadith"},
+				},
+			},
+		},
+		TranslatedEntries: []model.TranslatedEntry{
+			{Number: 1, TranslatedText: "Müjdelenin!"},
+		},
+	}
+
+	result := r.RenderPage(page)
+
+	// Should contain the Arabic text wrapped in \textarabic{}
+	if !strings.Contains(result, `\textarabic{`) {
+		t.Errorf("expected \\textarabic wrapper for Arabic content, got:\n%s", result)
+	}
+	if !strings.Contains(result, "Müjdelenin") {
+		t.Error("expected Turkish translation text")
+	}
+}
+
+func TestLatexRenderPage_ArabicPrimary(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "ar"}
+
+	page := &model.TranslatedPage{
+		SolvedPage: model.SolvedPage{
+			ReadPage: model.ReadPage{
+				PageNumber: 1,
+				Header:     &model.Header{Text: "حرف الألف", Type: "section_title"},
+			},
+		},
+		TranslatedHeader: &model.TranslatedHeader{Text: "Elif Harfi"},
+		TranslatedEntries: []model.TranslatedEntry{
+			{Number: 1, TranslatedText: "Arabic output text"},
+		},
+	}
+
+	result := r.RenderPage(page)
+
+	// For Arabic output, the header should use the original Arabic header
+	if !strings.Contains(result, latexEscape("حرف الألف")) {
+		t.Error("expected original Arabic header in Arabic-primary output")
+	}
+	// Should NOT wrap in \textarabic (already Arabic-primary)
+	if strings.Contains(result, `\textarabic{`) {
+		t.Error("Arabic-primary output should not use \\textarabic wrapper")
+	}
+}
+
+func TestLatexRenderPage_MixedContent(t *testing.T) {
+	r := &LaTeXRenderer{Lang: "tr"}
+
+	intPtr := func(n int) *int { return &n }
+
+	page := &model.TranslatedPage{
+		SolvedPage: model.SolvedPage{
+			ReadPage: model.ReadPage{
+				PageNumber: 1,
+				Header:     &model.Header{Text: "حرف الألف", Type: "section_title"},
+				Entries: []model.Entry{
+					{Number: intPtr(1), ArabicText: "نص عربي", Type: "hadith"},
+					{Number: intPtr(2), ArabicText: "نص آخر", Type: "hadith"},
+				},
+			},
+		},
+		TranslatedHeader: &model.TranslatedHeader{Text: "Elif Harfi"},
+		TranslatedEntries: []model.TranslatedEntry{
+			{Number: 1, TranslatedText: "Turkish translation 1"},
+			{Number: 2, TranslatedText: "Turkish translation 2"},
+		},
+	}
+
+	result := r.RenderPage(page)
+
+	// Turkish header
+	if !strings.Contains(result, `\section*{Elif Harfi}`) {
+		t.Error("expected Turkish section header")
+	}
+	// Arabic original header
+	if !strings.Contains(result, `\textarabic{`) {
+		t.Error("expected \\textarabic for Arabic header")
+	}
+	// Both Turkish translations
+	if !strings.Contains(result, "Turkish translation 1") {
+		t.Error("expected first translation")
+	}
+	if !strings.Contains(result, "Turkish translation 2") {
+		t.Error("expected second translation")
+	}
+	// Arabic originals wrapped
+	if strings.Count(result, `\textarabic{`) < 2 {
+		t.Errorf("expected at least 2 \\textarabic wrappers (header + entries), got %d", strings.Count(result, `\textarabic{`))
 	}
 }

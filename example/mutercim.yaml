@@ -31,8 +31,6 @@ inputs:
   - path: ./input/Anfas1.pdf          # Path to input PDF or image directory (relative to workspace root)
     pages: "156-157,159"              # Page range for this input: "1-10,20-30" or "all" (default)
 
-# ─── Knowledge ───────────────────────────────────────────────────────────────
-
 knowledge_dir: ./knowledge           # Knowledge YAML files directory (phrases, people, terms, places, sources)
                                      #   Merged with embedded defaults and auto-extracted memory/ entries
 

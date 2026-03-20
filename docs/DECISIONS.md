@@ -123,6 +123,15 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - `latex` format generates only `.tex` without compiling
 - Removed `skip_pdf` config field and `--skip-pdf` CLI flag
 
+## Arabic RTL and Letter Shaping in LaTeX/PDF
+- LaTeXRenderer accepts `Lang` field to configure language-aware preamble
+- Arabic-primary output (`Lang: "ar"`): `\setmainlanguage[numerals=maghrib]{arabic}`, no `\textarabic{}` wrappers
+- Non-Arabic output (Turkish, English): `\setmainlanguage{turkish}`, Arabic content wrapped in `\textarabic{}`
+- Arabic font: `\newfontfamily\arabicfont[Script=Arabic,Scale=1.2]{Amiri}` (via polyglossia)
+- Mixed content: translated header as `\section*{}`, original Arabic header in `\textarabic{}` below it
+- Original Arabic entry text included via `\textarabic{}` after each translated entry
+- Docker image includes: polyglossia, bidi, fontspec, amiri, etoolbox
+
 ## Live Status Line During API Calls
 - `StatusLine` type + `SetStatus(StatusLine)` added to Display interface
 - Shows "→ reading page N via provider/model ... Xs" below the active phase bar

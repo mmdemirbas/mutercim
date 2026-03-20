@@ -208,7 +208,7 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 		return fmt.Errorf("create latex build dir: %w", err)
 	}
 
-	texRenderer := &renderer.LaTeXRenderer{}
+	texRenderer := &renderer.LaTeXRenderer{Lang: targetLang}
 	texContent := texRenderer.RenderBook(pages)
 
 	// Write .tex to build directory for compilation

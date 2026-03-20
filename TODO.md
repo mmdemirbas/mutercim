@@ -41,4 +41,4 @@
 
 - Support fixing / completing tashkeels optionally in the arabic script.
 
-- continue writing other formats in case one fails. (for example, pandoc is not installed, so we cannot save docx, we should report it and continue saving other selected formats)
+- Do not require any external dependencies. Only docker. pandoc also should be used by docker. If docker is not available, or not running, we can try to use pandoc and latex directly installed on the host system.
