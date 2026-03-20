@@ -111,8 +111,12 @@ between languages, preserving layout, structure, and domain-specific terminology
 		ordered(5, newCleanCmd()),
 	)
 
-	// Custom help template that respects our ordering
-	cobra.AddTemplateFunc("formatGroupedCommands", formatGroupedCommands)
+	// Custom help template with colors
+	colors := display.NewStatusColors(os.Stdout)
+	cobra.AddTemplateFunc("formatGroupedCommands", makeFormatGroupedCommands(colors))
+	cobra.AddTemplateFunc("cyan", colors.Cyan)
+	cobra.AddTemplateFunc("bold", colors.Bold)
+	cobra.AddTemplateFunc("dim", colors.Dim)
 	rootCmd.SetUsageTemplate(usageTemplate)
 
 	return rootCmd
@@ -181,32 +185,34 @@ func Execute() {
 	}
 }
 
-// formatGroupedCommands builds the help text for all command groups.
-func formatGroupedCommands(cmd *cobra.Command) string {
-	var b strings.Builder
+// makeFormatGroupedCommands returns a template function that formats command groups with colors.
+func makeFormatGroupedCommands(colors display.StatusColors) func(*cobra.Command) string {
+	return func(cmd *cobra.Command) string {
+		var b strings.Builder
 
-	for _, group := range cmd.Groups() {
-		cmds := commandsInGroup(cmd.Commands(), group.ID)
-		if len(cmds) == 0 {
-			continue
+		for _, group := range cmd.Groups() {
+			cmds := commandsInGroup(cmd.Commands(), group.ID)
+			if len(cmds) == 0 {
+				continue
+			}
+			fmt.Fprintf(&b, "%s\n", colors.Bold(group.Title))
+			for _, c := range cmds {
+				fmt.Fprintf(&b, "  %s %s\n", colors.Cyan(fmt.Sprintf("%-12s", c.Name())), c.Short)
+			}
+			b.WriteString("\n")
 		}
-		fmt.Fprintf(&b, "%s\n", group.Title)
-		for _, c := range cmds {
-			fmt.Fprintf(&b, "  %-12s %s\n", c.Name(), c.Short)
+
+		ungrouped := ungroupedCommands(cmd.Commands())
+		if len(ungrouped) > 0 {
+			fmt.Fprintf(&b, "%s\n", colors.Bold("Additional Commands:"))
+			for _, c := range ungrouped {
+				fmt.Fprintf(&b, "  %s %s\n", colors.Cyan(fmt.Sprintf("%-12s", c.Name())), c.Short)
+			}
+			b.WriteString("\n")
 		}
-		b.WriteString("\n")
+
+		return b.String()
 	}
-
-	ungrouped := ungroupedCommands(cmd.Commands())
-	if len(ungrouped) > 0 {
-		b.WriteString("Additional Commands:\n")
-		for _, c := range ungrouped {
-			fmt.Fprintf(&b, "  %-12s %s\n", c.Name(), c.Short)
-		}
-		b.WriteString("\n")
-	}
-
-	return b.String()
 }
 
 // parseLogLevel converts a string log level to slog.Level.
@@ -319,24 +325,24 @@ func (h *humanHandler) WithGroup(name string) slog.Handler {
 	return h
 }
 
-var usageTemplate = `Usage:{{if .Runnable}}
+var usageTemplate = `{{ bold "Usage:" }}{{if .Runnable}}
   {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
   {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
 
-Aliases:
+{{ bold "Aliases:" }}
   {{.NameAndAliases}}{{end}}{{if .HasExample}}
 
-Examples:
+{{ bold "Examples:" }}
 {{.Example}}{{end}}{{if .HasAvailableSubCommands}}
 
-{{ formatGroupedCommands . }}{{end}}{{if .HasAvailableLocalFlags}}Flags:
+{{ formatGroupedCommands . }}{{end}}{{if .HasAvailableLocalFlags}}{{ bold "Flags:" }}
 {{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
 
-Global Flags:
+{{ bold "Global Flags:" }}
 {{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
 
-Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+{{ bold "Additional help topics:" }}{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
   {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
 
-Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+{{ dim "Use \"" }}{{ dim .CommandPath }}{{ dim " [command] --help\" for more information about a command." }}{{end}}
 `

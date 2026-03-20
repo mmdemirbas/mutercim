@@ -6,13 +6,9 @@
 
 # SIMPLIFICATION
 
-- remove knowledge staged - promote flow. Let inferred knowledge to stay in its 'memory' folder.
-  User could move them manually if they want.
+- Should we reduce number of knowledge files or unify their structures?
 
 - Dependencies? Single-binary?
-
-- Simplify knowledge management. Should we move embedded knowledge to the example/template?
-  Should we reduce number of knowledge files or unify their structures?
 
 - Simplify overall architecture and code structure. I think there are unnecessary code layers.
   We can reduce number of files and abstractions. We can unify duplications. We can simplify
