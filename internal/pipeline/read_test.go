@@ -77,7 +77,7 @@ func TestReadPipeline(t *testing.T) {
 	}
 
 	// Verify output file was created
-	outputPath := filepath.Join(ws.ReadDir(), "testinput", "page_001.json")
+	outputPath := filepath.Join(ws.ReadDir(), "testinput", "001.json")
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
@@ -106,7 +106,7 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 	// Create the output file so skip logic sees it as already done
 	outputDir := filepath.Join(ws.ReadDir(), "testinput")
 	os.MkdirAll(outputDir, 0755)
-	outputPath := filepath.Join(outputDir, "page_001.json")
+	outputPath := filepath.Join(outputDir, "001.json")
 	os.WriteFile(outputPath, []byte(`{"version":"1.0","page_number":1}`), 0644)
 
 	_, err := Read(context.Background(), ReadOptions{
@@ -183,12 +183,12 @@ func TestReadPipelinePerInputPages(t *testing.T) {
 		t.Fatalf("Read() error: %v", err)
 	}
 
-	page1 := filepath.Join(ws.ReadDir(), "testinput", "page_001.json")
+	page1 := filepath.Join(ws.ReadDir(), "testinput", "001.json")
 	if _, err := os.Stat(page1); err != nil {
 		t.Errorf("expected page 1 output, got error: %v", err)
 	}
 
-	page2 := filepath.Join(ws.ReadDir(), "testinput", "page_002.json")
+	page2 := filepath.Join(ws.ReadDir(), "testinput", "002.json")
 	if _, err := os.Stat(page2); err == nil {
 		t.Error("page 2 should not be processed when per-input pages is '1'")
 	}
@@ -211,12 +211,12 @@ func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
 		t.Fatalf("Read() error: %v", err)
 	}
 
-	page1 := filepath.Join(ws.ReadDir(), "testinput", "page_001.json")
+	page1 := filepath.Join(ws.ReadDir(), "testinput", "001.json")
 	if _, err := os.Stat(page1); err == nil {
 		t.Error("page 1 should not be processed when CLI pages override is [2]")
 	}
 
-	page2 := filepath.Join(ws.ReadDir(), "testinput", "page_002.json")
+	page2 := filepath.Join(ws.ReadDir(), "testinput", "002.json")
 	if _, err := os.Stat(page2); err != nil {
 		t.Errorf("expected page 2 output, got error: %v", err)
 	}
@@ -269,7 +269,7 @@ func TestReadPipelineMultiInput(t *testing.T) {
 
 	// Verify output files exist and have correct page numbers for both stems
 	for _, stem := range []string{"stem1", "stem2"} {
-		outputPath := filepath.Join(ws.ReadDir(), stem, "page_001.json")
+		outputPath := filepath.Join(ws.ReadDir(), stem, "001.json")
 		data, err := os.ReadFile(outputPath)
 		if err != nil {
 			t.Fatalf("read output for %s: %v", stem, err)
@@ -329,7 +329,7 @@ func TestSaveReadPage(t *testing.T) {
 		t.Fatalf("saveReadPage() error: %v", err)
 	}
 
-	path := filepath.Join(dir, "page_005.json")
+	path := filepath.Join(dir, "005.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read output: %v", err)

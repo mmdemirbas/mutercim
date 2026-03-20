@@ -57,7 +57,7 @@ func StageFromReferenceTable(page *model.ReadPage, stagedDir string) error {
 		return fmt.Errorf("create staged dir: %w", err)
 	}
 
-	filename := fmt.Sprintf("sources_page_%03d.yaml", page.PageNumber)
+	filename := fmt.Sprintf("sources_%03d.yaml", page.PageNumber)
 	tmpPath := filepath.Join(stagedDir, filename+".tmp")
 	finalPath := filepath.Join(stagedDir, filename)
 

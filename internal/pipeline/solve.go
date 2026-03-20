@@ -115,7 +115,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		}
 		// Skip pages whose output already exists
 		if !opts.Force {
-			outputPath := filepath.Join(solvedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
+			outputPath := filepath.Join(solvedDir, fmt.Sprintf("%03d.json", pf.pageNum))
 			if fileExists(outputPath) {
 				skipped++
 				continue
@@ -191,7 +191,7 @@ func saveSolvedPage(dir string, pageNum int, page *model.SolvedPage) error {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	filename := fmt.Sprintf("page_%03d.json", pageNum)
+	filename := fmt.Sprintf("%03d.json", pageNum)
 	tmpPath := filepath.Join(dir, filename+".tmp")
 	finalPath := filepath.Join(dir, filename)
 

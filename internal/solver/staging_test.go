@@ -26,7 +26,7 @@ func TestStageFromReferenceTable(t *testing.T) {
 	}
 
 	// Verify file was created
-	path := filepath.Join(dir, "sources_page_007.yaml")
+	path := filepath.Join(dir, "sources_007.yaml")
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("expected staged file at %s", path)
 	}

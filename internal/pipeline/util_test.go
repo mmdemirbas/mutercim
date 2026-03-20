@@ -13,7 +13,7 @@ func TestListPageFiles(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create page files
-	for _, name := range []string{"page_001.json", "page_003.json", "page_010.json", "other.txt"} {
+	for _, name := range []string{"001.json", "003.json", "010.json", "other.txt"} {
 		os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0644)
 	}
 
@@ -166,7 +166,7 @@ func TestSaveReadPageAtomicWrite(t *testing.T) {
 	}
 
 	// Verify file
-	data, err := os.ReadFile(filepath.Join(dir, "page_042.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "042.json"))
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestSaveReadPageAtomicWrite(t *testing.T) {
 	}
 
 	// No tmp file
-	if _, err := os.Stat(filepath.Join(dir, "page_042.json.tmp")); err == nil {
+	if _, err := os.Stat(filepath.Join(dir, "042.json.tmp")); err == nil {
 		t.Error("tmp file should not exist")
 	}
 }

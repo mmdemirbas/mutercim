@@ -95,7 +95,7 @@ func TestTranslatePipeline(t *testing.T) {
 	}
 
 	// Verify translated JSON was created
-	translatedPath := filepath.Join(ws.TranslateDir(), "tr", stem, "page_001.json")
+	translatedPath := filepath.Join(ws.TranslateDir(), "tr", stem, "001.json")
 	data, err := os.ReadFile(translatedPath)
 	if err != nil {
 		t.Fatalf("read translated output: %v", err)
@@ -172,7 +172,7 @@ func TestTranslatePipelineMultiLang(t *testing.T) {
 
 	// Verify translated JSON exists for both languages
 	for _, lang := range []string{"tr", "en"} {
-		translatedPath := filepath.Join(ws.TranslateDir(), lang, stem, "page_001.json")
+		translatedPath := filepath.Join(ws.TranslateDir(), lang, stem, "001.json")
 		if _, err := os.Stat(translatedPath); err != nil {
 			t.Errorf("expected translated output for lang %q at %s: %v", lang, translatedPath, err)
 		}

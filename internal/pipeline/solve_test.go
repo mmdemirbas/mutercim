@@ -36,9 +36,9 @@ func setupSolveWorkspace(t *testing.T, stem string, pages map[int]*model.ReadPag
 	return &workspace.Workspace{Root: dir}
 }
 
-// pageName returns the filename for a page number (e.g. "page_001.json").
+// pageName returns the filename for a page number (e.g. "001.json").
 func pageName(pageNum int) string {
-	return "page_" + padPageNum(pageNum) + ".json"
+	return padPageNum(pageNum) + ".json"
 }
 
 // padPageNum zero-pads a page number to 3 digits.
@@ -94,7 +94,7 @@ func TestSolvePipeline(t *testing.T) {
 	}
 
 	// Verify output file was created
-	outputPath := filepath.Join(ws.SolveDir(), "testbook", "page_001.json")
+	outputPath := filepath.Join(ws.SolveDir(), "testbook", "001.json")
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
 		t.Fatalf("read solved output: %v", err)
@@ -142,7 +142,7 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 	if err := os.MkdirAll(solvedDir, 0755); err != nil {
 		t.Fatalf("mkdir solved dir: %v", err)
 	}
-	outputPath := filepath.Join(solvedDir, "page_001.json")
+	outputPath := filepath.Join(solvedDir, "001.json")
 	originalContent := `{"version":"1.0","page_number":1,"entries":[]}`
 	if err := os.WriteFile(outputPath, []byte(originalContent), 0644); err != nil {
 		t.Fatalf("write existing solved page: %v", err)

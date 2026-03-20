@@ -315,7 +315,7 @@ func loadReadPages(dir string) ([]*model.ReadPage, error) {
 			continue
 		}
 		var num int
-		if _, err := fmt.Sscanf(e.Name(), "page_%03d.json", &num); err != nil {
+		if _, err := fmt.Sscanf(e.Name(), "%03d.json", &num); err != nil {
 			continue
 		}
 		data, err := os.ReadFile(filepath.Join(dir, e.Name()))

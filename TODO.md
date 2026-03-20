@@ -33,8 +33,6 @@
 
 # NEXT
 
-- Remove 'page' prefix from generated files. Just use numbers (padded). e.g. page-012 -> 012, page_123 -> 123
-
 - What is the purpose of the author field? Is it used anywhere? If not, then remove it.
 - Enrich schema documentation. Make purpose of each field clear. For example, where the "title" used, etc.
 

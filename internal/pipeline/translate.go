@@ -175,7 +175,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		}
 		// Skip pages whose output already exists
 		if !opts.Force {
-			outputPath := filepath.Join(translatedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
+			outputPath := filepath.Join(translatedDir, fmt.Sprintf("%03d.json", pf.pageNum))
 			if fileExists(outputPath) {
 				skipped++
 				continue
@@ -291,7 +291,7 @@ func saveTranslatedPage(dir string, pageNum int, page *model.TranslatedPage) err
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	filename := fmt.Sprintf("page_%03d.json", pageNum)
+	filename := fmt.Sprintf("%03d.json", pageNum)
 	tmpPath := filepath.Join(dir, filename+".tmp")
 	finalPath := filepath.Join(dir, filename)
 

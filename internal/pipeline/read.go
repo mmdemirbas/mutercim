@@ -177,7 +177,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 		// Skip pages whose output already exists
 		if !opts.Force {
-			outputPath := filepath.Join(readDir, fmt.Sprintf("page_%03d.json", pageNum))
+			outputPath := filepath.Join(readDir, fmt.Sprintf("%03d.json", pageNum))
 			if fileExists(outputPath) {
 				logger.Debug("skipping already completed page", "input", stem, "page", pageNum)
 				skipped++
@@ -279,7 +279,7 @@ func saveReadPage(dir string, pageNum int, page *model.ReadPage) error {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	filename := fmt.Sprintf("page_%03d.json", pageNum)
+	filename := fmt.Sprintf("%03d.json", pageNum)
 	tmpPath := filepath.Join(dir, filename+".tmp")
 	finalPath := filepath.Join(dir, filename)
 

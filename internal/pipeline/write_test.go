@@ -44,7 +44,7 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config) {
 	}
 
 	data, _ := json.MarshalIndent(page, "", "  ")
-	if err := os.WriteFile(filepath.Join(dir, "translate/tr/TestBook/page_001.json"), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "translate/tr/TestBook/001.json"), data, 0644); err != nil {
 		t.Fatalf("write translated page: %v", err)
 	}
 

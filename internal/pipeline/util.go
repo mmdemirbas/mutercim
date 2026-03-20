@@ -38,7 +38,7 @@ func listPageFiles(dir string) ([]pageFile, error) {
 			continue
 		}
 		var num int
-		if _, err := fmt.Sscanf(e.Name(), "page_%03d.json", &num); err != nil {
+		if _, err := fmt.Sscanf(e.Name(), "%03d.json", &num); err != nil {
 			continue
 		}
 		pages = append(pages, pageFile{pageNum: num, path: filepath.Join(dir, e.Name())})
