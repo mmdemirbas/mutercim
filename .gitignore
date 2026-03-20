@@ -18,8 +18,8 @@ desktop.ini
 
 # example
 /example/**
+!/example/_templates
 !/example/knowledge
-!/example/templates
 !/example/mutercim.yaml
 
 # Logs
