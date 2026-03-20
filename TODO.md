@@ -1,15 +1,3 @@
-# OPTIMIZATION
-
-- Optimize token usage
-    * short JSON keys
-    * shorter system prompts
-
-# SIMPLIFICATION
-
-- Simplify overall architecture and code structure. I think there are unnecessary code layers.
-  We can reduce number of files and abstractions. We can unify duplications. We can simplify
-  code structure. We can remove unnecessary abstractions.
-
 # DOCUMENTATION
 
 - Add README
@@ -34,6 +22,23 @@
 - Support fixing / completing tashkeels optionally in the arabic script.
 
 - Dependencies? Single-binary?
-- Do not require any external dependencies. Only docker. pandoc also should be used by docker. If docker is not available, or not running, we can try to use pandoc and latex directly installed on the host system.
+- Do not require any external dependencies. Only docker. pandoc also should be used by docker. If
+  docker is not available, or not running, we can try to use pandoc and latex directly installed on
+  the host system.
 
 - Windows compatibility?
+
+- Find codes that could be deleted
+
+- Find logic that is not covered by high-quality tests
+
+- Find bugs
+
+- Simplify overall architecture and code structure. I think there are unnecessary code layers.
+  We can reduce number of files and abstractions. We can unify duplications. We can simplify
+  code structure. We can remove unnecessary abstractions.
+
+- Optimize token usage
+    * short JSON keys
+    * shorter system prompts
+

@@ -9,12 +9,12 @@ import (
 
 func TestSolvePage(t *testing.T) {
 	k := &knowledge.Knowledge{
-		Terminology: []knowledge.Term{
-			{Arabic: "حديث", Turkish: "hadîs-i şerîf"},
+		Entries: []knowledge.Entry{
+			{Forms: map[string][]string{"ar": {"حديث"}, "tr": {"hadîs-i şerîf"}}},
 		},
 	}
 
-	slvr := NewSolver(k, nil)
+	slvr := NewSolver(k, "ar", nil)
 
 	page := &model.RegionPage{
 		Version:    "2.0",
@@ -36,19 +36,19 @@ func TestSolvePage(t *testing.T) {
 		t.Errorf("len(Regions) = %d, want 2", len(solved.Regions))
 	}
 
-	// Glossary should find "حديث" in entry text
+	// Glossary should find "حديث" in entry text — stored as canonical source form
 	if len(solved.GlossaryContext) == 0 {
 		t.Error("expected glossary terms to be found")
 	}
 	found := false
 	for _, g := range solved.GlossaryContext {
-		if g == "حديث → hadîs-i şerîf" {
+		if g == "حديث" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Errorf("expected glossary to contain 'حديث → hadîs-i şerîf', got %v", solved.GlossaryContext)
+		t.Errorf("expected glossary to contain canonical form 'حديث', got %v", solved.GlossaryContext)
 	}
 
 	// No validation warnings for well-formed page
@@ -64,7 +64,7 @@ func TestSolvePage(t *testing.T) {
 
 func TestSolvePage_WithPreviousPageSummary(t *testing.T) {
 	k := &knowledge.Knowledge{}
-	slvr := NewSolver(k, nil)
+	slvr := NewSolver(k, "ar", nil)
 
 	page := &model.RegionPage{
 		Version:    "2.0",
@@ -83,7 +83,7 @@ func TestSolvePage_WithPreviousPageSummary(t *testing.T) {
 }
 
 func TestSolvePage_ValidationWarnings_EmptyText(t *testing.T) {
-	slvr := NewSolver(&knowledge.Knowledge{}, nil)
+	slvr := NewSolver(&knowledge.Knowledge{}, "ar", nil)
 
 	page := &model.RegionPage{
 		Version:    "2.0",
@@ -106,7 +106,7 @@ func TestSolvePage_ValidationWarnings_EmptyText(t *testing.T) {
 }
 
 func TestSolvePage_ValidationWarnings_BadReadingOrder(t *testing.T) {
-	slvr := NewSolver(&knowledge.Knowledge{}, nil)
+	slvr := NewSolver(&knowledge.Knowledge{}, "ar", nil)
 
 	page := &model.RegionPage{
 		Version:    "2.0",
@@ -129,11 +129,11 @@ func TestSolvePage_ValidationWarnings_BadReadingOrder(t *testing.T) {
 
 func TestSolvePage_GlossaryWithPlaces(t *testing.T) {
 	k := &knowledge.Knowledge{
-		Places: []knowledge.Place{
-			{Arabic: "مكة", Turkish: "Mekke"},
+		Entries: []knowledge.Entry{
+			{Forms: map[string][]string{"ar": {"مكة"}, "tr": {"Mekke"}}},
 		},
 	}
-	slvr := NewSolver(k, nil)
+	slvr := NewSolver(k, "ar", nil)
 
 	page := &model.RegionPage{
 		Version:    "2.0",
@@ -146,8 +146,36 @@ func TestSolvePage_GlossaryWithPlaces(t *testing.T) {
 
 	solved := slvr.SolvePage(page, nil, "")
 
-	if len(solved.GlossaryContext) != 1 || solved.GlossaryContext[0] != "مكة → Mekke" {
-		t.Errorf("GlossaryContext = %v, want [مكة → Mekke]", solved.GlossaryContext)
+	if len(solved.GlossaryContext) != 1 || solved.GlossaryContext[0] != "مكة" {
+		t.Errorf("GlossaryContext = %v, want [مكة]", solved.GlossaryContext)
+	}
+}
+
+func TestSolvePage_GlossaryMatchesVariants(t *testing.T) {
+	k := &knowledge.Knowledge{
+		Entries: []knowledge.Entry{
+			{Forms: map[string][]string{
+				"ar": {"صلى الله عليه وسلم", "ﷺ", "صلعم"},
+				"tr": {"sallallâhu aleyhi ve sellem"},
+			}},
+		},
+	}
+	slvr := NewSolver(k, "ar", nil)
+
+	page := &model.RegionPage{
+		Version:    "2.0",
+		PageNumber: 1,
+		Regions: []model.Region{
+			{ID: "r1", Text: "قال النبي ﷺ", Type: model.RegionTypeEntry},
+		},
+		ReadingOrder: []string{"r1"},
+	}
+
+	solved := slvr.SolvePage(page, nil, "")
+
+	// Should match variant form and return canonical form
+	if len(solved.GlossaryContext) != 1 || solved.GlossaryContext[0] != "صلى الله عليه وسلم" {
+		t.Errorf("GlossaryContext = %v, want canonical form [صلى الله عليه وسلم]", solved.GlossaryContext)
 	}
 }
 

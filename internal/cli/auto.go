@@ -118,9 +118,14 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 			return fmt.Errorf("auto load knowledge: %w", err)
 		}
 
+		sourceLang := ""
+		if len(cfg.Book.SourceLangs) > 0 {
+			sourceLang = cfg.Book.SourceLangs[0]
+		}
+
 		logger.Info("=== AUTO: SOLVE ===")
 		result, err := pipeline.Solve(ctx, pipeline.SolveOptions{
-			Workspace: ws, Knowledge: k,
+			Workspace: ws, Knowledge: k, SourceLang: sourceLang,
 			Pages: pagesToProcess, Logger: logger, Display: disp,
 		})
 		if err != nil {

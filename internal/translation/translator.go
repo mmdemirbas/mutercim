@@ -51,18 +51,19 @@ func NewTranslator(p provider.Provider, k *knowledge.Knowledge, expandSources bo
 
 // TranslatePage translates a single solved region page.
 func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedRegionPage, contextSummaries []string, modelName string) (*model.TranslatedRegionPage, error) {
+	sourceLang := primaryLang(t.sourceLangs)
+
 	systemPrompt := BuildSystemPrompt(
-		t.knowledge.HonorificsSection(),
-		t.knowledge.PeopleSection(),
-		t.knowledge.SourcesSection(),
-		t.knowledge.TerminologySection(),
+		t.knowledge.BuildGlossary(sourceLang, t.targetLang),
 		BuildContextSection(contextSummaries),
 		t.expandSources,
 		t.sourceLangs,
 		t.targetLang,
 	)
 
-	userPrompt := BuildRegionUserPrompt(page, t.sourceLangs, t.targetLang)
+	// Format page-specific glossary context for the target language
+	glossaryContext := t.formatGlossaryContext(page.GlossaryContext, sourceLang)
+	userPrompt := BuildRegionUserPrompt(page, glossaryContext, t.sourceLangs, t.targetLang)
 
 	t.logger.Info("translating page", "page", page.PageNumber)
 
@@ -112,7 +113,7 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedRegion
 	result := &model.TranslatedRegionPage{
 		Version:            "2.0",
 		PageNumber:         page.PageNumber,
-		SourceLang:         primaryLang(t.sourceLangs),
+		SourceLang:         sourceLang,
 		TargetLang:         t.targetLang,
 		TranslateModel:     modelName,
 		TranslateTimestamp: time.Now().UTC().Format(time.RFC3339),
@@ -122,6 +123,21 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedRegion
 	}
 
 	return result, nil
+}
+
+// formatGlossaryContext converts source-language canonical forms into formatted glossary lines
+// for the specific target language.
+func (t *Translator) formatGlossaryContext(sourceTerms []string, sourceLang string) []string {
+	var lines []string
+	for _, term := range sourceTerms {
+		entry, ok := t.knowledge.LookupByForm(sourceLang, term)
+		if !ok {
+			lines = append(lines, term) // fallback: show source form only
+			continue
+		}
+		lines = append(lines, knowledge.FormatGlossaryLine(entry, sourceLang, t.targetLang))
+	}
+	return lines
 }
 
 // PageSummary creates a brief summary of a translated region page for context injection.

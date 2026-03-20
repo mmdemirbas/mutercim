@@ -180,3 +180,16 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Translation prompt lists regions in reading order; AI returns [{id, translated_text}] per region
 - Solver validates region structure (empty text, reading order consistency) and injects glossary context
 - Removed: ReadPage, SolvedPage, TranslatedPage, Entry, Footnote, Header, compat layer, abbreviation resolver, continuation detector
+
+## Unified Glossary Format
+- All knowledge types (honorifics, people, places, terms, sources) replaced with a single `Entry` type using ISO 639-1 language code keys
+- Values can be string or []string — normalized to []string on load; first item is canonical, rest are variants
+- "note" is the only non-language field (optional guidance for AI)
+- Any .yaml file in knowledge/ and memory/ directories is loaded and merged; filenames are irrelevant
+- `GlossaryForPair(source, target)` returns entries containing both languages
+- Prompt formatting: `source (also: variants) → target (also: variants) — note`
+- Solver stores matched canonical source forms in GlossaryContext (language-independent); translator formats per target language
+- Translation prompt uses single GLOSSARY section instead of separate HONORIFIC/PEOPLE/SOURCES/TERMINOLOGY sections
+- `mutercim init` scaffolds knowledge/glossary.yaml with commented format examples
+- Embedded defaults in single defaults/glossary.yaml with ar+tr+en entries where available
+- Removed: Honorific, Source, Person, Term, Place types; type-specific YAML schemas; per-type loaders; LookupSource; per-section prompt builders

@@ -5,86 +5,42 @@ import (
 	"strings"
 )
 
-// BuildGlossary creates a formatted glossary string for prompt injection.
-func (k *Knowledge) BuildGlossary() string {
-	var sections []string
-
-	if s := k.buildHonorificsSection(); s != "" {
-		sections = append(sections, s)
-	}
-	if s := k.buildPeopleSection(); s != "" {
-		sections = append(sections, s)
-	}
-	if s := k.buildSourcesSection(); s != "" {
-		sections = append(sections, s)
-	}
-	if s := k.buildTerminologySection(); s != "" {
-		sections = append(sections, s)
-	}
-
-	return strings.Join(sections, "\n\n")
-}
-
-// HonorificsSection returns the honorifics section for prompt injection.
-func (k *Knowledge) HonorificsSection() string {
-	return k.buildHonorificsSection()
-}
-
-// PeopleSection returns the people section for prompt injection.
-func (k *Knowledge) PeopleSection() string {
-	return k.buildPeopleSection()
-}
-
-// SourcesSection returns the sources section for prompt injection.
-func (k *Knowledge) SourcesSection() string {
-	return k.buildSourcesSection()
-}
-
-// TerminologySection returns the terminology section for prompt injection.
-func (k *Knowledge) TerminologySection() string {
-	return k.buildTerminologySection()
-}
-
-func (k *Knowledge) buildHonorificsSection() string {
-	if len(k.Honorifics) == 0 {
+// BuildGlossary creates a formatted glossary string for prompt injection
+// containing entries that have both the source and target language.
+func (k *Knowledge) BuildGlossary(source, target string) string {
+	entries := k.GlossaryForPair(source, target)
+	if len(entries) == 0 {
 		return ""
 	}
 	var lines []string
-	for _, h := range k.Honorifics {
-		lines = append(lines, fmt.Sprintf("- %s → %s", h.Arabic, h.Turkish))
+	for _, e := range entries {
+		lines = append(lines, "- "+FormatGlossaryLine(e, source, target))
 	}
 	return strings.Join(lines, "\n")
 }
 
-func (k *Knowledge) buildPeopleSection() string {
-	if len(k.People) == 0 {
+// FormatGlossaryLine formats a single entry for prompt injection.
+// Format: "source (also: variant1, variant2) → target (also: variant1) — note"
+func FormatGlossaryLine(e Entry, source, target string) string {
+	srcForms := e.Forms[source]
+	tgtForms := e.Forms[target]
+	if len(srcForms) == 0 || len(tgtForms) == 0 {
 		return ""
 	}
-	var lines []string
-	for _, p := range k.People {
-		lines = append(lines, fmt.Sprintf("- %s → %s", p.Arabic, p.Turkish))
-	}
-	return strings.Join(lines, "\n")
-}
 
-func (k *Knowledge) buildSourcesSection() string {
-	if len(k.Sources) == 0 {
-		return ""
+	var b strings.Builder
+	b.WriteString(srcForms[0])
+	if len(srcForms) > 1 {
+		fmt.Fprintf(&b, " (also: %s)", strings.Join(srcForms[1:], ", "))
 	}
-	var lines []string
-	for _, s := range k.Sources {
-		lines = append(lines, fmt.Sprintf("- %s = %s (%s)", s.Code, s.NameTr, s.NameAr))
+	b.WriteString(" → ")
+	b.WriteString(tgtForms[0])
+	if len(tgtForms) > 1 {
+		fmt.Fprintf(&b, " (also: %s)", strings.Join(tgtForms[1:], ", "))
 	}
-	return strings.Join(lines, "\n")
-}
-
-func (k *Knowledge) buildTerminologySection() string {
-	if len(k.Terminology) == 0 {
-		return ""
+	if e.Note != "" {
+		b.WriteString(" — ")
+		b.WriteString(e.Note)
 	}
-	var lines []string
-	for _, t := range k.Terminology {
-		lines = append(lines, fmt.Sprintf("- %s → %s", t.Arabic, t.Turkish))
-	}
-	return strings.Join(lines, "\n")
+	return b.String()
 }

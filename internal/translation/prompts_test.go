@@ -9,10 +9,7 @@ import (
 
 func TestBuildSystemPrompt(t *testing.T) {
 	prompt := BuildSystemPrompt(
-		"- صلى الله عليه وسلم → sallallâhu aleyhi ve sellem",
-		"- أبو هريرة → Ebû Hüreyre",
-		"- خ = Sahîh-i Buhârî",
-		"- حديث → hadîs-i şerîf",
+		"- فقه → fıkıh\n- حديث → hadîs-i şerîf",
 		"Page 1 — intro",
 		true,
 		[]string{"ar"},
@@ -20,9 +17,7 @@ func TestBuildSystemPrompt(t *testing.T) {
 	)
 
 	for _, want := range []string{
-		"sallallâhu aleyhi ve sellem",
-		"Ebû Hüreyre",
-		"Sahîh-i Buhârî",
+		"فقه → fıkıh",
 		"hadîs-i şerîf",
 		"Page 1",
 		"expand all source abbreviation codes",
@@ -36,7 +31,7 @@ func TestBuildSystemPrompt(t *testing.T) {
 }
 
 func TestBuildSystemPromptNoExpand(t *testing.T) {
-	prompt := BuildSystemPrompt("", "", "", "", "", false, []string{"ar"}, "tr")
+	prompt := BuildSystemPrompt("", "", false, []string{"ar"}, "tr")
 	if !strings.Contains(prompt, "Keep source abbreviation codes as-is") {
 		t.Error("expected no-expand instruction")
 	}
@@ -91,11 +86,11 @@ func TestBuildRegionUserPrompt(t *testing.T) {
 			},
 			ReadingOrder: []string{"r1", "r2", "sep1", "pn1"},
 		},
-		GlossaryContext:     []string{"حديث → hadîs-i şerîf"},
 		PreviousPageSummary: "Previous page summary",
 	}
 
-	prompt := BuildRegionUserPrompt(page, []string{"ar"}, "tr")
+	glossaryContext := []string{"حديث → hadîs-i şerîf"}
+	prompt := BuildRegionUserPrompt(page, glossaryContext, []string{"ar"}, "tr")
 
 	for _, want := range []string{
 		"ar",
@@ -125,7 +120,7 @@ func TestBuildRegionUserPrompt_NoGlossary(t *testing.T) {
 		},
 	}
 
-	prompt := BuildRegionUserPrompt(page, []string{"ar"}, "tr")
+	prompt := BuildRegionUserPrompt(page, nil, []string{"ar"}, "tr")
 
 	if strings.Contains(prompt, "GLOSSARY") {
 		t.Error("prompt should not contain GLOSSARY when no terms")

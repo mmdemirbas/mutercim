@@ -7,87 +7,162 @@ import (
 
 func TestBuildGlossary(t *testing.T) {
 	k := &Knowledge{
-		Honorifics: []Honorific{
-			{Arabic: "صلى الله عليه وسلم", Turkish: "sallallâhu aleyhi ve sellem"},
-		},
-		People: []Person{
-			{Arabic: "أبو هريرة", Turkish: "Ebû Hüreyre"},
-		},
-		Sources: []Source{
-			{Code: "خ", NameAr: "صحيح البخاري", NameTr: "Sahîh-i Buhârî"},
-		},
-		Terminology: []Term{
-			{Arabic: "حديث", Turkish: "hadîs-i şerîf"},
+		Entries: []Entry{
+			{
+				Forms: map[string][]string{
+					"ar": {"صلى الله عليه وسلم", "ﷺ", "صلعم"},
+					"tr": {"sallallâhu aleyhi ve sellem", "s.a.v."},
+				},
+				Note: "Salawat",
+			},
+			{
+				Forms: map[string][]string{
+					"ar": {"أبو هريرة"},
+					"tr": {"Ebû Hüreyre"},
+				},
+			},
+			{
+				Forms: map[string][]string{
+					"ar": {"حديث"},
+					"tr": {"hadîs-i şerîf"},
+				},
+			},
 		},
 	}
 
-	glossary := k.BuildGlossary()
+	glossary := k.BuildGlossary("ar", "tr")
 
 	for _, want := range []string{
 		"sallallâhu aleyhi ve sellem",
 		"Ebû Hüreyre",
-		"Sahîh-i Buhârî",
 		"hadîs-i şerîf",
+		"also: ﷺ, صلعم",
+		"also: s.a.v.",
+		"Salawat",
 	} {
 		if !strings.Contains(glossary, want) {
-			t.Errorf("glossary should contain %q", want)
+			t.Errorf("glossary should contain %q, got:\n%s", want, glossary)
 		}
 	}
 }
 
 func TestBuildGlossaryEmpty(t *testing.T) {
 	k := &Knowledge{}
-	glossary := k.BuildGlossary()
+	glossary := k.BuildGlossary("ar", "tr")
 	if glossary != "" {
 		t.Errorf("expected empty glossary, got %q", glossary)
 	}
 }
 
-func TestHonorificsSection(t *testing.T) {
+func TestBuildGlossaryNoMatchingPair(t *testing.T) {
 	k := &Knowledge{
-		Honorifics: []Honorific{
-			{Arabic: "رحمه الله", Turkish: "rahimehullâh"},
+		Entries: []Entry{
+			{Forms: map[string][]string{"ar": {"فقه"}, "tr": {"fıkıh"}}},
 		},
 	}
-	s := k.HonorificsSection()
-	if !strings.Contains(s, "رحمه الله") || !strings.Contains(s, "rahimehullâh") {
-		t.Errorf("unexpected section: %q", s)
+	glossary := k.BuildGlossary("ar", "en")
+	if glossary != "" {
+		t.Errorf("expected empty glossary for ar→en (no en forms), got %q", glossary)
 	}
 }
 
-func TestHonorificsSectionEmpty(t *testing.T) {
-	k := &Knowledge{}
-	if s := k.HonorificsSection(); s != "" {
-		t.Errorf("expected empty, got %q", s)
+func TestFormatGlossaryLine_Canonical(t *testing.T) {
+	e := Entry{
+		Forms: map[string][]string{
+			"ar": {"فقه"},
+			"tr": {"fıkıh"},
+		},
+	}
+	got := FormatGlossaryLine(e, "ar", "tr")
+	want := "فقه → fıkıh"
+	if got != want {
+		t.Errorf("FormatGlossaryLine = %q, want %q", got, want)
 	}
 }
 
-func TestPeopleSection(t *testing.T) {
-	k := &Knowledge{
-		People: []Person{{Arabic: "عائشة", Turkish: "Hz. Âişe"}},
+func TestFormatGlossaryLine_Variants(t *testing.T) {
+	e := Entry{
+		Forms: map[string][]string{
+			"ar": {"صلى الله عليه وسلم", "ﷺ", "صلعم"},
+			"tr": {"sallallâhu aleyhi ve sellem", "s.a.v."},
+		},
 	}
-	s := k.PeopleSection()
-	if !strings.Contains(s, "عائشة") || !strings.Contains(s, "Hz. Âişe") {
-		t.Errorf("unexpected section: %q", s)
-	}
-}
-
-func TestSourcesSection(t *testing.T) {
-	k := &Knowledge{
-		Sources: []Source{{Code: "م", NameAr: "صحيح مسلم", NameTr: "Sahîh-i Müslim"}},
-	}
-	s := k.SourcesSection()
-	if !strings.Contains(s, "م") || !strings.Contains(s, "Sahîh-i Müslim") {
-		t.Errorf("unexpected section: %q", s)
+	got := FormatGlossaryLine(e, "ar", "tr")
+	want := "صلى الله عليه وسلم (also: ﷺ, صلعم) → sallallâhu aleyhi ve sellem (also: s.a.v.)"
+	if got != want {
+		t.Errorf("FormatGlossaryLine = %q, want %q", got, want)
 	}
 }
 
-func TestTerminologySection(t *testing.T) {
-	k := &Knowledge{
-		Terminology: []Term{{Arabic: "فقه", Turkish: "fıkıh"}},
+func TestFormatGlossaryLine_WithNote(t *testing.T) {
+	e := Entry{
+		Forms: map[string][]string{
+			"ar": {"أبو هريرة"},
+			"tr": {"Ebû Hüreyre"},
+		},
+		Note: "Prominent companion",
 	}
-	s := k.TerminologySection()
-	if !strings.Contains(s, "فقه") || !strings.Contains(s, "fıkıh") {
-		t.Errorf("unexpected section: %q", s)
+	got := FormatGlossaryLine(e, "ar", "tr")
+	want := "أبو هريرة → Ebû Hüreyre — Prominent companion"
+	if got != want {
+		t.Errorf("FormatGlossaryLine = %q, want %q", got, want)
+	}
+}
+
+func TestFormatGlossaryLine_VariantsAndNote(t *testing.T) {
+	e := Entry{
+		Forms: map[string][]string{
+			"ar": {"صلى الله عليه وسلم", "ﷺ", "صلعم"},
+			"tr": {"sallallâhu aleyhi ve sellem", "s.a.v."},
+		},
+		Note: "Salawat. Must appear after every mention of the Prophet.",
+	}
+	got := FormatGlossaryLine(e, "ar", "tr")
+	if !strings.Contains(got, "also: ﷺ, صلعم") {
+		t.Errorf("should contain source variants, got %q", got)
+	}
+	if !strings.Contains(got, "also: s.a.v.") {
+		t.Errorf("should contain target variants, got %q", got)
+	}
+	if !strings.Contains(got, "— Salawat") {
+		t.Errorf("should contain note after dash, got %q", got)
+	}
+}
+
+func TestFormatGlossaryLine_MissingLanguage(t *testing.T) {
+	e := Entry{
+		Forms: map[string][]string{
+			"ar": {"فقه"},
+			"tr": {"fıkıh"},
+		},
+	}
+	got := FormatGlossaryLine(e, "ar", "en") // "en" not present
+	if got != "" {
+		t.Errorf("expected empty for missing language, got %q", got)
+	}
+}
+
+func TestEmbeddedDefaultsLoadAndParse(t *testing.T) {
+	k, err := Load("", "")
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	// Should have a substantial number of entries
+	if len(k.Entries) < 50 {
+		t.Errorf("expected at least 50 embedded entries, got %d", len(k.Entries))
+	}
+
+	// Verify entries have proper structure
+	for i, e := range k.Entries {
+		if len(e.Forms) < 2 {
+			t.Errorf("entry %d has fewer than 2 languages: %v", i, e.Forms)
+		}
+	}
+
+	// Verify glossary building works with embedded defaults
+	glossary := k.BuildGlossary("ar", "tr")
+	if glossary == "" {
+		t.Error("expected non-empty ar→tr glossary from embedded defaults")
 	}
 }

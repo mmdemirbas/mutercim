@@ -9,16 +9,20 @@ import (
 
 // Solver orchestrates the solving of region pages.
 type Solver struct {
-	knowledge *knowledge.Knowledge
-	logger    *slog.Logger
+	knowledge  *knowledge.Knowledge
+	sourceLang string
+	logger     *slog.Logger
 }
 
 // NewSolver creates a new Solver.
-func NewSolver(k *knowledge.Knowledge, logger *slog.Logger) *Solver {
+func NewSolver(k *knowledge.Knowledge, sourceLang string, logger *slog.Logger) *Solver {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Solver{knowledge: k, logger: logger}
+	if sourceLang == "" {
+		sourceLang = "ar"
+	}
+	return &Solver{knowledge: k, sourceLang: sourceLang, logger: logger}
 }
 
 // SolvePage performs all solving steps on a region page.
@@ -95,26 +99,29 @@ func itoa(n int) string {
 }
 
 // buildGlossaryContext finds relevant glossary terms that appear in the page's text.
+// Returns canonical source-language forms for matched entries.
 func (s *Solver) buildGlossaryContext(page *model.RegionPage) []string {
-	var terms []string
+	var matched []string
 
 	for _, region := range page.Regions {
 		if region.Text == "" {
 			continue
 		}
-		for _, term := range s.knowledge.Terminology {
-			if containsArabic(region.Text, term.Arabic) {
-				terms = append(terms, term.Arabic+" → "+term.Turkish)
+		for _, entry := range s.knowledge.Entries {
+			forms, ok := entry.Forms[s.sourceLang]
+			if !ok {
+				continue
 			}
-		}
-		for _, place := range s.knowledge.Places {
-			if containsArabic(region.Text, place.Arabic) {
-				terms = append(terms, place.Arabic+" → "+place.Turkish)
+			for _, form := range forms {
+				if containsText(region.Text, form) {
+					matched = append(matched, forms[0]) // canonical source form
+					break
+				}
 			}
 		}
 	}
 
-	return dedupStrings(terms)
+	return dedupStrings(matched)
 }
 
 // validateRegions checks structural consistency of regions.
@@ -142,7 +149,7 @@ func validateRegions(page *model.RegionPage) []string {
 	return warnings
 }
 
-func containsArabic(text, term string) bool {
+func containsText(text, term string) bool {
 	return len(term) > 0 && len(text) > 0 && contains(text, term)
 }
 

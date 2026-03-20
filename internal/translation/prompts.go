@@ -17,16 +17,7 @@ TRANSLATION PRINCIPLES:
 3. Translate idioms into their target language equivalents or explain them naturally — never produce a literal translation that would be cryptic.
 4. Preserve the scholarly register and dignity of the text.
 
-HONORIFIC RULES:
-%s
-
-PERSON NAME MAPPINGS:
-%s
-
-SOURCE ABBREVIATIONS:
-%s
-
-TERMINOLOGY GLOSSARY:
+GLOSSARY:
 %s
 
 CONTEXT FROM PREVIOUS PAGES:
@@ -53,7 +44,7 @@ Return a JSON object with this exact schema:
 Respond with ONLY the JSON object. No markdown formatting, no explanations.`
 
 // BuildSystemPrompt constructs the full translation system prompt with knowledge injected.
-func BuildSystemPrompt(honorifics, people, sources, terminology, context string, expandSources bool, sourceLangs []string, targetLang string) string {
+func BuildSystemPrompt(glossary, context string, expandSources bool, sourceLangs []string, targetLang string) string {
 	langInstr := buildLanguageInstruction(sourceLangs, targetLang)
 
 	expandInstr := fmt.Sprintf("When translating footnotes, expand all source abbreviation codes to their full names in %s.", targetLang)
@@ -62,7 +53,7 @@ func BuildSystemPrompt(honorifics, people, sources, terminology, context string,
 	}
 
 	return fmt.Sprintf(translationSystemPrompt,
-		langInstr, honorifics, people, sources, terminology, context, expandInstr)
+		langInstr, glossary, context, expandInstr)
 }
 
 // buildLanguageInstruction creates the source/target language description for the prompt.
@@ -79,7 +70,8 @@ func buildLanguageInstruction(sourceLangs []string, targetLang string) string {
 }
 
 // BuildRegionUserPrompt constructs the user prompt with all regions listed.
-func BuildRegionUserPrompt(page *model.SolvedRegionPage, sourceLangs []string, targetLang string) string {
+// glossaryContext contains pre-formatted glossary lines for the target language.
+func BuildRegionUserPrompt(page *model.SolvedRegionPage, glossaryContext []string, sourceLangs []string, targetLang string) string {
 	var b strings.Builder
 
 	primary := "the source language"
@@ -127,9 +119,9 @@ func BuildRegionUserPrompt(page *model.SolvedRegionPage, sourceLangs []string, t
 		}
 	}
 
-	if len(page.GlossaryContext) > 0 {
+	if len(glossaryContext) > 0 {
 		b.WriteString("\nGLOSSARY:\n")
-		for _, g := range page.GlossaryContext {
+		for _, g := range glossaryContext {
 			fmt.Fprintf(&b, "- %s\n", g)
 		}
 	}

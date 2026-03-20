@@ -58,12 +58,18 @@ func newSolveCmd() *cobra.Command {
 				}
 			}
 
+			sourceLang := ""
+			if len(cfg.Book.SourceLangs) > 0 {
+				sourceLang = cfg.Book.SourceLangs[0]
+			}
+
 			_, err = pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
-				Workspace: ws,
-				Knowledge: k,
-				Pages:     pagesToProcess,
-				Force:     force,
-				Display:   display.FromContext(cmd.Context()),
+				Workspace:  ws,
+				Knowledge:  k,
+				SourceLang: sourceLang,
+				Pages:      pagesToProcess,
+				Force:      force,
+				Display:    display.FromContext(cmd.Context()),
 			})
 			return err
 		},

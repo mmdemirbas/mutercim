@@ -68,6 +68,12 @@ func Init(opts InitOptions) (*Workspace, error) {
 		return nil, fmt.Errorf("write config: %w", err)
 	}
 
+	// Scaffold example glossary file
+	glossaryPath := filepath.Join(root, "knowledge", "glossary.yaml")
+	if err := os.WriteFile(glossaryPath, []byte(glossaryScaffold), 0644); err != nil {
+		return nil, fmt.Errorf("write glossary scaffold: %w", err)
+	}
+
 	return &Workspace{Root: root}, nil
 }
 
@@ -125,6 +131,29 @@ rate_limit:
   requests_per_minute: 14
 `, title, strings.Join(sourceLangs, ", "), strings.Join(targetLangs, ", "))
 }
+
+const glossaryScaffold = `# Glossary entries for translation knowledge.
+# Each entry uses ISO 639-1 language codes as keys.
+# Values can be a single string or a list (first is canonical, rest are variants).
+# The "note" field is optional guidance for the AI.
+#
+# entries:
+#   # Simple: one form per language
+#   - ar: "أبو هريرة"
+#     tr: "Ebû Hüreyre"
+#     en: "Abu Hurayra"
+#     note: "Prominent companion, narrator of most hadiths"
+#
+#   # Variants: abbreviations, alternate spellings
+#   - ar: ["صلى الله عليه وسلم", "ﷺ", "صلعم"]
+#     tr: ["sallallâhu aleyhi ve sellem", "s.a.v."]
+#     en: ["peace be upon him", "PBUH"]
+#     note: "Salawat. Must appear after every mention of the Prophet."
+#
+#   # Minimal: two languages only
+#   - ar: "فقه"
+#     tr: "fıkıh"
+`
 
 // splitLangs splits a comma-separated language string into a slice.
 func splitLangs(s string) []string {

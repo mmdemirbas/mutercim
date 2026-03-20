@@ -32,8 +32,13 @@ func TestTranslatePage(t *testing.T) {
 	}`
 
 	k := &knowledge.Knowledge{
-		Honorifics: []knowledge.Honorific{
-			{Arabic: "صلى الله عليه وسلم", Turkish: "sallallâhu aleyhi ve sellem"},
+		Entries: []knowledge.Entry{
+			{
+				Forms: map[string][]string{
+					"ar": {"صلى الله عليه وسلم"},
+					"tr": {"sallallâhu aleyhi ve sellem"},
+				},
+			},
 		},
 	}
 
@@ -159,6 +164,46 @@ func TestTranslatePageWithContext(t *testing.T) {
 	_, err := translator.TranslatePage(context.Background(), page, summaries, "test-model")
 	if err != nil {
 		t.Fatalf("TranslatePage() error: %v", err)
+	}
+}
+
+func TestTranslatePage_FormatsGlossaryContext(t *testing.T) {
+	response := `{"regions": [{"id": "r1", "translated_text": "text"}], "warnings": []}`
+
+	k := &knowledge.Knowledge{
+		Entries: []knowledge.Entry{
+			{
+				Forms: map[string][]string{
+					"ar": {"حديث"},
+					"tr": {"hadîs-i şerîf"},
+				},
+				Note: "Prophetic tradition",
+			},
+		},
+	}
+
+	mock := &mockProvider{response: response}
+	translator := NewTranslator(mock, k, true, []string{"ar"}, "tr", nil)
+
+	page := &model.SolvedRegionPage{
+		RegionPage: model.RegionPage{
+			Version:    "2.0",
+			PageNumber: 1,
+			Regions: []model.Region{
+				{ID: "r1", Text: "هذا حديث", Type: model.RegionTypeEntry},
+			},
+			ReadingOrder: []string{"r1"},
+		},
+		GlossaryContext: []string{"حديث"}, // source canonical form from solver
+	}
+
+	// The translator should format this using knowledge for the target language
+	glossary := translator.formatGlossaryContext(page.GlossaryContext, "ar")
+	if len(glossary) != 1 {
+		t.Fatalf("expected 1 glossary line, got %d", len(glossary))
+	}
+	if glossary[0] != "حديث → hadîs-i şerîf — Prophetic tradition" {
+		t.Errorf("glossary line = %q", glossary[0])
 	}
 }
 

@@ -138,13 +138,19 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("load knowledge: %w", err)
 			}
 
+			sourceLang := ""
+			if len(cfg.Book.SourceLangs) > 0 {
+				sourceLang = cfg.Book.SourceLangs[0]
+			}
+
 			solveResult, err := pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
-				Workspace: ws,
-				Knowledge: k,
-				Pages:     pagesToProcess,
-				Force:     force,
-				Logger:    logger,
-				Display:   disp,
+				Workspace:  ws,
+				Knowledge:  k,
+				SourceLang: sourceLang,
+				Pages:      pagesToProcess,
+				Force:      force,
+				Logger:     logger,
+				Display:    disp,
 			})
 			if err != nil {
 				return fmt.Errorf("solve: %w", err)

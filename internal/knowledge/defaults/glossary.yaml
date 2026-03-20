@@ -1,0 +1,330 @@
+entries:
+  # === Honorifics / Phrases ===
+
+  - ar: ["صلى الله عليه وسلم", "ﷺ", "صلعم"]
+    tr: ["sallallâhu aleyhi ve sellem", "s.a.v."]
+    en: ["peace be upon him", "PBUH"]
+    note: "Salawat. Must appear after every mention of the Prophet."
+
+  - ar: ["رضي الله عنه", "رضه"]
+    tr: "radıyallâhu anh"
+    en: "may Allah be pleased with him"
+    note: "Used after male companion names"
+
+  - ar: "رضي الله عنها"
+    tr: "radıyallâhu anhâ"
+    en: "may Allah be pleased with her"
+    note: "Used after female companion names"
+
+  - ar: "رضي الله عنهم"
+    tr: "radıyallâhu anhüm"
+    en: "may Allah be pleased with them"
+    note: "Used after plural companion references"
+
+  - ar: "رحمه الله"
+    tr: "rahimehullâh"
+    en: "may Allah have mercy on him"
+    note: "Used after deceased scholars"
+
+  - ar: "عليه السلام"
+    tr: "aleyhisselâm"
+    en: "peace be upon him"
+    note: "Used after prophet names"
+
+  # === People / Companions ===
+
+  - ar: "أبو هريرة"
+    tr: "Ebû Hüreyre"
+    en: "Abu Hurayra"
+    note: "Prominent companion, narrator of most hadiths"
+
+  - ar: "عبد الله بن عمر"
+    tr: "Abdullah b. Ömer"
+    en: "Abdullah ibn Umar"
+
+  - ar: "عبد الله بن مسعود"
+    tr: "Abdullah b. Mes'ûd"
+    en: "Abdullah ibn Masud"
+
+  - ar: "عائشة"
+    tr: "Hz. Âişe"
+    en: "Aisha"
+
+  - ar: "أنس بن مالك"
+    tr: "Enes b. Mâlik"
+    en: "Anas ibn Malik"
+
+  - ar: "عبد الرحمن بن عوف"
+    tr: "Abdurrahman b. Avf"
+
+  - ar: "السائب بن أبي حبيش"
+    tr: "Sâib b. Ebî Hubeyş"
+
+  - ar: "علي بن أبي طالب"
+    tr: "Hz. Ali b. Ebî Tâlib"
+    en: "Ali ibn Abi Talib"
+
+  - ar: "أبو بكر الصديق"
+    tr: "Hz. Ebû Bekir es-Sıddîk"
+    en: "Abu Bakr al-Siddiq"
+
+  - ar: "عمر بن الخطاب"
+    tr: "Hz. Ömer b. el-Hattâb"
+    en: "Umar ibn al-Khattab"
+
+  - ar: "عثمان بن عفان"
+    tr: "Hz. Osman b. Affân"
+    en: "Uthman ibn Affan"
+
+  - ar: "جابر بن عبد الله"
+    tr: "Câbir b. Abdullah"
+    en: "Jabir ibn Abdullah"
+
+  - ar: "عبد الله بن عباس"
+    tr: "Abdullah b. Abbas"
+    en: "Abdullah ibn Abbas"
+
+  - ar: "أبو سعيد الخدري"
+    tr: "Ebû Saîd el-Hudrî"
+    en: "Abu Said al-Khudri"
+
+  - ar: "معاذ بن جبل"
+    tr: "Muâz b. Cebel"
+
+  - ar: "سعد بن أبي وقاص"
+    tr: "Sa'd b. Ebî Vakkâs"
+
+  - ar: "أبو ذر الغفاري"
+    tr: "Ebû Zer el-Gıfârî"
+
+  - ar: "طلحة بن عبيد الله"
+    tr: "Talha b. Ubeydullah"
+
+  - ar: "الزبير بن العوام"
+    tr: "Zübeyr b. el-Avvâm"
+
+  - ar: "أبو موسى الأشعري"
+    tr: "Ebû Mûsâ el-Eş'arî"
+
+  - ar: "حذيفة بن اليمان"
+    tr: "Huzeyfe b. el-Yemân"
+
+  - ar: "بلال بن رباح"
+    tr: "Bilâl b. Rebâh"
+
+  - ar: "خديجة بنت خويلد"
+    tr: "Hz. Hatîce bint Huveylid"
+    en: "Khadija bint Khuwaylid"
+
+  - ar: "فاطمة الزهراء"
+    tr: "Hz. Fâtıma ez-Zehrâ"
+    en: "Fatimah al-Zahra"
+
+  - ar: "أم سلمة"
+    tr: "Ümmü Seleme"
+
+  - ar: "زيد بن ثابت"
+    tr: "Zeyd b. Sâbit"
+
+  - ar: "سلمان الفارسي"
+    tr: "Selmân el-Fârisî"
+
+  - ar: "أبو أيوب الأنصاري"
+    tr: "Ebû Eyyûb el-Ensârî"
+
+  - ar: "عمرو بن العاص"
+    tr: "Amr b. el-Âs"
+
+  - ar: "خالد بن الوليد"
+    tr: "Hâlid b. el-Velîd"
+    en: "Khalid ibn al-Walid"
+
+  - ar: "أبو الدرداء"
+    tr: "Ebü'd-Derdâ"
+
+  - ar: "ابن عمر"
+    tr: "İbn Ömer"
+
+  - ar: "ابن عباس"
+    tr: "İbn Abbas"
+
+  - ar: "ابن مسعود"
+    tr: "İbn Mes'ûd"
+
+  # === Places ===
+
+  - ar: "مكة"
+    tr: "Mekke"
+    en: "Mecca"
+
+  - ar: "المدينة"
+    tr: "Medîne"
+    en: "Medina"
+
+  - ar: "بدر"
+    tr: "Bedir"
+    en: "Badr"
+
+  - ar: "أحد"
+    tr: "Uhud"
+    en: "Uhud"
+
+  - ar: "خيبر"
+    tr: "Hayber"
+    en: "Khaybar"
+
+  - ar: "الطائف"
+    tr: "Tâif"
+    en: "Taif"
+
+  - ar: "الشام"
+    tr: "Şam"
+    en: "Greater Syria"
+
+  - ar: "العراق"
+    tr: "Irak"
+    en: "Iraq"
+
+  - ar: "مصر"
+    tr: "Mısır"
+    en: "Egypt"
+
+  - ar: "فارس"
+    tr: "Fars (Pers)"
+    en: "Persia"
+
+  - ar: "الروم"
+    tr: "Rûm (Bizans)"
+    en: "Byzantium"
+
+  - ar: "اليمن"
+    tr: "Yemen"
+    en: "Yemen"
+
+  - ar: "الحبشة"
+    tr: "Habeşistan"
+    en: "Abyssinia"
+
+  - ar: "بيت المقدس"
+    tr: "Beytü'l-Makdis (Kudüs)"
+    en: "Jerusalem"
+
+  - ar: "الكوفة"
+    tr: "Kûfe"
+    en: "Kufa"
+
+  - ar: "البصرة"
+    tr: "Basra"
+    en: "Basra"
+
+  - ar: "بغداد"
+    tr: "Bağdat"
+    en: "Baghdad"
+
+  - ar: "دمشق"
+    tr: "Dımaşk (Şam)"
+    en: "Damascus"
+
+  # === Terminology ===
+
+  - ar: "حديث"
+    tr: "hadîs-i şerîf"
+    en: "hadith"
+    note: "Prophetic tradition"
+
+  - ar: "سند"
+    tr: "sened"
+    en: "isnad"
+    note: "Chain of narrators"
+
+  - ar: "متن"
+    tr: "metin"
+    en: "matn"
+    note: "Body text of hadith"
+
+  - ar: "صحيح"
+    tr: "sahîh"
+    en: "sahih"
+    note: "Hadith grading — authentic"
+
+  - ar: "حسن"
+    tr: "hasen"
+    en: "hasan"
+    note: "Hadith grading — good"
+
+  - ar: "ضعيف"
+    tr: "zayıf"
+    en: "da'if"
+    note: "Hadith grading — weak"
+
+  - ar: "مرسل"
+    tr: "mürsel"
+    en: "mursal"
+    note: "Hadith with missing link in chain"
+
+  - ar: "فقه"
+    tr: "fıkıh"
+    en: "fiqh"
+
+  - ar: "تفسير"
+    tr: "tefsîr"
+    en: "tafsir"
+
+  - ar: "تزكية"
+    tr: "tezkiye"
+    en: "tazkiyah"
+
+  - ar: "سنة"
+    tr: "sünnet"
+    en: "sunnah"
+    note: "Prophetic practice"
+
+  - ar: "أثر"
+    tr: "eser"
+    en: "athar"
+    note: "Saying of a companion"
+
+  - ar: "إسناد"
+    tr: "isnâd"
+    en: "isnad"
+    note: "Chain of transmission"
+
+  - ar: "رواية"
+    tr: "rivâyet"
+    en: "riwayah"
+    note: "Narration/report"
+
+  - ar: "راوي"
+    tr: "râvî"
+    en: "rawi"
+    note: "Narrator"
+
+  - ar: "تابعي"
+    tr: "tâbiî"
+    en: "tabi'i"
+    note: "Successor generation"
+
+  - ar: "صحابي"
+    tr: "sahâbî"
+    en: "sahabi"
+    note: "Companion of the Prophet"
+
+  - ar: "موقوف"
+    tr: "mevkûf"
+    en: "mawquf"
+    note: "Hadith stopping at companion level"
+
+  - ar: "مرفوع"
+    tr: "merfû"
+    en: "marfu"
+    note: "Hadith attributed to the Prophet"
+
+  - ar: "موضوع"
+    tr: "mevzû"
+    en: "mawdu"
+    note: "Fabricated hadith"
+
+  - ar: "متواتر"
+    tr: "mütevâtir"
+    en: "mutawatir"
+    note: "Mass-transmitted hadith"

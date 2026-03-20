@@ -1,64 +1,43 @@
 package knowledge
 
-// Honorific represents an Arabic honorific formula with its Turkish rendering.
-type Honorific struct {
-	Arabic        string   `yaml:"arabic" json:"arabic"`
-	Abbreviations []string `yaml:"abbreviations,omitempty" json:"abbreviations,omitempty"`
-	Turkish       string   `yaml:"turkish" json:"turkish"`
-	Context       string   `yaml:"context,omitempty" json:"context,omitempty"`
+// Entry represents a single glossary entry with language-specific forms.
+// Each entry maps ISO 639-1 language codes to one or more forms.
+// The first form in each list is the canonical/preferred form; the rest are variants.
+type Entry struct {
+	Forms map[string][]string // language code → forms (first is canonical)
+	Note  string              // optional guidance for the AI
 }
 
-// Source represents a source abbreviation mapping.
-type Source struct {
-	Code     string `yaml:"code" json:"code"`
-	NameAr   string `yaml:"name_ar" json:"name_ar"`
-	NameTr   string `yaml:"name_tr" json:"name_tr"`
-	AuthorTr string `yaml:"author_tr,omitempty" json:"author_tr,omitempty"`
-	Number   string `yaml:"number,omitempty" json:"number,omitempty"`
-	Layer    string `yaml:"-" json:"-"` // set during loading, not persisted in YAML
-}
-
-// Person represents a person name mapping.
-type Person struct {
-	Arabic     string `yaml:"arabic" json:"arabic"`
-	Turkish    string `yaml:"turkish" json:"turkish"`
-	FullNameTr string `yaml:"full_name_tr,omitempty" json:"full_name_tr,omitempty"`
-}
-
-// Term represents a terminology entry.
-type Term struct {
-	Arabic  string `yaml:"arabic" json:"arabic"`
-	Turkish string `yaml:"turkish" json:"turkish"`
-	Context string `yaml:"context,omitempty" json:"context,omitempty"`
-}
-
-// Place represents a place name mapping.
-type Place struct {
-	Arabic  string `yaml:"arabic" json:"arabic"`
-	Turkish string `yaml:"turkish" json:"turkish"`
-	Context string `yaml:"context,omitempty" json:"context,omitempty"`
-}
-
-// entriesFile is a generic wrapper for YAML files with an entries list.
-type entriesFile[T any] struct {
-	Entries []T `yaml:"entries"`
-}
-
-// Knowledge holds all knowledge data from all layers merged together.
+// Knowledge holds all glossary entries from all layers merged together.
 type Knowledge struct {
-	Honorifics  []Honorific
-	Sources     []Source
-	People      []Person
-	Terminology []Term
-	Places      []Place
+	Entries []Entry
 }
 
-// LookupSource finds a source by its abbreviation code.
-func (k *Knowledge) LookupSource(code string) (Source, bool) {
-	for _, s := range k.Sources {
-		if s.Code == code {
-			return s, true
+// GlossaryForPair returns only entries containing both the source and target language.
+func (k *Knowledge) GlossaryForPair(source, target string) []Entry {
+	var result []Entry
+	for _, e := range k.Entries {
+		if _, hasSrc := e.Forms[source]; hasSrc {
+			if _, hasTgt := e.Forms[target]; hasTgt {
+				result = append(result, e)
+			}
 		}
 	}
-	return Source{}, false
+	return result
+}
+
+// LookupByForm finds an entry by matching a form in the given language.
+func (k *Knowledge) LookupByForm(lang, form string) (Entry, bool) {
+	for _, e := range k.Entries {
+		forms, ok := e.Forms[lang]
+		if !ok {
+			continue
+		}
+		for _, f := range forms {
+			if f == form {
+				return e, true
+			}
+		}
+	}
+	return Entry{}, false
 }

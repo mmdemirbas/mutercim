@@ -12,89 +12,272 @@ func TestLoadEmbeddedDefaults(t *testing.T) {
 		t.Fatalf("Load() error: %v", err)
 	}
 
-	if len(k.Honorifics) == 0 {
-		t.Error("expected embedded honorifics, got none")
+	if len(k.Entries) == 0 {
+		t.Fatal("expected embedded entries, got none")
 	}
-	if len(k.People) == 0 {
-		t.Error("expected embedded people, got none")
+
+	// Verify we can find some known entries
+	_, ok := k.LookupByForm("ar", "حديث")
+	if !ok {
+		t.Error("expected to find حديث in embedded defaults")
 	}
-	if len(k.Terminology) == 0 {
-		t.Error("expected embedded terminology, got none")
+	_, ok = k.LookupByForm("ar", "مكة")
+	if !ok {
+		t.Error("expected to find مكة in embedded defaults")
 	}
-	if len(k.Places) == 0 {
-		t.Error("expected embedded places, got none")
+	_, ok = k.LookupByForm("ar", "أبو هريرة")
+	if !ok {
+		t.Error("expected to find أبو هريرة in embedded defaults")
 	}
 }
 
-func TestLoadWorkspaceOverrides(t *testing.T) {
+func TestParseSingleStringNormalizesToSlice(t *testing.T) {
+	yaml := `entries:
+  - ar: "فقه"
+    tr: "fıkıh"
+`
+	k := &Knowledge{}
+	if err := mergeRawEntries(k, []byte(yaml)); err != nil {
+		t.Fatalf("mergeRawEntries() error: %v", err)
+	}
+	if len(k.Entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(k.Entries))
+	}
+	arForms := k.Entries[0].Forms["ar"]
+	if len(arForms) != 1 || arForms[0] != "فقه" {
+		t.Errorf("ar forms = %v, want [فقه]", arForms)
+	}
+	trForms := k.Entries[0].Forms["tr"]
+	if len(trForms) != 1 || trForms[0] != "fıkıh" {
+		t.Errorf("tr forms = %v, want [fıkıh]", trForms)
+	}
+}
+
+func TestParseListValueStaysAsList(t *testing.T) {
+	yaml := `entries:
+  - ar: ["صلى الله عليه وسلم", "ﷺ", "صلعم"]
+    tr: ["sallallâhu aleyhi ve sellem", "s.a.v."]
+`
+	k := &Knowledge{}
+	if err := mergeRawEntries(k, []byte(yaml)); err != nil {
+		t.Fatalf("mergeRawEntries() error: %v", err)
+	}
+	arForms := k.Entries[0].Forms["ar"]
+	if len(arForms) != 3 {
+		t.Fatalf("ar forms = %v, want 3 items", arForms)
+	}
+	if arForms[0] != "صلى الله عليه وسلم" || arForms[1] != "ﷺ" || arForms[2] != "صلعم" {
+		t.Errorf("ar forms = %v", arForms)
+	}
+	trForms := k.Entries[0].Forms["tr"]
+	if len(trForms) != 2 {
+		t.Fatalf("tr forms = %v, want 2 items", trForms)
+	}
+}
+
+func TestParseMixedStringAndList(t *testing.T) {
+	yaml := `entries:
+  - ar: "أبو هريرة"
+    tr: "Ebû Hüreyre"
+  - ar: ["صلى الله عليه وسلم", "ﷺ"]
+    tr: "sallallâhu aleyhi ve sellem"
+`
+	k := &Knowledge{}
+	if err := mergeRawEntries(k, []byte(yaml)); err != nil {
+		t.Fatalf("mergeRawEntries() error: %v", err)
+	}
+	if len(k.Entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(k.Entries))
+	}
+	// First entry: string values normalized to single-element slices
+	if len(k.Entries[0].Forms["ar"]) != 1 {
+		t.Errorf("entry 0 ar forms = %v, want 1 item", k.Entries[0].Forms["ar"])
+	}
+	// Second entry: list value preserved
+	if len(k.Entries[1].Forms["ar"]) != 2 {
+		t.Errorf("entry 1 ar forms = %v, want 2 items", k.Entries[1].Forms["ar"])
+	}
+}
+
+func TestParseEntryWithNote(t *testing.T) {
+	yaml := `entries:
+  - ar: "فقه"
+    tr: "fıkıh"
+    note: "Islamic jurisprudence"
+`
+	k := &Knowledge{}
+	if err := mergeRawEntries(k, []byte(yaml)); err != nil {
+		t.Fatalf("mergeRawEntries() error: %v", err)
+	}
+	if k.Entries[0].Note != "Islamic jurisprudence" {
+		t.Errorf("note = %q, want %q", k.Entries[0].Note, "Islamic jurisprudence")
+	}
+}
+
+func TestParseEntryWithoutNote(t *testing.T) {
+	yaml := `entries:
+  - ar: "فقه"
+    tr: "fıkıh"
+`
+	k := &Knowledge{}
+	if err := mergeRawEntries(k, []byte(yaml)); err != nil {
+		t.Fatalf("mergeRawEntries() error: %v", err)
+	}
+	if k.Entries[0].Note != "" {
+		t.Errorf("note = %q, want empty", k.Entries[0].Note)
+	}
+}
+
+func TestParseMinimalEntry(t *testing.T) {
+	yaml := `entries:
+  - ar: "فقه"
+    tr: "fıkıh"
+`
+	k := &Knowledge{}
+	if err := mergeRawEntries(k, []byte(yaml)); err != nil {
+		t.Fatalf("mergeRawEntries() error: %v", err)
+	}
+	if len(k.Entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(k.Entries))
+	}
+	e := k.Entries[0]
+	if len(e.Forms) != 2 {
+		t.Errorf("expected 2 language keys, got %d", len(e.Forms))
+	}
+	if _, ok := e.Forms["ar"]; !ok {
+		t.Error("missing ar key")
+	}
+	if _, ok := e.Forms["tr"]; !ok {
+		t.Error("missing tr key")
+	}
+}
+
+func TestLanguageDetection_NoteExcluded(t *testing.T) {
+	yaml := `entries:
+  - ar: "حديث"
+    tr: "hadîs-i şerîf"
+    en: "hadith"
+    note: "Prophetic tradition"
+`
+	k := &Knowledge{}
+	if err := mergeRawEntries(k, []byte(yaml)); err != nil {
+		t.Fatalf("mergeRawEntries() error: %v", err)
+	}
+	e := k.Entries[0]
+	// "note" should NOT be a language key
+	if _, ok := e.Forms["note"]; ok {
+		t.Error("note should not be treated as a language code")
+	}
+	// Should have exactly 3 language keys
+	if len(e.Forms) != 3 {
+		t.Errorf("expected 3 language keys (ar, tr, en), got %d", len(e.Forms))
+	}
+	if e.Note != "Prophetic tradition" {
+		t.Errorf("note = %q, want %q", e.Note, "Prophetic tradition")
+	}
+}
+
+func TestGlossaryForPair_BothLanguages(t *testing.T) {
+	k := &Knowledge{
+		Entries: []Entry{
+			{Forms: map[string][]string{"ar": {"فقه"}, "tr": {"fıkıh"}}},
+			{Forms: map[string][]string{"ar": {"مكة"}, "en": {"Mecca"}}},
+			{Forms: map[string][]string{"ar": {"حديث"}, "tr": {"hadîs-i şerîf"}, "en": {"hadith"}}},
+		},
+	}
+
+	arTr := k.GlossaryForPair("ar", "tr")
+	if len(arTr) != 2 {
+		t.Errorf("ar→tr: expected 2 entries, got %d", len(arTr))
+	}
+
+	arEn := k.GlossaryForPair("ar", "en")
+	if len(arEn) != 2 {
+		t.Errorf("ar→en: expected 2 entries, got %d", len(arEn))
+	}
+}
+
+func TestGlossaryForPair_ThreeLanguageEntry(t *testing.T) {
+	k := &Knowledge{
+		Entries: []Entry{
+			{Forms: map[string][]string{"ar": {"حديث"}, "tr": {"hadîs-i şerîf"}, "en": {"hadith"}}},
+		},
+	}
+
+	arTr := k.GlossaryForPair("ar", "tr")
+	if len(arTr) != 1 {
+		t.Errorf("ar→tr: expected 1, got %d", len(arTr))
+	}
+	arEn := k.GlossaryForPair("ar", "en")
+	if len(arEn) != 1 {
+		t.Errorf("ar→en: expected 1, got %d", len(arEn))
+	}
+	trEn := k.GlossaryForPair("tr", "en")
+	if len(trEn) != 1 {
+		t.Errorf("tr→en: expected 1, got %d", len(trEn))
+	}
+}
+
+func TestLoadMultipleYAMLFiles(t *testing.T) {
 	dir := t.TempDir()
 
-	// Write a workspace sources file
-	yaml := `entries:
-  - code: "خ"
-    name_ar: "صحيح البخاري"
-    name_tr: "Sahîh-i Buhârî"
-    author_tr: "İmam Buhârî"
-  - code: "م"
-    name_ar: "صحيح مسلم"
-    name_tr: "Sahîh-i Müslim"
+	yaml1 := `entries:
+  - ar: "فقه"
+    tr: "fıkıh"
 `
-	if err := os.WriteFile(filepath.Join(dir, "sources.yaml"), []byte(yaml), 0644); err != nil {
-		t.Fatalf("write sources: %v", err)
+	yaml2 := `entries:
+  - ar: "مكة"
+    tr: "Mekke"
+`
+	if err := os.WriteFile(filepath.Join(dir, "terms.yaml"), []byte(yaml1), 0644); err != nil {
+		t.Fatalf("write yaml1: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "places.yaml"), []byte(yaml2), 0644); err != nil {
+		t.Fatalf("write yaml2: %v", err)
 	}
 
-	k, err := Load(dir, "")
-	if err != nil {
-		t.Fatalf("Load() error: %v", err)
+	k := &Knowledge{}
+	if err := loadFromDir(k, dir); err != nil {
+		t.Fatalf("loadFromDir() error: %v", err)
 	}
 
-	if len(k.Sources) != 2 {
-		t.Fatalf("expected 2 sources, got %d", len(k.Sources))
-	}
-	if k.Sources[0].Layer != "workspace" {
-		t.Errorf("expected layer 'workspace', got %q", k.Sources[0].Layer)
+	if len(k.Entries) != 2 {
+		t.Fatalf("expected 2 entries from 2 files, got %d", len(k.Entries))
 	}
 }
 
-func TestLoadMemoryOverrides(t *testing.T) {
-	workDir := t.TempDir()
+func TestLoadFromKnowledgeAndMemoryMerge(t *testing.T) {
+	knowledgeDir := t.TempDir()
 	memoryDir := t.TempDir()
 
-	// Workspace source
 	wsYaml := `entries:
-  - code: "خ"
-    name_ar: "صحيح البخاري"
-    name_tr: "Sahîh-i Buhârî (workspace)"
+  - ar: "فقه"
+    tr: "fıkıh (workspace)"
 `
-	if err := os.WriteFile(filepath.Join(workDir, "sources.yaml"), []byte(wsYaml), 0644); err != nil {
-		t.Fatalf("write workspace sources: %v", err)
+	memYaml := `entries:
+  - ar: "فقه"
+    tr: "fıkıh (memory)"
+`
+	if err := os.WriteFile(filepath.Join(knowledgeDir, "glossary.yaml"), []byte(wsYaml), 0644); err != nil {
+		t.Fatalf("write workspace: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(memoryDir, "glossary.yaml"), []byte(memYaml), 0644); err != nil {
+		t.Fatalf("write memory: %v", err)
 	}
 
-	// Memory source overrides workspace
-	memoryYaml := `entries:
-  - code: "خ"
-    name_ar: "صحيح البخاري"
-    name_tr: "Sahîh-i Buhârî (memory)"
-`
-	if err := os.WriteFile(filepath.Join(memoryDir, "sources.yaml"), []byte(memoryYaml), 0644); err != nil {
-		t.Fatalf("write memory sources: %v", err)
-	}
-
-	k, err := Load(workDir, memoryDir)
+	k, err := Load(knowledgeDir, memoryDir)
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
 
-	src, ok := k.LookupSource("خ")
+	// Memory should override workspace (and workspace overrides embedded)
+	entry, ok := k.LookupByForm("ar", "فقه")
 	if !ok {
-		t.Fatal("expected source 'خ' to exist")
+		t.Fatal("expected to find فقه")
 	}
-	// Memory should override workspace
-	if src.NameTr != "Sahîh-i Buhârî (memory)" {
-		t.Errorf("expected memory override, got %q", src.NameTr)
-	}
-	if src.Layer != "memory" {
-		t.Errorf("expected layer 'memory', got %q", src.Layer)
+	trForms := entry.Forms["tr"]
+	if len(trForms) != 1 || trForms[0] != "fıkıh (memory)" {
+		t.Errorf("expected memory override, got %v", trForms)
 	}
 }
 
@@ -104,28 +287,56 @@ func TestLoadNonexistentDirs(t *testing.T) {
 		t.Fatalf("Load() error: %v", err)
 	}
 	// Should still have embedded defaults
-	if len(k.Honorifics) == 0 {
-		t.Error("expected embedded honorifics even with missing dirs")
+	if len(k.Entries) == 0 {
+		t.Error("expected embedded entries even with missing dirs")
 	}
 }
 
-func TestLookupSource(t *testing.T) {
+func TestLookupByForm(t *testing.T) {
 	k := &Knowledge{
-		Sources: []Source{
-			{Code: "خ", NameAr: "صحيح البخاري", NameTr: "Sahîh-i Buhârî"},
+		Entries: []Entry{
+			{Forms: map[string][]string{
+				"ar": {"صلى الله عليه وسلم", "ﷺ", "صلعم"},
+				"tr": {"sallallâhu aleyhi ve sellem", "s.a.v."},
+			}},
 		},
 	}
 
-	src, ok := k.LookupSource("خ")
+	// Lookup by canonical form
+	e, ok := k.LookupByForm("ar", "صلى الله عليه وسلم")
 	if !ok {
-		t.Fatal("expected source to be found")
+		t.Fatal("expected to find entry by canonical form")
 	}
-	if src.NameTr != "Sahîh-i Buhârî" {
-		t.Errorf("expected 'Sahîh-i Buhârî', got %q", src.NameTr)
+	if e.Forms["tr"][0] != "sallallâhu aleyhi ve sellem" {
+		t.Errorf("unexpected tr form: %v", e.Forms["tr"])
 	}
 
-	_, ok = k.LookupSource("nonexistent")
+	// Lookup by variant form
+	e, ok = k.LookupByForm("ar", "ﷺ")
+	if !ok {
+		t.Fatal("expected to find entry by variant form")
+	}
+
+	// Lookup nonexistent
+	_, ok = k.LookupByForm("ar", "nonexistent")
 	if ok {
-		t.Error("expected source not to be found")
+		t.Error("expected not to find nonexistent form")
+	}
+}
+
+func TestMergeKey(t *testing.T) {
+	// Merge key uses alphabetically first language's canonical form
+	e1 := Entry{Forms: map[string][]string{"ar": {"فقه"}, "tr": {"fıkıh"}}}
+	e2 := Entry{Forms: map[string][]string{"ar": {"فقه"}, "tr": {"fıkıh (updated)"}}}
+
+	k := &Knowledge{}
+	mergeEntry(k, e1)
+	mergeEntry(k, e2) // should override
+
+	if len(k.Entries) != 1 {
+		t.Fatalf("expected 1 entry after merge, got %d", len(k.Entries))
+	}
+	if k.Entries[0].Forms["tr"][0] != "fıkıh (updated)" {
+		t.Errorf("expected override, got %v", k.Entries[0].Forms["tr"])
 	}
 }

@@ -18,12 +18,13 @@ import (
 
 // SolveOptions configures the solver pipeline.
 type SolveOptions struct {
-	Workspace *workspace.Workspace
-	Knowledge *knowledge.Knowledge
-	Pages     []int // specific pages to process; nil means all available
-	Force     bool  // force re-processing of already completed pages
-	Logger    *slog.Logger
-	Display   display.Display
+	Workspace  *workspace.Workspace
+	Knowledge  *knowledge.Knowledge
+	SourceLang string // primary source language for glossary matching (default: "ar")
+	Pages      []int  // specific pages to process; nil means all available
+	Force      bool   // force re-processing of already completed pages
+	Logger     *slog.Logger
+	Display    display.Display
 }
 
 // Solve runs the Phase 2 solver pipeline for all inputs.
@@ -44,7 +45,7 @@ func Solve(ctx context.Context, opts SolveOptions) (PhaseResult, error) {
 		return PhaseResult{}, fmt.Errorf("no read pages found in %s (run read first)", ws.ReadDir())
 	}
 
-	slvr := solver.NewSolver(opts.Knowledge, logger)
+	slvr := solver.NewSolver(opts.Knowledge, opts.SourceLang, logger)
 
 	var total PhaseResult
 	for _, stem := range inputs {
