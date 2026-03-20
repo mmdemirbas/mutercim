@@ -44,10 +44,10 @@ func NewReader(p provider.Provider, logger *slog.Logger) *Reader {
 }
 
 // ReadPage processes a single page image and returns a ReadPage.
-func (r *Reader) ReadPage(ctx context.Context, image []byte, pageNum int, sectionType, modelName string) (*model.ReadPage, error) {
-	userPrompt := BuildUserPrompt(sectionType)
+func (r *Reader) ReadPage(ctx context.Context, image []byte, pageNum int, modelName string) (*model.ReadPage, error) {
+	userPrompt := BuildUserPrompt()
 
-	r.logger.Info("reading page", "page", pageNum, "section_type", sectionType)
+	r.logger.Info("reading page", "page", pageNum)
 
 	rawResponse, err := r.provider.ReadFromImage(ctx, image, systemPrompt, userPrompt)
 	if err != nil {
@@ -67,7 +67,6 @@ func (r *Reader) ReadPage(ctx context.Context, image []byte, pageNum int, sectio
 	page := &model.ReadPage{
 		Version:       "1.0",
 		PageNumber:    pageNum,
-		SectionType:   sectionType,
 		ReadModel:     modelName,
 		ReadTimestamp: time.Now().UTC().Format(time.RFC3339),
 		Header:        resp.Header,

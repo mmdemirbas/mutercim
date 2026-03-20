@@ -6,10 +6,6 @@
 
 # SIMPLIFICATION
 
-- Should we reduce number of knowledge files or unify their structures?
-
-- Dependencies? Single-binary?
-
 - Simplify overall architecture and code structure. I think there are unnecessary code layers.
   We can reduce number of files and abstractions. We can unify duplications. We can simplify
   code structure. We can remove unnecessary abstractions.
@@ -37,6 +33,7 @@
 
 - Support fixing / completing tashkeels optionally in the arabic script.
 
+- Dependencies? Single-binary?
 - Do not require any external dependencies. Only docker. pandoc also should be used by docker. If docker is not available, or not running, we can try to use pandoc and latex directly installed on the host system.
 
 - Windows compatibility?

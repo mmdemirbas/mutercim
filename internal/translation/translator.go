@@ -63,7 +63,6 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedPage, 
 		t.knowledge.SourcesSection(),
 		t.knowledge.TerminologySection(),
 		BuildContextSection(contextSummaries),
-		page.SectionType,
 		t.expandSources,
 		t.sourceLangs,
 		t.targetLang,
@@ -76,7 +75,7 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedPage, 
 	}
 	userPrompt := BuildUserPrompt(string(pageJSON))
 
-	t.logger.Info("translating page", "page", page.PageNumber, "section_type", page.SectionType)
+	t.logger.Info("translating page", "page", page.PageNumber)
 
 	rawResponse, err := t.provider.Translate(ctx, systemPrompt, userPrompt)
 	if err != nil {

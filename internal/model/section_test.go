@@ -5,28 +5,6 @@ import (
 	"testing"
 )
 
-func TestSectionTypeIsValid(t *testing.T) {
-	tests := []struct {
-		st   SectionType
-		want bool
-	}{
-		{SectionSkip, true},
-		{SectionProse, true},
-		{SectionScholarlyEntries, true},
-		{SectionReferenceTable, true},
-		{SectionTOC, true},
-		{SectionIndex, true},
-		{SectionAuto, true},
-		{"unknown", false},
-		{"", false},
-	}
-	for _, tt := range tests {
-		if got := tt.st.IsValid(); got != tt.want {
-			t.Errorf("SectionType(%q).IsValid() = %v, want %v", tt.st, got, tt.want)
-		}
-	}
-}
-
 func TestParsePageRanges(t *testing.T) {
 	tests := []struct {
 		input   string

@@ -96,20 +96,6 @@ inputs: [./input]
 
 dpi: 300
 
-# Sections define the book's internal layout structure.
-# Pages not covered by any section default to type: auto.
-# If no sections are defined at all, entire book is type: auto.
-#
-# Section types:
-#   skip              - Don't process these pages
-#   prose             - Continuous paragraphs (introductions, prefaces)
-#   scholarly_entries  - Numbered entries + footnotes with source codes (hadith, athar)
-#   reference_table   - Key-value reference data (abbreviation keys → auto-extracted to memory/)
-#   toc               - Table of contents
-#   index             - Alphabetical index
-#   auto              - AI detects layout (default for unconfigured pages)
-sections: []
-
 # Model configuration
 read:
   provider: gemini

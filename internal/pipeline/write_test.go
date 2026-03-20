@@ -31,9 +31,8 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config) {
 	page := &model.TranslatedPage{
 		SolvedPage: model.SolvedPage{
 			ReadPage: model.ReadPage{
-				PageNumber:  1,
-				SectionType: "scholarly_entries",
-				Header:      &model.Header{Text: "\u062d\u0631\u0641 \u0627\u0644\u0623\u0644\u0641", Type: "section_title"},
+				PageNumber: 1,
+				Header:     &model.Header{Text: "\u062d\u0631\u0641 \u0627\u0644\u0623\u0644\u0641", Type: "section_title"},
 				Entries: []model.Entry{
 					{Number: intPtr(1), Type: "hadith", ArabicText: "\u0623\u064e\u0628\u0652\u0634\u0650\u0631\u064f\u0648\u0627"},
 				},

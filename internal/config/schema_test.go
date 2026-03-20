@@ -56,40 +56,11 @@ func TestGenerateSchema_ValidJSON(t *testing.T) {
 		t.Fatal("missing properties")
 	}
 
-	// Verify key config sections exist
-	for _, key := range []string{"book", "inputs", "read", "translate", "write", "sections", "retry", "rate_limit"} {
+	// Verify key config sections exist (sections field removed)
+	for _, key := range []string{"book", "inputs", "read", "translate", "write", "retry", "rate_limit"} {
 		if props[key] == nil {
 			t.Errorf("missing property %q", key)
 		}
-	}
-}
-
-func TestGenerateSchema_SectionTypeEnumsFromModel(t *testing.T) {
-	data, err := GenerateSchema()
-	if err != nil {
-		t.Fatalf("GenerateSchema: %v", err)
-	}
-
-	var obj map[string]any
-	json.Unmarshal(data, &obj)
-
-	// Navigate to sections[].type.enum
-	props := obj["properties"].(map[string]any)
-	sections := props["sections"].(map[string]any)
-	items := sections["items"].(map[string]any)
-	itemProps := items["properties"].(map[string]any)
-	typeField := itemProps["type"].(map[string]any)
-	enumRaw := typeField["enum"].([]any)
-
-	enums := make([]string, len(enumRaw))
-	for i, v := range enumRaw {
-		enums[i] = v.(string)
-	}
-
-	// Verify all model.ValidSectionTypes are represented
-	got := sectionTypeEnums()
-	if !reflect.DeepEqual(enums, got) {
-		t.Errorf("section type enums mismatch:\n  schema: %v\n  model:  %v", enums, got)
 	}
 }
 

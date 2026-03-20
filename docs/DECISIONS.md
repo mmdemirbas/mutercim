@@ -151,6 +151,14 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Pipeline wires callbacks via type assertion on `*provider.FailoverChain`
 - Status cleared automatically when API call completes (pipeline calls `SetStatus({})`)
 
+## Remove Sections System
+- Removed entire sections config block, section type definitions, section lookup, and section-aware prompt selection
+- Every page is now AI-auto-detected with a general read prompt
+- Users who want to skip pages use --pages flag
+- Removed `ExtractToMemory()` (reference_table auto-extraction) from solve phase
+- Removed section translate flag check from translate phase
+- No section types, no section hints, no section config anywhere in the codebase
+
 ## Remove Knowledge Subcommand
 - Removed entire `mutercim knowledge` command (list, staged, diff, promote)
 - Removed `ListStagedFiles()` and `PromoteStagedFile()` from workspace package

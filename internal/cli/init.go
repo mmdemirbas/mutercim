@@ -65,7 +65,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Workspace initialized at %s\n", ws.Root)
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Place your PDF or page images in input/")
-	fmt.Println("  2. Edit mutercim.yaml to configure sections")
+	fmt.Println("  2. Edit mutercim.yaml to configure models and languages")
 	fmt.Println("  3. Run: mutercim pages && mutercim read")
 	return nil
 }

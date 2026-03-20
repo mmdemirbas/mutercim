@@ -125,12 +125,6 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 	}
 
-	// Build section lookup
-	lookup, err := config.NewSectionLookup(cfg.Sections)
-	if err != nil {
-		logger.Warn("section lookup error, using auto for all pages", "error", err)
-	}
-
 	// Create reader
 	rdr := reader.NewReader(opts.Provider, logger)
 
@@ -191,18 +185,6 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			continue
 		}
 
-		// Determine section type
-		sectionType := string(model.SectionAuto)
-		if lookup != nil {
-			sec := lookup.ForPage(pageNum)
-			if sec.Type == model.SectionSkip {
-				logger.Debug("skipping page (section: skip)", "input", stem, "page", pageNum)
-				skipped++
-				continue
-			}
-			sectionType = string(sec.Type)
-		}
-
 		// Load image
 		imageData, err := input.LoadImage(imgPath)
 		if err != nil {
@@ -225,7 +207,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 				StartedAt: time.Now(),
 			})
 		}
-		page, err := rdr.ReadPage(ctx, imageData, pageNum, sectionType, readModel)
+		page, err := rdr.ReadPage(ctx, imageData, pageNum, readModel)
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{}) // clear status
 		}

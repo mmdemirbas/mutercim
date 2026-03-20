@@ -58,34 +58,13 @@ Return a JSON object with this exact schema:
 
 Respond with ONLY the JSON object. No markdown formatting, no explanations.`
 
-// SectionHint returns section-specific translation guidance.
-func SectionHint(sectionType string) string {
-	switch sectionType {
-	case "scholarly_entries":
-		return "This page contains numbered scholarly entries (hadith/athar). Translate each entry preserving its scholarly tone. Expand source abbreviations in footnotes to full Turkish names."
-	case "prose":
-		return "This page is continuous prose (introduction or commentary). Translate naturally as flowing Turkish text, preserving paragraph structure."
-	case "toc":
-		return "This page is a table of contents. Translate chapter/section titles while preserving page numbers."
-	case "index":
-		return "This page is an alphabetical index. Translate terms while preserving their reference structure."
-	default:
-		return ""
-	}
-}
-
 // BuildSystemPrompt constructs the full translation system prompt with knowledge injected.
-func BuildSystemPrompt(honorifics, people, sources, terminology, context, sectionType string, expandSources bool, sourceLangs []string, targetLang string) string {
+func BuildSystemPrompt(honorifics, people, sources, terminology, context string, expandSources bool, sourceLangs []string, targetLang string) string {
 	langInstr := buildLanguageInstruction(sourceLangs, targetLang)
 
 	expandInstr := fmt.Sprintf("When translating footnotes, expand all source abbreviation codes to their full names in %s.", targetLang)
 	if !expandSources {
 		expandInstr = "Keep source abbreviation codes as-is in footnotes."
-	}
-
-	hint := SectionHint(sectionType)
-	if hint != "" {
-		expandInstr = hint + "\n\n" + expandInstr
 	}
 
 	return fmt.Sprintf(translationSystemPrompt,

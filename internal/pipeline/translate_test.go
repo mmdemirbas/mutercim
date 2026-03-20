@@ -57,9 +57,8 @@ func makeSolvedPage(pageNum int) *model.SolvedPage {
 	entryNum := 1
 	return &model.SolvedPage{
 		ReadPage: model.ReadPage{
-			Version:     "1.0",
-			PageNumber:  pageNum,
-			SectionType: "scholarly_entries",
+			Version:    "1.0",
+			PageNumber: pageNum,
 			Entries: []model.Entry{
 				{
 					Number:     &entryNum,

@@ -6,50 +6,6 @@ import (
 	"strings"
 )
 
-// SectionType defines the structural type of a book section.
-type SectionType string
-
-const (
-	SectionSkip             SectionType = "skip"
-	SectionProse            SectionType = "prose"
-	SectionScholarlyEntries SectionType = "scholarly_entries"
-	SectionReferenceTable   SectionType = "reference_table"
-	SectionTOC              SectionType = "toc"
-	SectionIndex            SectionType = "index"
-	SectionAuto             SectionType = "auto"
-)
-
-// ValidSectionTypes lists all recognized section types.
-var ValidSectionTypes = []SectionType{
-	SectionSkip, SectionProse, SectionScholarlyEntries,
-	SectionReferenceTable, SectionTOC, SectionIndex, SectionAuto,
-}
-
-// IsValid returns true if the section type is recognized.
-func (s SectionType) IsValid() bool {
-	_, ok := validSectionTypes[s]
-	return ok
-}
-
-// validSectionTypes is a set for O(1) lookup.
-var validSectionTypes = map[SectionType]bool{
-	SectionSkip:             true,
-	SectionProse:            true,
-	SectionScholarlyEntries: true,
-	SectionReferenceTable:   true,
-	SectionTOC:              true,
-	SectionIndex:            true,
-	SectionAuto:             true,
-}
-
-// Section represents a named section of the book with a page range and type.
-type Section struct {
-	Name      string      `yaml:"name" json:"name"`
-	Pages     string      `yaml:"pages" json:"pages"`
-	Type      SectionType `yaml:"type" json:"type"`
-	Translate bool        `yaml:"translate" json:"translate"`
-}
-
 // PageRange represents an inclusive range of page numbers.
 type PageRange struct {
 	First int

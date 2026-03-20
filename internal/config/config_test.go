@@ -4,8 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 func TestLoadDefaults(t *testing.T) {
@@ -70,15 +68,6 @@ book:
   source_langs: [ar]
   target_langs: [tr]
 dpi: 600
-sections:
-  - name: intro
-    pages: "1-5"
-    type: prose
-    translate: true
-  - name: hadith
-    pages: "6-100"
-    type: scholarly_entries
-    translate: true
 read:
   models:
     - provider: claude
@@ -100,15 +89,6 @@ rate_limit:
 	if cfg.DPI != 600 {
 		t.Errorf("DPI = %d, want 600", cfg.DPI)
 	}
-	if len(cfg.Sections) != 2 {
-		t.Fatalf("len(Sections) = %d, want 2", len(cfg.Sections))
-	}
-	if cfg.Sections[0].Name != "intro" {
-		t.Errorf("Sections[0].Name = %q, want %q", cfg.Sections[0].Name, "intro")
-	}
-	if cfg.Sections[0].Type != model.SectionProse {
-		t.Errorf("Sections[0].Type = %q, want %q", cfg.Sections[0].Type, model.SectionProse)
-	}
 	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "claude" || cfg.Read.Models[0].Model != "claude-sonnet-4-20250514" {
 		t.Errorf("Read.Models = %+v, want [{Provider:claude Model:claude-sonnet-4-20250514}]", cfg.Read.Models)
 	}
@@ -121,41 +101,6 @@ rate_limit:
 	}
 }
 
-func TestSectionForPage(t *testing.T) {
-	cfg := &Config{
-		Sections: []model.Section{
-			{Name: "front_matter", Pages: "1-2", Type: model.SectionSkip},
-			{Name: "intro", Pages: "3-5", Type: model.SectionProse, Translate: true},
-			{Name: "hadith", Pages: "6-100", Type: model.SectionScholarlyEntries, Translate: true},
-		},
-	}
-
-	tests := []struct {
-		page     int
-		wantName string
-		wantType model.SectionType
-	}{
-		{1, "front_matter", model.SectionSkip},
-		{2, "front_matter", model.SectionSkip},
-		{3, "intro", model.SectionProse},
-		{5, "intro", model.SectionProse},
-		{6, "hadith", model.SectionScholarlyEntries},
-		{50, "hadith", model.SectionScholarlyEntries},
-		{100, "hadith", model.SectionScholarlyEntries},
-		{101, "auto", model.SectionAuto}, // not in any section
-	}
-
-	for _, tt := range tests {
-		s := cfg.SectionForPage(tt.page)
-		if s.Name != tt.wantName {
-			t.Errorf("SectionForPage(%d).Name = %q, want %q", tt.page, s.Name, tt.wantName)
-		}
-		if s.Type != tt.wantType {
-			t.Errorf("SectionForPage(%d).Type = %q, want %q", tt.page, s.Type, tt.wantType)
-		}
-	}
-}
-
 func TestValidate(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -163,34 +108,7 @@ func TestValidate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid config",
-			cfg: Config{
-				Sections: []model.Section{
-					{Name: "test", Pages: "1-10", Type: model.SectionProse},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "invalid section type",
-			cfg: Config{
-				Sections: []model.Section{
-					{Name: "test", Pages: "1-10", Type: "invalid_type"},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid page range",
-			cfg: Config{
-				Sections: []model.Section{
-					{Name: "test", Pages: "abc", Type: model.SectionProse},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name:    "empty sections is valid",
+			name:    "empty config is valid",
 			cfg:     Config{},
 			wantErr: false,
 		},

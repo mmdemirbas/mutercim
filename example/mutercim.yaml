@@ -38,41 +38,6 @@ knowledge_dir: ./knowledge           # Knowledge YAML files directory (phrases, 
 
 dpi: 300                             # DPI for PDF-to-image conversion (min: 72) — higher = better OCR, larger files
 
-# ─── Sections ────────────────────────────────────────────────────────────────
-#
-# Book section definitions — controls how the AI reads and translates page ranges.
-# Pages not covered by any section default to type: auto.
-#
-# Section types:
-#   skip              — Exclude from processing entirely
-#   prose             — Continuous paragraphs (introductions, prefaces)
-#   scholarly_entries  — Numbered entries + footnotes with source codes (hadith collections)
-#   reference_table   — Source abbreviation lists (auto-staged to memory/ for resolution)
-#   toc               — Table of contents
-#   index             — Alphabetical index
-#   auto              — AI detects layout (default for uncovered pages)
-
-sections: []
-# sections:
-#   - name: Front matter             # Section name — shown in logs and status display
-#     pages: "1-10"                  # Page range this section covers
-#     type: skip                     # Layout type (see list above)
-#     translate: false               # Whether to translate (default: true)
-#   - name: Introduction
-#     pages: "11-20"
-#     type: prose
-#   - name: Main content
-#     pages: "21-600"
-#     type: scholarly_entries
-#   - name: Abbreviations
-#     pages: "601-605"
-#     type: reference_table          # Entries auto-staged to memory/ for source resolution
-#     translate: false
-#   - name: Index
-#     pages: "606-612"
-#     type: index
-#     translate: false
-
 # ─── Read phase (OCR/vision) ─────────────────────────────────────────────────
 #
 # Sends page images to AI vision models to extract structured JSON.

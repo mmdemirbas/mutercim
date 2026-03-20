@@ -47,16 +47,13 @@ func TestReadPage(t *testing.T) {
 	mock := &mockProvider{response: response}
 	r := NewReader(mock, nil)
 
-	page, err := r.ReadPage(context.Background(), []byte("fake-image"), 42, "scholarly_entries", "test-model")
+	page, err := r.ReadPage(context.Background(), []byte("fake-image"), 42, "test-model")
 	if err != nil {
 		t.Fatalf("ReadPage() error: %v", err)
 	}
 
 	if page.PageNumber != 42 {
 		t.Errorf("expected page number 42, got %d", page.PageNumber)
-	}
-	if page.SectionType != "scholarly_entries" {
-		t.Errorf("expected section type 'scholarly_entries', got %q", page.SectionType)
 	}
 	if page.ReadModel != "test-model" {
 		t.Errorf("expected model 'test-model', got %q", page.ReadModel)
@@ -99,7 +96,7 @@ func TestReadPageNullPageNumber(t *testing.T) {
 	mock := &mockProvider{response: response}
 	r := NewReader(mock, nil)
 
-	page, err := r.ReadPage(context.Background(), []byte("fake-image"), 7, "auto", "test-model")
+	page, err := r.ReadPage(context.Background(), []byte("fake-image"), 7, "test-model")
 	if err != nil {
 		t.Fatalf("ReadPage() error: %v", err)
 	}
@@ -115,7 +112,7 @@ func TestReadPageCodeBlockResponse(t *testing.T) {
 	mock := &mockProvider{response: response}
 	r := NewReader(mock, nil)
 
-	page, err := r.ReadPage(context.Background(), []byte("fake-image"), 1, "auto", "test-model")
+	page, err := r.ReadPage(context.Background(), []byte("fake-image"), 1, "test-model")
 	if err != nil {
 		t.Fatalf("ReadPage() error: %v", err)
 	}
@@ -128,7 +125,7 @@ func TestReadPageProviderError(t *testing.T) {
 	mock := &mockProvider{err: fmt.Errorf("provider error")}
 	r := NewReader(mock, nil)
 
-	_, err := r.ReadPage(context.Background(), []byte("fake-image"), 1, "auto", "test-model")
+	_, err := r.ReadPage(context.Background(), []byte("fake-image"), 1, "test-model")
 	if err == nil {
 		t.Fatal("expected error when provider fails")
 	}

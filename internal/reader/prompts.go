@@ -1,7 +1,5 @@
 package reader
 
-import "fmt"
-
 const systemPrompt = `You are an expert OCR system specialized in classical Arabic Islamic scholarly texts.
 
 Analyze the provided page image and extract ALL text with full structural metadata.
@@ -42,29 +40,7 @@ Return a JSON object with this exact schema:
 
 Respond with ONLY the JSON object. No markdown formatting, no explanations.`
 
-// SectionHint returns additional prompt context based on the section type.
-func SectionHint(sectionType string) string {
-	switch sectionType {
-	case "scholarly_entries":
-		return "This page is from a section containing numbered scholarly entries (hadith/athar) with footnotes and source codes."
-	case "prose":
-		return "This page is from a prose section (introduction, preface, or commentary). Read continuous paragraphs as entries of type 'other'."
-	case "reference_table":
-		return "This page contains a reference table (e.g., abbreviation key). Read each row as an entry with the abbreviation code and its expansion."
-	case "toc":
-		return "This page is a table of contents. Read each line as an entry of type 'other'."
-	case "index":
-		return "This page is an alphabetical index. Read each line as an entry of type 'other'."
-	default:
-		return ""
-	}
-}
-
 // BuildUserPrompt constructs the user prompt for reading a page.
-func BuildUserPrompt(sectionType string) string {
-	hint := SectionHint(sectionType)
-	if hint == "" {
-		return "Read all text and structural metadata from this page."
-	}
-	return fmt.Sprintf("%s\n\nRead all text and structural metadata from this page.", hint)
+func BuildUserPrompt() string {
+	return "Analyze this page image. Identify all text regions, their content, and their semantic roles (header, body text, numbered entry, footnote, table, index, page number, separator, etc.).\n\nRead all text and structural metadata from this page."
 }

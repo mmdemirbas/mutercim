@@ -4,7 +4,6 @@ package model
 type ReadPage struct {
 	Version       string     `json:"version"`
 	PageNumber    int        `json:"page_number"`
-	SectionType   string     `json:"section_type"`
 	ReadModel     string     `json:"read_model"`
 	ReadTimestamp string     `json:"read_timestamp"`
 	Header        *Header    `json:"header"`

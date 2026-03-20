@@ -20,7 +20,6 @@ type Config struct {
 	Book         model.Book      `yaml:"book" mapstructure:"book" json:"book"`
 	Inputs       []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
 	DPI          int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
-	Sections     []model.Section `yaml:"sections" mapstructure:"sections" json:"sections"`
 	Read         ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
 	Translate    TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
 	Write        WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
@@ -191,36 +190,8 @@ func (c *Config) ResolvePath(base, rel string) string {
 	return filepath.Join(base, rel)
 }
 
-// SectionForPage returns the section that contains the given page number.
-// If no section matches, returns a section with type "auto".
-func (c *Config) SectionForPage(page int) model.Section {
-	for _, s := range c.Sections {
-		ranges, err := model.ParsePageRanges(s.Pages)
-		if err != nil {
-			continue
-		}
-		if model.PageInRanges(page, ranges) {
-			return s
-		}
-	}
-	return model.Section{
-		Name:      "auto",
-		Type:      model.SectionAuto,
-		Translate: true,
-	}
-}
-
 // Validate checks the config for errors.
 func (c *Config) Validate() error {
-	for i, s := range c.Sections {
-		if !s.Type.IsValid() {
-			return fmt.Errorf("section %d (%s): invalid type %q", i, s.Name, s.Type)
-		}
-		if _, err := model.ParsePageRanges(s.Pages); err != nil {
-			return fmt.Errorf("section %d (%s): invalid pages %q: %w", i, s.Name, s.Pages, err)
-		}
-	}
-
 	// Check input paths exist and validate per-input pages
 	for i, inp := range c.Inputs {
 		if _, err := os.Stat(inp.Path); err != nil && !os.IsNotExist(err) {

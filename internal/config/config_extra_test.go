@@ -149,11 +149,8 @@ func TestValidate_PerInputPages(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid sections combined with valid per-input pages",
+			name: "valid per-input pages only",
 			cfg: Config{
-				Sections: []model.Section{
-					{Name: "intro", Pages: "1-5", Type: model.SectionProse},
-				},
 				Inputs: []InputSpec{
 					{Path: "./vol1.pdf", Pages: "1-50"},
 				},

@@ -53,9 +53,8 @@ func TestTranslatePage(t *testing.T) {
 
 	page := &model.SolvedPage{
 		ReadPage: model.ReadPage{
-			PageNumber:  1,
-			SectionType: "scholarly_entries",
-			Header:      &model.Header{Text: "حرف الألف", Type: "section_title"},
+			PageNumber: 1,
+			Header:     &model.Header{Text: "حرف الألف", Type: "section_title"},
 			Entries: []model.Entry{
 				{Number: intPtr(1), Type: "hadith", ArabicText: "text"},
 			},
@@ -95,8 +94,7 @@ func TestTranslatePageWithContext(t *testing.T) {
 
 	page := &model.SolvedPage{
 		ReadPage: model.ReadPage{
-			PageNumber:  5,
-			SectionType: "scholarly_entries",
+			PageNumber: 5,
 		},
 	}
 

@@ -103,9 +103,6 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	solvedDir := filepath.Join(ws.SolveDir(), stem)
 	translatedDir := filepath.Join(ws.TranslateDir(), targetLang, stem)
 
-	// Build section lookup for translate checks
-	lookup, _ := config.NewSectionLookup(cfg.Sections)
-
 	// List solved pages
 	pages, err := listPageFiles(solvedDir)
 	if err != nil {
@@ -180,16 +177,6 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
 			skipped++
 			continue
-		}
-
-		// Check section translate flag
-		if lookup != nil {
-			sec := lookup.ForPage(pf.pageNum)
-			if !sec.Translate {
-				logger.Debug("skipping page (translate: false)", "input", stem, "page", pf.pageNum)
-				skipped++
-				continue
-			}
 		}
 
 		solved, ok := solvedPages[pf.pageNum]
