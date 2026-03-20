@@ -28,10 +28,6 @@
 
 - Windows compatibility?
 
-- Simplify overall architecture and code structure. I think there are unnecessary code layers.
-  We can reduce number of files and abstractions. We can unify duplications. We can simplify
-  code structure. We can remove unnecessary abstractions.
-
 - Optimize token usage
     * short JSON keys
     * shorter system prompts
