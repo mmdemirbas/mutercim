@@ -10,7 +10,6 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
@@ -28,7 +27,7 @@ func (m *mockProvider) Translate(ctx context.Context, systemPrompt, userPrompt s
 }
 
 // setupReadWorkspace creates a workspace with images already in pages/<stem>/.
-func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*workspace.Workspace, *config.Config, *progress.Tracker) {
+func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*workspace.Workspace, *config.Config) {
 	t.Helper()
 	dir := t.TempDir()
 
@@ -43,10 +42,6 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 		}
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("write progress: %v", err)
-	}
-
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Inputs: []config.InputSpec{{Path: "./input/" + stem + ".pdf"}},
@@ -59,16 +54,11 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 		RateLimit: config.RateLimitConfig{RequestsPerMinute: 100},
 	}
 
-	tracker := progress.NewTracker(ws.ProgressPath())
-	if err := tracker.Load(); err != nil {
-		t.Fatalf("load tracker: %v", err)
-	}
-
-	return ws, cfg, tracker
+	return ws, cfg
 }
 
 func TestReadPipeline(t *testing.T) {
-	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png")
 
 	response := `{
 		"page_number": 1,
@@ -81,7 +71,6 @@ func TestReadPipeline(t *testing.T) {
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Read() error: %v", err)
@@ -105,16 +94,6 @@ func TestReadPipeline(t *testing.T) {
 		t.Errorf("expected 1 entry, got %d", len(page.Entries))
 	}
 
-	// Verify progress was updated
-	state := tracker.State()
-	phase := state.Phases["read:testinput"]
-	if phase == nil {
-		t.Fatal("expected read:testinput phase in progress")
-	}
-	if !containsInt(phase.Completed, 1) {
-		t.Error("expected page 1 in completed list")
-	}
-
 	// Verify PhaseResult counts
 	if result.Completed != 1 {
 		t.Errorf("expected result.Completed=1, got %d", result.Completed)
@@ -122,14 +101,9 @@ func TestReadPipeline(t *testing.T) {
 }
 
 func TestReadPipelineSkipsCompleted(t *testing.T) {
-	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png")
 
-	tracker.MarkCompleted("read:testinput", 1)
-	if err := tracker.Save(); err != nil {
-		t.Fatalf("save tracker: %v", err)
-	}
-
-	// Create the output file so skip logic sees it as truly complete
+	// Create the output file so skip logic sees it as already done
 	outputDir := filepath.Join(ws.ReadDir(), "testinput")
 	os.MkdirAll(outputDir, 0755)
 	outputPath := filepath.Join(outputDir, "page_001.json")
@@ -139,7 +113,6 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: `{"entries":[],"footnotes":[],"warnings":[]}`},
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Read() error: %v", err)
@@ -163,13 +136,11 @@ func TestReadPipelineNoImages(t *testing.T) {
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{}
-	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
 	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: "{}"},
-		Tracker:   tracker,
 	})
 	if err == nil {
 		t.Fatal("expected error when no images found")
@@ -185,13 +156,11 @@ func TestReadPipelineMissingImagesDir(t *testing.T) {
 	// pages/ doesn't exist at all
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{}
-	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
 	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: "{}"},
-		Tracker:   tracker,
 	})
 	if err == nil {
 		t.Fatal("expected error when images dir missing")
@@ -199,7 +168,7 @@ func TestReadPipelineMissingImagesDir(t *testing.T) {
 }
 
 func TestReadPipelinePerInputPages(t *testing.T) {
-	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
 	// Per-input pages: only process page 1
 	cfg.Inputs = []config.InputSpec{{Path: "./input/testinput.pdf", Pages: "1"}}
 
@@ -209,7 +178,6 @@ func TestReadPipelinePerInputPages(t *testing.T) {
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Read() error: %v", err)
@@ -227,7 +195,7 @@ func TestReadPipelinePerInputPages(t *testing.T) {
 }
 
 func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
-	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
 	cfg.Inputs = []config.InputSpec{{Path: "./input/testinput.pdf", Pages: "1"}}
 
 	response := `{"page_number": 2, "entries": [], "footnotes": [], "warnings": []}`
@@ -237,7 +205,6 @@ func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
-		Tracker:   tracker,
 		Pages:     []int{2},
 	})
 	if err != nil {
@@ -269,10 +236,6 @@ func TestReadPipelineMultiInput(t *testing.T) {
 		}
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("write progress: %v", err)
-	}
-
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Inputs: []config.InputSpec{
@@ -288,11 +251,6 @@ func TestReadPipelineMultiInput(t *testing.T) {
 		RateLimit: config.RateLimitConfig{RequestsPerMinute: 100},
 	}
 
-	tracker := progress.NewTracker(ws.ProgressPath())
-	if err := tracker.Load(); err != nil {
-		t.Fatalf("load tracker: %v", err)
-	}
-
 	response := `{
 		"page_number": 1,
 		"entries": [{"number": 1, "type": "hadith", "arabic_text": "test", "is_continuation": false, "continues_on_next_page": false}],
@@ -304,7 +262,6 @@ func TestReadPipelineMultiInput(t *testing.T) {
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: response},
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Read() error: %v", err)
@@ -326,19 +283,6 @@ func TestReadPipelineMultiInput(t *testing.T) {
 			t.Errorf("%s: expected page number 1, got %d", stem, page.PageNumber)
 		}
 	}
-
-	// Verify progress has both "read:stem1" and "read:stem2" phases
-	state := tracker.State()
-	for _, stem := range []string{"stem1", "stem2"} {
-		phaseName := progress.PhaseName("read:" + stem)
-		phase := state.Phases[phaseName]
-		if phase == nil {
-			t.Fatalf("expected %s phase in progress", phaseName)
-		}
-		if !containsInt(phase.Completed, 1) {
-			t.Errorf("expected page 1 in completed list for %s", phaseName)
-		}
-	}
 }
 
 type failingProvider struct{}
@@ -353,14 +297,13 @@ func (m *failingProvider) Translate(ctx context.Context, systemPrompt, userPromp
 }
 
 func TestReadPipeline_AllPagesFail_ReturnsZeroCompleted(t *testing.T) {
-	ws, cfg, tracker := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
 
 	// Provider that always fails
 	result, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &failingProvider{},
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Read() should not return error (individual pages fail gracefully), got: %v", err)

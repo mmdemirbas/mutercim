@@ -12,7 +12,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/provider"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
@@ -80,12 +79,6 @@ func newReadCmd() *cobra.Command {
 				pagesToProcess = model.ExpandPages(ranges)
 			}
 
-			// Load progress tracker
-			tracker := progress.NewTracker(ws.ProgressPath())
-			if err := tracker.Load(); err != nil {
-				return fmt.Errorf("load progress: %w", err)
-			}
-
 			// Auto-run prerequisites if needed
 			if auto {
 				if err := runPrerequisites(cmd.Context(), phaseRead, ws, cfg, pagesToProcess, display.FromContext(cmd.Context())); err != nil {
@@ -98,7 +91,6 @@ func newReadCmd() *cobra.Command {
 				Workspace: ws,
 				Config:    cfg,
 				Provider:  chain,
-				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Force:     force,
 				Logger:    logger,

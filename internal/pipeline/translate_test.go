@@ -10,12 +10,11 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
 // setupTranslateWorkspace creates a workspace with solved page JSONs in solve/<stem>/.
-func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.SolvedPage) (*workspace.Workspace, *config.Config, *progress.Tracker) {
+func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.SolvedPage) (*workspace.Workspace, *config.Config) {
 	t.Helper()
 	dir := t.TempDir()
 
@@ -35,10 +34,6 @@ func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.Sol
 		}
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("write progress: %v", err)
-	}
-
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Book: model.Book{
@@ -54,12 +49,7 @@ func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.Sol
 		},
 	}
 
-	tracker := progress.NewTracker(ws.ProgressPath())
-	if err := tracker.Load(); err != nil {
-		t.Fatalf("load tracker: %v", err)
-	}
-
-	return ws, cfg, tracker
+	return ws, cfg
 }
 
 // makeSolvedPage creates a minimal SolvedPage for testing.
@@ -92,14 +82,13 @@ func TestTranslatePipeline(t *testing.T) {
 		1: makeSolvedPage(1),
 	}
 
-	ws, cfg, tracker := setupTranslateWorkspace(t, stem, pages)
+	ws, cfg := setupTranslateWorkspace(t, stem, pages)
 
 	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: translateResponseJSON()},
 		Knowledge: &knowledge.Knowledge{},
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Translate() error: %v", err)
@@ -128,17 +117,6 @@ func TestTranslatePipeline(t *testing.T) {
 	if translated.TranslationModel != "mock/test-model" {
 		t.Errorf("expected translation model %q, got %q", "mock/test-model", translated.TranslationModel)
 	}
-
-	// Verify progress was updated
-	state := tracker.State()
-	phaseName := progress.PhaseName("translate:tr:" + stem)
-	phase := state.Phases[phaseName]
-	if phase == nil {
-		t.Fatal("expected translate:tr:testbook phase in progress")
-	}
-	if !containsInt(phase.Completed, 1) {
-		t.Error("expected page 1 in completed list")
-	}
 }
 
 func TestTranslatePipelineNoSolvedPages(t *testing.T) {
@@ -157,14 +135,12 @@ func TestTranslatePipelineNoSolvedPages(t *testing.T) {
 			ContextWindow: 2,
 		},
 	}
-	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
 	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: translateResponseJSON()},
 		Knowledge: &knowledge.Knowledge{},
-		Tracker:   tracker,
 	})
 	if err == nil {
 		t.Fatal("expected error when no solved pages found")
@@ -181,7 +157,7 @@ func TestTranslatePipelineMultiLang(t *testing.T) {
 		1: makeSolvedPage(1),
 	}
 
-	ws, cfg, tracker := setupTranslateWorkspace(t, stem, pages)
+	ws, cfg := setupTranslateWorkspace(t, stem, pages)
 	cfg.Book.TargetLangs = []string{"tr", "en"}
 
 	_, err := Translate(context.Background(), TranslateOptions{
@@ -189,7 +165,6 @@ func TestTranslatePipelineMultiLang(t *testing.T) {
 		Config:    cfg,
 		Provider:  &mockProvider{response: translateResponseJSON()},
 		Knowledge: &knowledge.Knowledge{},
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Translate() error: %v", err)
@@ -200,18 +175,6 @@ func TestTranslatePipelineMultiLang(t *testing.T) {
 		translatedPath := filepath.Join(ws.TranslateDir(), lang, stem, "page_001.json")
 		if _, err := os.Stat(translatedPath); err != nil {
 			t.Errorf("expected translated output for lang %q at %s: %v", lang, translatedPath, err)
-		}
-
-		// Verify progress for each language
-		phaseName := progress.PhaseName("translate:" + lang + ":" + stem)
-		state := tracker.State()
-		phase := state.Phases[phaseName]
-		if phase == nil {
-			t.Errorf("expected progress phase %q", phaseName)
-			continue
-		}
-		if !containsInt(phase.Completed, 1) {
-			t.Errorf("expected page 1 in completed list for lang %q", lang)
 		}
 	}
 }

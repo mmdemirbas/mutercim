@@ -9,12 +9,11 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
 // setupSolveWorkspace creates a workspace with read pages already in read/<stem>/.
-func setupSolveWorkspace(t *testing.T, stem string, pages map[int]*model.ReadPage) (*workspace.Workspace, *progress.Tracker) {
+func setupSolveWorkspace(t *testing.T, stem string, pages map[int]*model.ReadPage) *workspace.Workspace {
 	t.Helper()
 	dir := t.TempDir()
 
@@ -34,17 +33,7 @@ func setupSolveWorkspace(t *testing.T, stem string, pages map[int]*model.ReadPag
 		}
 	}
 
-	if err := os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("write progress: %v", err)
-	}
-
-	ws := &workspace.Workspace{Root: dir}
-	tracker := progress.NewTracker(ws.ProgressPath())
-	if err := tracker.Load(); err != nil {
-		t.Fatalf("load tracker: %v", err)
-	}
-
-	return ws, tracker
+	return &workspace.Workspace{Root: dir}
 }
 
 // pageName returns the filename for a page number (e.g. "page_001.json").
@@ -94,12 +83,11 @@ func TestSolvePipeline(t *testing.T) {
 		ReadWarnings: []string{},
 	}
 
-	ws, tracker := setupSolveWorkspace(t, "testbook", map[int]*model.ReadPage{1: readPage})
+	ws := setupSolveWorkspace(t, "testbook", map[int]*model.ReadPage{1: readPage})
 
 	_, err := Solve(context.Background(), SolveOptions{
 		Workspace: ws,
 		Knowledge: &knowledge.Knowledge{},
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Solve() error: %v", err)
@@ -129,16 +117,6 @@ func TestSolvePipeline(t *testing.T) {
 	if solved.TranslationContext == nil {
 		t.Error("expected translation_context to be set")
 	}
-
-	// Verify progress was updated
-	state := tracker.State()
-	phase := state.Phases["solve:testbook"]
-	if phase == nil {
-		t.Fatal("expected solve:testbook phase in progress")
-	}
-	if !containsInt(phase.Completed, 1) {
-		t.Error("expected page 1 in completed list")
-	}
 }
 
 func TestSolvePipelineSkipsCompleted(t *testing.T) {
@@ -157,15 +135,9 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 		ReadWarnings: []string{},
 	}
 
-	ws, tracker := setupSolveWorkspace(t, "testbook", map[int]*model.ReadPage{1: readPage})
+	ws := setupSolveWorkspace(t, "testbook", map[int]*model.ReadPage{1: readPage})
 
-	// Mark page as completed in tracker
-	tracker.MarkCompleted("solve:testbook", 1)
-	if err := tracker.Save(); err != nil {
-		t.Fatalf("save tracker: %v", err)
-	}
-
-	// Create the output file so skip logic sees it as truly complete
+	// Create the output file so skip logic sees it as already done
 	solvedDir := filepath.Join(ws.SolveDir(), "testbook")
 	if err := os.MkdirAll(solvedDir, 0755); err != nil {
 		t.Fatalf("mkdir solved dir: %v", err)
@@ -179,7 +151,6 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 	_, err := Solve(context.Background(), SolveOptions{
 		Workspace: ws,
 		Knowledge: &knowledge.Knowledge{},
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Solve() error: %v", err)
@@ -204,12 +175,10 @@ func TestSolvePipelineNoReadPages(t *testing.T) {
 	}
 
 	ws := &workspace.Workspace{Root: dir}
-	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
 	_, err := Solve(context.Background(), SolveOptions{
 		Workspace: ws,
 		Knowledge: &knowledge.Knowledge{},
-		Tracker:   tracker,
 	})
 	if err == nil {
 		t.Fatal("expected error when no read pages found")
@@ -226,12 +195,10 @@ func TestSolvePipelineMissingReadDir(t *testing.T) {
 
 	// read/ doesn't exist at all
 	ws := &workspace.Workspace{Root: dir}
-	tracker := progress.NewTracker(filepath.Join(dir, "progress.json"))
 
 	_, err := Solve(context.Background(), SolveOptions{
 		Workspace: ws,
 		Knowledge: &knowledge.Knowledge{},
-		Tracker:   tracker,
 	})
 	if err == nil {
 		t.Fatal("expected error when read dir missing")

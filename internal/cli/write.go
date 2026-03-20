@@ -8,7 +8,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/renderer"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
@@ -82,11 +81,6 @@ func newWriteCmd() *cobra.Command {
 				pagesToProcess = model.ExpandPages(ranges)
 			}
 
-			tracker := progress.NewTracker(ws.ProgressPath())
-			if err := tracker.Load(); err != nil {
-				return fmt.Errorf("load progress: %w", err)
-			}
-
 			// Auto-run prerequisites if needed
 			if auto {
 				if err := runPrerequisites(cmd.Context(), phaseWrite, ws, cfg, pagesToProcess, display.FromContext(cmd.Context())); err != nil {
@@ -97,7 +91,6 @@ func newWriteCmd() *cobra.Command {
 			return pipeline.Write(cmd.Context(), pipeline.WriteOptions{
 				Workspace: ws,
 				Config:    cfg,
-				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Display:   display.FromContext(cmd.Context()),
 			})

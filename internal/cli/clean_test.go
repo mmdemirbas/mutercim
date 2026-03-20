@@ -3,10 +3,8 @@ package cli
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
@@ -136,59 +134,6 @@ func TestClean_never_deletes_input_or_knowledge(t *testing.T) {
 	}
 	if phaseDir(ws, "knowledge") != "" {
 		t.Error("phaseDir(knowledge) should return empty")
-	}
-}
-
-func TestClean_resets_progress(t *testing.T) {
-	dir := t.TempDir()
-	ws := &workspace.Workspace{Root: dir}
-
-	// Create progress file with some data
-	tracker := progress.NewTracker(ws.ProgressPath())
-	tracker.MarkCompleted("read:TestBook", 1)
-	tracker.MarkCompleted("read:TestBook", 2)
-	tracker.MarkCompleted("solve:TestBook", 1)
-	tracker.MarkCompleted("translate:tr:TestBook", 1)
-	if err := tracker.Save(); err != nil {
-		t.Fatalf("save progress: %v", err)
-	}
-
-	// Simulate cleaning read+ using the same approach as the real clean command
-	phases, _ := expandTargets([]string{"read+"})
-
-	tracker2 := progress.NewTracker(ws.ProgressPath())
-	if err := tracker2.Load(); err != nil {
-		t.Fatalf("reload progress: %v", err)
-	}
-
-	for _, phase := range phases {
-		for _, prefix := range progressPrefixes(phase) {
-			for _, name := range tracker2.PhaseNames() {
-				if strings.HasPrefix(string(name), prefix) {
-					tracker2.DeletePhase(name)
-				}
-			}
-		}
-	}
-	if err := tracker2.Save(); err != nil {
-		t.Fatalf("save progress: %v", err)
-	}
-
-	// Reload and verify
-	tracker3 := progress.NewTracker(ws.ProgressPath())
-	if err := tracker3.Load(); err != nil {
-		t.Fatalf("reload progress: %v", err)
-	}
-	state := tracker3.State()
-
-	if _, ok := state.Phases["read:TestBook"]; ok {
-		t.Error("read:TestBook should be deleted from progress")
-	}
-	if _, ok := state.Phases["solve:TestBook"]; ok {
-		t.Error("solve:TestBook should be deleted from progress")
-	}
-	if _, ok := state.Phases["translate:tr:TestBook"]; ok {
-		t.Error("translate:tr:TestBook should be deleted from progress")
 	}
 }
 

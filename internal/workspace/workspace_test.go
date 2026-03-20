@@ -48,11 +48,6 @@ func TestInit(t *testing.T) {
 		t.Error("mutercim.yaml not created")
 	}
 
-	// Verify progress.json exists
-	if _, err := os.Stat(filepath.Join(dir, "progress.json")); err != nil {
-		t.Error("progress.json not created")
-	}
-
 	// Verify config content
 	data, err := os.ReadFile(filepath.Join(dir, "mutercim.yaml"))
 	if err != nil {
@@ -149,9 +144,6 @@ func TestWorkspacePaths(t *testing.T) {
 	}
 	if ws.MemoryDir() != "/tmp/test/memory" {
 		t.Errorf("MemoryDir() = %q", ws.MemoryDir())
-	}
-	if ws.ProgressPath() != "/tmp/test/progress.json" {
-		t.Errorf("ProgressPath() = %q", ws.ProgressPath())
 	}
 	if ws.LogDir() != "/tmp/test/log" {
 		t.Errorf("LogDir() = %q", ws.LogDir())

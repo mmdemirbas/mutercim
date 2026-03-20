@@ -13,7 +13,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/provider"
 	"github.com/mmdemirbas/mutercim/internal/reader"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
@@ -24,7 +23,6 @@ type ReadOptions struct {
 	Workspace *workspace.Workspace
 	Config    *config.Config
 	Provider  provider.Provider
-	Tracker   *progress.Tracker
 	Pages     []int // CLI override pages; nil means use per-input or global config
 	Force     bool  // force re-processing of already completed pages
 	Logger    *slog.Logger
@@ -140,9 +138,6 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		return PhaseResult{}, fmt.Errorf("create read dir: %w", err)
 	}
 
-	// Use compound phase name for per-input progress tracking
-	phaseName := progress.PhaseName("read:" + stem)
-
 	// Start progress display
 	if opts.Display != nil {
 		opts.Display.StartPhase(display.PhaseRead, stem, len(pagesToProcess), "")
@@ -180,19 +175,13 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		if ctx.Err() != nil {
 			break
 		}
-		// Skip already completed pages — but only if the output file actually exists
+		// Skip pages whose output already exists
 		if !opts.Force {
 			outputPath := filepath.Join(readDir, fmt.Sprintf("page_%03d.json", pageNum))
-			state := opts.Tracker.State()
-			if phase := state.Phases[phaseName]; phase != nil {
-				if containsInt(phase.Completed, pageNum) {
-					if fileExists(outputPath) {
-						logger.Debug("skipping already completed page", "input", stem, "page", pageNum)
-						skipped++
-						continue
-					}
-					logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pageNum)
-				}
+			if fileExists(outputPath) {
+				logger.Debug("skipping already completed page", "input", stem, "page", pageNum)
+				skipped++
+				continue
 			}
 		}
 
@@ -219,7 +208,6 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		imageData, err := input.LoadImage(imgPath)
 		if err != nil {
 			logger.Error("failed to load image", "input", stem, "page", pageNum, "error", err)
-			opts.Tracker.MarkFailed(phaseName, pageNum)
 			failed++
 			if opts.Display != nil {
 				opts.Display.Update(display.PageResult{
@@ -244,7 +232,6 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 		if err != nil {
 			logger.Error("read failed", "input", stem, "page", pageNum, "error", err)
-			opts.Tracker.MarkFailed(phaseName, pageNum)
 			failed++
 			if opts.Display != nil {
 				opts.Display.Update(display.PageResult{
@@ -258,7 +245,6 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		// Save result atomically
 		if err := saveReadPage(readDir, pageNum, page); err != nil {
 			logger.Error("failed to save read page", "input", stem, "page", pageNum, "error", err)
-			opts.Tracker.MarkFailed(phaseName, pageNum)
 			failed++
 			if opts.Display != nil {
 				opts.Display.Update(display.PageResult{
@@ -269,10 +255,6 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			continue
 		}
 
-		opts.Tracker.MarkCompleted(phaseName, pageNum)
-		if err := opts.Tracker.Save(); err != nil {
-			logger.Error("failed to save progress", "error", err)
-		}
 		completed++
 		logger.Info("page read", "input", stem, "page", pageNum, "completed", completed)
 		if opts.Display != nil {

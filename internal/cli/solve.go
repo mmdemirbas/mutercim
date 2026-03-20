@@ -8,7 +8,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -52,11 +51,6 @@ func newSolveCmd() *cobra.Command {
 				pagesToProcess = model.ExpandPages(ranges)
 			}
 
-			tracker := progress.NewTracker(ws.ProgressPath())
-			if err := tracker.Load(); err != nil {
-				return fmt.Errorf("load progress: %w", err)
-			}
-
 			// Auto-run prerequisites if needed
 			if auto {
 				if err := runPrerequisites(cmd.Context(), phaseSolve, ws, cfg, pagesToProcess, display.FromContext(cmd.Context())); err != nil {
@@ -67,7 +61,6 @@ func newSolveCmd() *cobra.Command {
 			_, err = pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
 				Workspace: ws,
 				Knowledge: k,
-				Tracker:   tracker,
 				Pages:     pagesToProcess,
 				Force:     force,
 				Display:   display.FromContext(cmd.Context()),

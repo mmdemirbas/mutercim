@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -33,24 +32,6 @@ func phaseDir(ws *workspace.Workspace, phase string) string {
 		return ws.WriteDir()
 	default:
 		return ""
-	}
-}
-
-// progressPrefixes returns the progress phase name prefixes to reset for a given phase.
-func progressPrefixes(phase string) []string {
-	switch phase {
-	case "pages":
-		return []string{"pages:"}
-	case "read":
-		return []string{"read:"}
-	case "solve":
-		return []string{"solve:"}
-	case "translate":
-		return []string{"translate:"}
-	case "write":
-		return []string{"write:"}
-	default:
-		return nil
 	}
 }
 
@@ -196,27 +177,6 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 			for _, t := range targets {
 				if err := os.RemoveAll(t.dir); err != nil {
 					return fmt.Errorf("remove %s: %w", t.dir, err)
-				}
-			}
-
-			// Reset progress entries for cleaned phases
-			tracker := progress.NewTracker(ws.ProgressPath())
-			if err := tracker.Load(); err == nil {
-				changed := false
-				for _, phase := range phases {
-					for _, prefix := range progressPrefixes(phase) {
-						for _, name := range tracker.PhaseNames() {
-							if strings.HasPrefix(string(name), prefix) {
-								tracker.DeletePhase(name)
-								changed = true
-							}
-						}
-					}
-				}
-				if changed {
-					if err := tracker.Save(); err != nil {
-						return fmt.Errorf("save progress: %w", err)
-					}
 				}
 			}
 

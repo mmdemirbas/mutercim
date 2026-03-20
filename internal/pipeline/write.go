@@ -12,7 +12,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/renderer"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
@@ -21,7 +20,6 @@ import (
 type WriteOptions struct {
 	Workspace *workspace.Workspace
 	Config    *config.Config
-	Tracker   *progress.Tracker
 	Pages     []int
 	Logger    *slog.Logger
 	Display   display.Display
@@ -106,8 +104,6 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 		return pages[i].PageNumber < pages[j].PageNumber
 	})
 
-	phaseName := progress.PhaseName("write:" + targetLang + ":" + stem)
-
 	// Start progress display
 	if opts.Display != nil {
 		opts.Display.StartPhase(display.PhaseWrite, stem, len(pages), targetLang)
@@ -146,14 +142,6 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 		for _, e := range formatErrors {
 			fmt.Fprintf(os.Stderr, "  - %s\n", e)
 		}
-	}
-
-	// Mark all pages as compiled
-	for _, page := range pages {
-		opts.Tracker.MarkCompleted(phaseName, page.PageNumber)
-	}
-	if err := opts.Tracker.Save(); err != nil {
-		logger.Error("failed to save progress", "error", err)
 	}
 
 	if opts.Display != nil {

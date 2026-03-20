@@ -69,12 +69,6 @@ func Init(opts InitOptions) (*Workspace, error) {
 		return nil, fmt.Errorf("write config: %w", err)
 	}
 
-	// Write empty progress.json
-	progressPath := filepath.Join(root, "progress.json")
-	if err := os.WriteFile(progressPath, []byte("{}\n"), 0644); err != nil {
-		return nil, fmt.Errorf("write progress: %w", err)
-	}
-
 	return &Workspace{Root: root}, nil
 }
 

@@ -12,7 +12,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
@@ -73,11 +72,6 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 	logger := slog.Default()
 	logger.Info("auto-running prerequisite phases", "from", phaseName(startPhase), "to", phaseName(targetPhase-1))
 
-	tracker := progress.NewTracker(ws.ProgressPath())
-	if err := tracker.Load(); err != nil {
-		return fmt.Errorf("load progress: %w", err)
-	}
-
 	if startPhase <= phasePages && phasePages < targetPhase {
 		for _, inp := range cfg.Inputs {
 			resolved := cfg.ResolvePath(ws.Root, inp.Path)
@@ -106,7 +100,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 
 		logger.Info("=== AUTO: READ ===")
 		result, err := pipeline.Read(ctx, pipeline.ReadOptions{
-			Workspace: ws, Config: cfg, Provider: readChain, Tracker: tracker,
+			Workspace: ws, Config: cfg, Provider: readChain,
 			Pages: pagesToProcess, Logger: logger, Display: disp,
 		})
 		if err != nil {
@@ -126,7 +120,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 
 		logger.Info("=== AUTO: SOLVE ===")
 		result, err := pipeline.Solve(ctx, pipeline.SolveOptions{
-			Workspace: ws, Knowledge: k, Tracker: tracker,
+			Workspace: ws, Knowledge: k,
 			Pages: pagesToProcess, Logger: logger, Display: disp,
 		})
 		if err != nil {
@@ -153,7 +147,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 		logger.Info("=== AUTO: TRANSLATE ===")
 		result, err := pipeline.Translate(ctx, pipeline.TranslateOptions{
 			Workspace: ws, Config: cfg, Provider: translateChain, Knowledge: k,
-			Tracker: tracker, Pages: pagesToProcess, Logger: logger, Display: disp,
+			Pages: pagesToProcess, Logger: logger, Display: disp,
 		})
 		if err != nil {
 			return fmt.Errorf("auto translate: %w", err)

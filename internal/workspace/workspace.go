@@ -88,8 +88,3 @@ func (w *Workspace) TranslateDir() string {
 func (w *Workspace) WriteDir() string {
 	return filepath.Join(w.Root, "write")
 }
-
-// ProgressPath returns the path to the progress file.
-func (w *Workspace) ProgressPath() string {
-	return filepath.Join(w.Root, "progress.json")
-}

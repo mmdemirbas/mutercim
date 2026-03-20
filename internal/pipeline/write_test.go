@@ -9,11 +9,10 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *progress.Tracker) {
+func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config) {
 	t.Helper()
 	dir := t.TempDir()
 
@@ -49,11 +48,6 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 		t.Fatalf("write translated page: %v", err)
 	}
 
-	// Progress
-	if err := os.WriteFile(filepath.Join(dir, "progress.json"), []byte("{}"), 0644); err != nil {
-		t.Fatalf("write progress: %v", err)
-	}
-
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Book: model.Book{Title: "TestBook", SourceLangs: []string{"ar"}, TargetLangs: []string{"tr"}},
@@ -62,21 +56,16 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config, *p
 			ExpandSources: true,
 		},
 	}
-	tracker := progress.NewTracker(ws.ProgressPath())
-	if err := tracker.Load(); err != nil {
-		t.Fatalf("load tracker: %v", err)
-	}
 
-	return ws, cfg, tracker
+	return ws, cfg
 }
 
 func TestWriteMarkdown(t *testing.T) {
-	ws, cfg, tracker := setupWriteWorkspace(t)
+	ws, cfg := setupWriteWorkspace(t)
 
 	err := Write(context.Background(), WriteOptions{
 		Workspace: ws,
 		Config:    cfg,
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Write() error: %v", err)
@@ -101,23 +90,15 @@ func TestWriteMarkdown(t *testing.T) {
 	if len(data) == 0 {
 		t.Fatal("empty source markdown")
 	}
-
-	// Check progress was updated with lang in phase name
-	state := tracker.State()
-	phase := state.Phases["write:tr:TestBook"]
-	if phase == nil {
-		t.Fatal("expected write:tr:TestBook phase in progress")
-	}
 }
 
 func TestWriteLatex(t *testing.T) {
-	ws, cfg, tracker := setupWriteWorkspace(t)
+	ws, cfg := setupWriteWorkspace(t)
 	cfg.Write.Formats = []string{"latex"}
 
 	err := Write(context.Background(), WriteOptions{
 		Workspace: ws,
 		Config:    cfg,
-		Tracker:   tracker,
 	})
 	if err != nil {
 		t.Fatalf("Write() error: %v", err)

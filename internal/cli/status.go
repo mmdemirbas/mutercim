@@ -11,7 +11,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/solver"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
@@ -41,12 +40,6 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("config: %w", err)
 	}
 
-	tracker := progress.NewTracker(ws.ProgressPath())
-	if err := tracker.Load(); err != nil {
-		return fmt.Errorf("load progress: %w", err)
-	}
-	state := tracker.State()
-
 	// Discover inputs
 	inputs := discoverInputs(ws)
 	if len(inputs) == 0 && len(cfg.Inputs) > 0 {
@@ -71,16 +64,10 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build phase rows
-	rows := buildPhaseRows(state, inputs, totalImages, cfg.Book.TargetLangs)
+	rows := buildPhaseRows(ws, inputs, totalImages, cfg.Book.TargetLangs)
 
-	// Collect warnings and errors from failed pages
-	var warnings, errors []string
-	for _, phaseName := range sortedPhaseNames(state) {
-		ps := state.Phases[phaseName]
-		for _, p := range ps.Failed {
-			errors = append(errors, fmt.Sprintf("page %d — failed in %s", p, string(phaseName)))
-		}
-	}
+	// Collect warnings (errors are in the log now)
+	var warnings []string
 
 	// Run structural validation on read pages
 	warnings = append(warnings, collectValidationWarnings(ws, inputs)...)
@@ -102,7 +89,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		TargetLangs: cfg.Book.TargetLangs,
 		Phases:      rows,
 		Warnings:    warnings,
-		Errors:      errors,
+		Errors:      nil,
 		LogPath:     logPath,
 		LogSize:     logSize,
 	}
@@ -112,100 +99,115 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// buildPhaseRows creates the status table rows from progress state.
-func buildPhaseRows(state progress.State, inputs []string, totalImages int, targetLangs []string) []display.ProgressRow {
+// buildPhaseRows creates the status table rows by counting files on disk.
+func buildPhaseRows(ws *workspace.Workspace, inputs []string, totalImages int, targetLangs []string) []display.ProgressRow {
 	var rows []display.ProgressRow
 
-	// Aggregate across all inputs for each phase
-	pagesCompleted := aggregateCompleted(state, "pages", inputs)
-	readCompleted, readFailed, readWarnings := aggregateAll(state, "read", inputs)
-	solveCompleted, solveFailed, _ := aggregateAll(state, "solve", inputs)
-
-	// Pages row
+	// Count pages (image files per input stem)
+	pagesCompleted := 0
+	for _, stem := range inputs {
+		pagesCompleted += countFiles(filepath.Join(ws.PagesDir(), stem))
+	}
 	pagesTotal := totalImages
 	if pagesTotal == 0 {
-		pagesTotal = pagesCompleted // fallback
+		pagesTotal = pagesCompleted
 	}
 	rows = append(rows, display.ProgressRow{
 		Phase: display.PhasePages, Completed: pagesCompleted, Total: pagesTotal,
 		Done: pagesCompleted > 0 && pagesCompleted >= pagesTotal,
 	})
 
-	// Read row
+	// Count read JSON files per input stem
+	readCompleted := 0
+	for _, stem := range inputs {
+		readCompleted += countJSONFiles(filepath.Join(ws.ReadDir(), stem))
+	}
 	readTotal := totalImages
 	rows = append(rows, display.ProgressRow{
-		Phase: display.PhaseRead, Completed: readCompleted, Failed: readFailed,
-		Total: readTotal, Warnings: readWarnings,
-		Done: readTotal > 0 && readCompleted+readFailed >= readTotal,
+		Phase: display.PhaseRead, Completed: readCompleted,
+		Total: readTotal,
+		Done:  readTotal > 0 && readCompleted >= readTotal,
 	})
 
-	// Solve row — total is based on successful reads
+	// Count solve JSON files per input stem
+	solveCompleted := 0
+	for _, stem := range inputs {
+		solveCompleted += countJSONFiles(filepath.Join(ws.SolveDir(), stem))
+	}
 	solveTotal := readCompleted
 	rows = append(rows, display.ProgressRow{
-		Phase: display.PhaseSolve, Completed: solveCompleted, Failed: solveFailed,
+		Phase: display.PhaseSolve, Completed: solveCompleted,
 		Total: solveTotal,
-		Done:  solveTotal > 0 && solveCompleted+solveFailed >= solveTotal,
+		Done:  solveTotal > 0 && solveCompleted >= solveTotal,
 	})
 
-	// Translate/write rows — per target language
+	// Translate rows per target language
 	for _, lang := range targetLangs {
-		transCompleted, transFailed, _ := aggregateAllLang(state, "translate", lang, inputs)
+		transCompleted := 0
+		for _, stem := range inputs {
+			transCompleted += countJSONFiles(filepath.Join(ws.TranslateDir(), lang, stem))
+		}
 		transTotal := solveCompleted
 		rows = append(rows, display.ProgressRow{
-			Phase: display.PhaseTranslate, Completed: transCompleted, Failed: transFailed,
+			Phase: display.PhaseTranslate, Completed: transCompleted,
 			Total: transTotal, Lang: lang,
-			Done: transTotal > 0 && transCompleted+transFailed >= transTotal,
+			Done: transTotal > 0 && transCompleted >= transTotal,
 		})
 	}
 
+	// Write rows per target language
 	for _, lang := range targetLangs {
-		writeCompleted, writeFailed, _ := aggregateAllLang(state, "write", lang, inputs)
-		transCompleted, _, _ := aggregateAllLang(state, "translate", lang, inputs)
-		writeTotal := transCompleted
+		writeCompleted := 0
+		writeDir := filepath.Join(ws.WriteDir(), lang)
+		if dirHasFiles(writeDir) {
+			writeCompleted = 1
+		}
+		writeTotal := 1
+		// Only show write as having a total if translate produced output
+		transCompleted := 0
+		for _, stem := range inputs {
+			transCompleted += countJSONFiles(filepath.Join(ws.TranslateDir(), lang, stem))
+		}
+		if transCompleted == 0 {
+			writeTotal = 0
+		}
 		rows = append(rows, display.ProgressRow{
-			Phase: display.PhaseWrite, Completed: writeCompleted, Failed: writeFailed,
+			Phase: display.PhaseWrite, Completed: writeCompleted,
 			Total: writeTotal, Lang: lang,
-			Done: writeTotal > 0 && writeCompleted+writeFailed >= writeTotal,
+			Done: writeCompleted > 0,
 		})
 	}
 
 	return rows
 }
 
-// aggregateCompleted sums completed pages across all inputs for a phase prefix.
-func aggregateCompleted(state progress.State, prefix string, inputs []string) int {
-	total := 0
-	for _, stem := range inputs {
-		name := progress.PhaseName(prefix + ":" + stem)
-		if ps, ok := state.Phases[name]; ok {
-			total += len(ps.Completed)
+// countJSONFiles counts .json files in a directory.
+func countJSONFiles(dir string) int {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0
+	}
+	count := 0
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
+			count++
 		}
 	}
-	return total
+	return count
 }
 
-// aggregateAll sums completed, failed, and warning counts across inputs.
-func aggregateAll(state progress.State, prefix string, inputs []string) (completed, failed, warnings int) {
-	for _, stem := range inputs {
-		name := progress.PhaseName(prefix + ":" + stem)
-		if ps, ok := state.Phases[name]; ok {
-			completed += len(ps.Completed)
-			failed += len(ps.Failed)
+// dirHasFiles returns true if the directory exists and contains at least one non-directory entry.
+func dirHasFiles(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			return true
 		}
 	}
-	return
-}
-
-// aggregateAllLang sums across inputs for a lang-specific phase (translate:lang:stem, write:lang:stem).
-func aggregateAllLang(state progress.State, prefix, lang string, inputs []string) (completed, failed, warnings int) {
-	for _, stem := range inputs {
-		name := progress.PhaseName(prefix + ":" + lang + ":" + stem)
-		if ps, ok := state.Phases[name]; ok {
-			completed += len(ps.Completed)
-			failed += len(ps.Failed)
-		}
-	}
-	return
+	return false
 }
 
 // discoverInputs finds input stems by scanning midstate subdirectories.
@@ -331,15 +333,4 @@ func loadReadPages(dir string) ([]*model.ReadPage, error) {
 		return pages[i].PageNumber < pages[j].PageNumber
 	})
 	return pages, nil
-}
-
-func sortedPhaseNames(state progress.State) []progress.PhaseName {
-	names := make([]progress.PhaseName, 0, len(state.Phases))
-	for name := range state.Phases {
-		names = append(names, name)
-	}
-	sort.Slice(names, func(i, j int) bool {
-		return string(names[i]) < string(names[j])
-	})
-	return names
 }

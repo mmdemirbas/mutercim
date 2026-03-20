@@ -11,7 +11,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/solver"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
@@ -20,7 +19,6 @@ import (
 type SolveOptions struct {
 	Workspace *workspace.Workspace
 	Knowledge *knowledge.Knowledge
-	Tracker   *progress.Tracker
 	Pages     []int // specific pages to process; nil means all available
 	Force     bool  // force re-processing of already completed pages
 	Logger    *slog.Logger
@@ -91,8 +89,6 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		return PhaseResult{}, fmt.Errorf("create solved dir: %w", err)
 	}
 
-	phaseName := progress.PhaseName("solve:" + stem)
-
 	// Load all read pages for cross-page context
 	allPages := make(map[int]*model.ReadPage)
 	for _, pf := range pages {
@@ -117,18 +113,12 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		if ctx.Err() != nil {
 			break
 		}
-		// Skip already completed — but only if the output file actually exists
+		// Skip pages whose output already exists
 		if !opts.Force {
 			outputPath := filepath.Join(solvedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
-			state := opts.Tracker.State()
-			if phase := state.Phases[phaseName]; phase != nil {
-				if containsInt(phase.Completed, pf.pageNum) {
-					if fileExists(outputPath) {
-						skipped++
-						continue
-					}
-					logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pf.pageNum)
-				}
+			if fileExists(outputPath) {
+				skipped++
+				continue
 			}
 		}
 
@@ -156,7 +146,6 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		// Save solved page
 		if err := saveSolvedPage(solvedDir, pf.pageNum, solved); err != nil {
 			logger.Error("failed to save solved page", "page", pf.pageNum, "error", err)
-			opts.Tracker.MarkFailed(phaseName, pf.pageNum)
 			failed++
 			if opts.Display != nil {
 				opts.Display.Update(display.PageResult{
@@ -167,10 +156,6 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 			continue
 		}
 
-		opts.Tracker.MarkCompleted(phaseName, pf.pageNum)
-		if err := opts.Tracker.Save(); err != nil {
-			logger.Error("failed to save progress", "error", err)
-		}
 		completed++
 		if opts.Display != nil {
 			opts.Display.Update(display.PageResult{

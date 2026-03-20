@@ -33,25 +33,42 @@
 
 # NEXT
 
-- Remove progress.json.
+- Use colorful help / status / progress output. Make sure to format console message in a pretty way which is easy to follow and parse for the humans.
 
-- Colorful help output
-
-- If a file is already exists, skip that step for this file. For example, if a page is already read,
-  do not try to re-read it unless the --force option provided. It should be skipped. So if the input
-  is processed once for all pages succesfully, subsequent runs will be instantly skipping all pages
-  in all steps and report that the operation succeeded. I think the only exception to this is the '
-  write' step.
-
-- Remove page prefix from generated files. Just use numbers (padded).
+- Remove 'page' prefix from generated files. Just use numbers (padded). e.g. page-012 -> 012, page_123 -> 123
 
 - Dashboard is not stable. It should update the output, not re-write it. The mechanism should be
-  rewrite but user should experience it like in-place update.
+  rewrite but user should experience it like in-place update. Also the output is reporting 'tr' 3 times while it should report 'tr', 'en' and 'ar' according to the given input.
 
-- Arabic output is wrong! Both direction and letter combination are wrong.
+   ```
+  ❯ mutercim all
+    Book: Anfas1-demo — Unknown Author
+   Input: Anfas1.pdf
+   Langs: ar → ar, en, tr
+  
+         PAGES  ████████████████████ 6/6  ✓  0s
+          READ  ░░░░░░░░░░░░░░░░░░░░ 0/6  ✓  11m
+                ✗ 3 errors
+    Book: Anfas1-demo — Unknown Author
+   Input: Anfas1.pdf
+   Langs: ar → ar, en, tr
+  
+         PAGES  ████████████████████ 6/6  ✓  0s
+          READ  ░░░░░░░░░░░░░░░░░░░░ 0/6  ✓  11m
+                ✗ 3 errors
+         SOLVE  ░░░░░░░░░░░░░░░░░░░░ 0/3  ✓  0s
+    TRANS [tr]  ░░░░░░░░░░░░░░░░░░░░ 0/3  ✓  0s
+    TRANS [tr]  ░░░░░░░░░░░░░░░░░░░░ 0/3  ✓  0s
+    TRANS [tr]  ░░░░░░░░░░░░░░░░░░░░ 0/3  ✓  0s
+    WRITE [tr]  ████████████████████ 3/3  ✓  1s
+    WRITE [tr]  ████████████████████ 3/3  ✓  1s
+    WRITE [tr]  ████████████████████ 3/3  ✓  1s
+  ```
 
-- Enrich schema documentation. Make purpose of each field clear. For example, where the "title"
-  and "author" used, etc.
+- Arabic output is wrong! Both direction and letter combination looks wrong.
+
+- What is the purpose of the author field? Is it used anywhere? If not, then remove it.
+- Enrich schema documentation. Make purpose of each field clear. For example, where the "title" used, etc.
 
 - Allow prompt customization by user to teach adab to the tool:
   Custom prompt & âdâb: Three-layer prompt injection (built-in adab.md embedded in binary +

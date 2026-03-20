@@ -13,7 +13,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
-	"github.com/mmdemirbas/mutercim/internal/progress"
 	"github.com/mmdemirbas/mutercim/internal/provider"
 	"github.com/mmdemirbas/mutercim/internal/translation"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
@@ -25,7 +24,6 @@ type TranslateOptions struct {
 	Config        *config.Config
 	Provider      provider.Provider
 	Knowledge     *knowledge.Knowledge
-	Tracker       *progress.Tracker
 	Pages         []int
 	Force         bool // force re-processing of already completed pages
 	ContextWindow int  // number of previous pages for context (default: 2)
@@ -124,8 +122,6 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		return PhaseResult{}, fmt.Errorf("create translated dir: %w", err)
 	}
 
-	phaseName := progress.PhaseName("translate:" + targetLang + ":" + stem)
-
 	// Load all solved pages for context window
 	solvedPages := make(map[int]*model.SolvedPage)
 	for _, pf := range pages {
@@ -177,18 +173,12 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		if ctx.Err() != nil {
 			break
 		}
-		// Skip already completed — but only if the output file actually exists
+		// Skip pages whose output already exists
 		if !opts.Force {
 			outputPath := filepath.Join(translatedDir, fmt.Sprintf("page_%03d.json", pf.pageNum))
-			state := opts.Tracker.State()
-			if phase := state.Phases[phaseName]; phase != nil {
-				if containsInt(phase.Completed, pf.pageNum) {
-					if fileExists(outputPath) {
-						skipped++
-						continue
-					}
-					logger.Warn("progress says completed but output missing, re-processing", "input", stem, "page", pf.pageNum)
-				}
+			if fileExists(outputPath) {
+				skipped++
+				continue
 			}
 		}
 
@@ -238,7 +228,6 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		}
 		if err != nil {
 			logger.Error("translation failed", "input", stem, "page", pf.pageNum, "error", err)
-			opts.Tracker.MarkFailed(phaseName, pf.pageNum)
 			failed++
 			if opts.Display != nil {
 				opts.Display.Update(display.PageResult{
@@ -253,7 +242,6 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		// Save translated JSON atomically
 		if err := saveTranslatedPage(translatedDir, pf.pageNum, translated); err != nil {
 			logger.Error("failed to save translated page", "input", stem, "page", pf.pageNum, "error", err)
-			opts.Tracker.MarkFailed(phaseName, pf.pageNum)
 			failed++
 			if opts.Display != nil {
 				opts.Display.Update(display.PageResult{
@@ -263,11 +251,6 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 				})
 			}
 			continue
-		}
-
-		opts.Tracker.MarkCompleted(phaseName, pf.pageNum)
-		if err := opts.Tracker.Save(); err != nil {
-			logger.Error("failed to save progress", "error", err)
 		}
 
 		recentTranslated = append(recentTranslated, translated)
