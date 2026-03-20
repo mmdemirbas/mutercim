@@ -167,3 +167,13 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Simplified mental model: knowledge/ is user-edited, memory/ is tool-written (auto-extracted during solve)
 - To move knowledge from memory/ to knowledge/, user copies files manually
 - `mutercim clean memory` resets what the tool learned
+
+## Layout-Aware Read Phase (v2.0 schema)
+- Read phase now outputs RegionPage (v2.0) instead of ReadPage (v1.0)
+- Each region has bounding box [x,y,w,h], semantic type, style, and reading order
+- Region types: header, entry, footnote, separator, page_number, column_header, table, image, margin_note, other
+- Two strategies (auto-selected): "local+ai" (Surya Docker + AI) or "ai-only" (AI detects everything)
+- Config field `read.layout_tool: "surya"` enables Docker-based layout detection
+- Compatibility layer: `loadReadPage()` auto-detects v1.0 vs v2.0 and converts RegionPage→ReadPage for solve/translate
+- New packages: `internal/layout/` (Tool interface, SuryaTool, NoneTool), `internal/model/region.go`, `internal/model/compat.go`
+- On-disk format changed to v2.0 but solve/translate phases transparently consume both formats

@@ -95,6 +95,15 @@
           "minimum": 1,
           "type": "integer"
         },
+        "layout_tool": {
+          "default": "",
+          "description": "Layout detection tool for precise bounding boxes. 'surya' uses a Docker-based model (requires Docker running and mutercim/surya:latest image). Empty string or omitted means AI-only mode where the vision model handles both layout detection and text extraction.",
+          "enum": [
+            "",
+            "surya"
+          ],
+          "type": "string"
+        },
         "models": {
           "description": "Ordered failover chain of AI models for OCR. The first model is primary; if it returns 429/quota errors, the next model is tried. All models must support vision for the read phase.",
           "items": {

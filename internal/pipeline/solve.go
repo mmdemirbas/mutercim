@@ -171,6 +171,25 @@ func loadReadPage(path string) (*model.ReadPage, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Detect format by checking the version field
+	var versionProbe struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(data, &versionProbe); err != nil {
+		return nil, err
+	}
+
+	if versionProbe.Version == "2.0" {
+		// New region-based format — convert via compatibility layer
+		var rp model.RegionPage
+		if err := json.Unmarshal(data, &rp); err != nil {
+			return nil, err
+		}
+		return model.RegionPageToReadPage(&rp), nil
+	}
+
+	// Legacy format (v1.0 or unversioned)
 	var page model.ReadPage
 	if err := json.Unmarshal(data, &page); err != nil {
 		return nil, err

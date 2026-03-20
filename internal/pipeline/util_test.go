@@ -152,16 +152,20 @@ func TestFileExists(t *testing.T) {
 	}
 }
 
-func TestSaveReadPageAtomicWrite(t *testing.T) {
+func TestSaveRegionPageAtomicWrite(t *testing.T) {
 	dir := t.TempDir()
 
-	page := &model.ReadPage{
-		Version:    "1.0",
+	page := &model.RegionPage{
+		Version:    "2.0",
 		PageNumber: 42,
-		Entries:    []model.Entry{{Type: "hadith", ArabicText: "text"}},
+		PageSize:   model.PageSize{Width: 1500, Height: 2200},
+		Regions: []model.Region{
+			{ID: "r1", BBox: model.BBox{0, 0, 100, 50}, Text: "text", Type: model.RegionTypeEntry},
+		},
+		ReadingOrder: []string{"r1"},
 	}
 
-	if err := saveReadPage(dir, 42, page); err != nil {
+	if err := saveRegionPage(dir, 42, page); err != nil {
 		t.Fatalf("error: %v", err)
 	}
 
@@ -170,7 +174,7 @@ func TestSaveReadPageAtomicWrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
-	var loaded model.ReadPage
+	var loaded model.RegionPage
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/input"
+	"github.com/mmdemirbas/mutercim/internal/layout"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/provider"
 	"github.com/mmdemirbas/mutercim/internal/reader"
@@ -21,13 +22,14 @@ import (
 
 // ReadOptions configures the read pipeline.
 type ReadOptions struct {
-	Workspace *workspace.Workspace
-	Config    *config.Config
-	Provider  provider.Provider
-	Pages     []int // CLI override pages; nil means use per-input or global config
-	Force     bool  // force re-processing of already completed pages
-	Logger    *slog.Logger
-	Display   display.Display
+	Workspace  *workspace.Workspace
+	Config     *config.Config
+	Provider   provider.Provider
+	LayoutTool layout.Tool // optional layout detection tool; nil means AI-only
+	Pages      []int       // CLI override pages; nil means use per-input or global config
+	Force      bool        // force re-processing of already completed pages
+	Logger     *slog.Logger
+	Display    display.Display
 }
 
 // Read runs the read (OCR) pipeline for all configured inputs.
@@ -199,7 +201,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			continue
 		}
 
-		// Read page via AI
+		// Read page via AI (region-based)
 		statusPageNum = pageNum
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{
@@ -207,7 +209,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 				StartedAt: time.Now(),
 			})
 		}
-		page, err := rdr.ReadPage(ctx, imageData, pageNum, readModel)
+		regionPage, err := rdr.ReadRegionPage(ctx, imageData, imgPath, pageNum, readModel, opts.LayoutTool)
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{}) // clear status
 		}
@@ -223,8 +225,8 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			continue
 		}
 
-		// Save result atomically
-		if err := saveReadPage(readDir, pageNum, page); err != nil {
+		// Save region page atomically (new v2.0 format)
+		if err := saveRegionPage(readDir, pageNum, regionPage); err != nil {
 			logger.Error("failed to save read page", "input", stem, "page", pageNum, "error", err)
 			failed++
 			if opts.Display != nil {
@@ -236,13 +238,16 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			continue
 		}
 
+		// Count region types for display
+		entryCount, footnoteCount := countRegionTypes(regionPage.Regions)
+
 		completed++
 		logger.Info("page read", "input", stem, "page", pageNum, "completed", completed)
 		if opts.Display != nil {
 			opts.Display.Update(display.PageResult{
 				Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
 				Total: len(pagesToProcess), Completed: completed, Failed: failed,
-				Warnings: len(page.ReadWarnings), Entries: len(page.Entries), Footnotes: len(page.Footnotes),
+				Warnings: len(regionPage.Warnings), Entries: entryCount, Footnotes: footnoteCount,
 			})
 		}
 	}
@@ -254,7 +259,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 
-func saveReadPage(dir string, pageNum int, page *model.ReadPage) error {
+func saveRegionPage(dir string, pageNum int, page *model.RegionPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
@@ -271,4 +276,17 @@ func saveReadPage(dir string, pageNum int, page *model.ReadPage) error {
 		return fmt.Errorf("rename page %d: %w", pageNum, err)
 	}
 	return nil
+}
+
+// countRegionTypes counts entries and footnotes in a list of regions.
+func countRegionTypes(regions []model.Region) (entries, footnotes int) {
+	for _, r := range regions {
+		switch r.Type {
+		case model.RegionTypeEntry:
+			entries++
+		case model.RegionTypeFootnote:
+			footnotes++
+		}
+	}
+	return
 }

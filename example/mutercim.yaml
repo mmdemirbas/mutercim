@@ -60,10 +60,14 @@ dpi: 300                             # DPI for PDF-to-image conversion (min: 72)
 #   OpenRouter: openrouter.ai — free models available immediately
 
 read:
+  layout_tool: "surya"               # Layout detection tool: "surya" (Docker-based) or "" (AI-only, default)
+                                     #   When set to "surya", requires Docker running and mutercim/surya:latest image
+                                     #   Provides precise bounding boxes for text regions; AI refines text and semantics
+                                     #   When empty or omitted, AI handles both layout detection and text extraction
   models:                            # Ordered failover chain — first is primary
     # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
-    - provider: gemini
-      model: gemini-2.5-flash-lite
+    #- provider: gemini
+    #  model: gemini-2.5-flash-lite
     # 2. Gemini Flash: higher quality, lower quota (250 RPD, 10 RPM)
     - provider: gemini
       model: gemini-2.5-flash
@@ -125,7 +129,7 @@ write:
 # Respects Retry-After headers (capped at 30s).
 
 retry:
-  max_attempts: 3                    # Max retries per API call before marking page as failed (min: 0)
+  max_attempts: 0                    # Max retries per API call before marking page as failed (min: 0)
   backoff_seconds: 2                 # Base backoff in seconds, exponential: 2s, 4s, 8s... (min: 1)
 
 # ─── Rate limiting (global fallback) ─────────────────────────────────────────

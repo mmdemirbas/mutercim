@@ -65,10 +65,13 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 func TestReadPipeline(t *testing.T) {
 	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png")
 
+	// Provider returns region-based response (new format)
 	response := `{
-		"page_number": 1,
-		"entries": [{"number": 1, "type": "hadith", "arabic_text": "test", "is_continuation": false, "continues_on_next_page": false}],
-		"footnotes": [],
+		"regions": [
+			{"id": "r1", "bbox": [400, 50, 700, 60], "text": "باب الألف", "type": "header"},
+			{"id": "r2", "bbox": [800, 150, 600, 400], "text": "test hadith", "type": "entry"}
+		],
+		"reading_order": ["r1", "r2"],
 		"warnings": []
 	}`
 
@@ -81,22 +84,40 @@ func TestReadPipeline(t *testing.T) {
 		t.Fatalf("Read() error: %v", err)
 	}
 
-	// Verify output file was created
+	// Verify output file was created with v2.0 format
 	outputPath := filepath.Join(ws.ReadDir(), "testinput", "001.json")
 	data, err := os.ReadFile(outputPath)
 	if err != nil {
 		t.Fatalf("read output: %v", err)
 	}
 
-	var page model.ReadPage
+	var page model.RegionPage
 	if err := json.Unmarshal(data, &page); err != nil {
 		t.Fatalf("unmarshal output: %v", err)
+	}
+	if page.Version != "2.0" {
+		t.Errorf("expected version 2.0, got %q", page.Version)
 	}
 	if page.PageNumber != 1 {
 		t.Errorf("expected page number 1, got %d", page.PageNumber)
 	}
-	if len(page.Entries) != 1 {
-		t.Errorf("expected 1 entry, got %d", len(page.Entries))
+	if len(page.Regions) != 2 {
+		t.Errorf("expected 2 regions, got %d", len(page.Regions))
+	}
+
+	// Verify compatibility: loadReadPage should convert to ReadPage
+	readPage, err := loadReadPage(outputPath)
+	if err != nil {
+		t.Fatalf("loadReadPage: %v", err)
+	}
+	if readPage.Version != "1.0" {
+		t.Errorf("compat version = %q, want %q", readPage.Version, "1.0")
+	}
+	if readPage.Header == nil {
+		t.Error("compat header should not be nil")
+	}
+	if len(readPage.Entries) != 1 {
+		t.Errorf("compat entries = %d, want 1", len(readPage.Entries))
 	}
 
 	// Verify PhaseResult counts
@@ -125,7 +146,7 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
-		Provider:  &mockProvider{response: `{"entries":[],"footnotes":[],"warnings":[]}`},
+		Provider:  &mockProvider{response: `{"regions":[],"reading_order":[],"warnings":[]}`},
 	})
 	if err != nil {
 		t.Fatalf("Read() error: %v", err)
@@ -185,7 +206,7 @@ func TestReadPipelinePerInputPages(t *testing.T) {
 	// Per-input pages: only process page 1
 	cfg.Inputs = []config.InputSpec{{Path: "./input/testinput.pdf", Pages: "1"}}
 
-	response := `{"page_number": 1, "entries": [], "footnotes": [], "warnings": []}`
+	response := `{"regions": [], "reading_order": [], "warnings": []}`
 
 	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
@@ -211,7 +232,7 @@ func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
 	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
 	cfg.Inputs = []config.InputSpec{{Path: "./input/testinput.pdf", Pages: "1"}}
 
-	response := `{"page_number": 2, "entries": [], "footnotes": [], "warnings": []}`
+	response := `{"regions": [], "reading_order": [], "warnings": []}`
 
 	// CLI override: process page 2 only
 	_, err := Read(context.Background(), ReadOptions{
@@ -265,9 +286,10 @@ func TestReadPipelineMultiInput(t *testing.T) {
 	}
 
 	response := `{
-		"page_number": 1,
-		"entries": [{"number": 1, "type": "hadith", "arabic_text": "test", "is_continuation": false, "continues_on_next_page": false}],
-		"footnotes": [],
+		"regions": [
+			{"id": "r1", "bbox": [0, 0, 100, 50], "text": "test", "type": "entry"}
+		],
+		"reading_order": ["r1"],
 		"warnings": []
 	}`
 
@@ -280,7 +302,7 @@ func TestReadPipelineMultiInput(t *testing.T) {
 		t.Fatalf("Read() error: %v", err)
 	}
 
-	// Verify output files exist and have correct page numbers for both stems
+	// Verify output files exist with v2.0 format for both stems
 	for _, stem := range []string{"stem1", "stem2"} {
 		outputPath := filepath.Join(ws.ReadDir(), stem, "001.json")
 		data, err := os.ReadFile(outputPath)
@@ -288,12 +310,15 @@ func TestReadPipelineMultiInput(t *testing.T) {
 			t.Fatalf("read output for %s: %v", stem, err)
 		}
 
-		var page model.ReadPage
+		var page model.RegionPage
 		if err := json.Unmarshal(data, &page); err != nil {
 			t.Fatalf("unmarshal output for %s: %v", stem, err)
 		}
 		if page.PageNumber != 1 {
 			t.Errorf("%s: expected page number 1, got %d", stem, page.PageNumber)
+		}
+		if page.Version != "2.0" {
+			t.Errorf("%s: expected version 2.0, got %q", stem, page.Version)
 		}
 	}
 }
@@ -329,17 +354,21 @@ func TestReadPipeline_AllPagesFail_ReturnsZeroCompleted(t *testing.T) {
 	}
 }
 
-func TestSaveReadPage(t *testing.T) {
+func TestSaveRegionPage(t *testing.T) {
 	dir := t.TempDir()
 
-	page := &model.ReadPage{
-		Version:    "1.0",
+	page := &model.RegionPage{
+		Version:    "2.0",
 		PageNumber: 5,
-		Entries:    []model.Entry{{Type: "hadith", ArabicText: "test"}},
+		PageSize:   model.PageSize{Width: 1500, Height: 2200},
+		Regions: []model.Region{
+			{ID: "r1", BBox: model.BBox{0, 0, 100, 50}, Text: "test", Type: model.RegionTypeEntry},
+		},
+		ReadingOrder: []string{"r1"},
 	}
 
-	if err := saveReadPage(dir, 5, page); err != nil {
-		t.Fatalf("saveReadPage() error: %v", err)
+	if err := saveRegionPage(dir, 5, page); err != nil {
+		t.Fatalf("saveRegionPage() error: %v", err)
 	}
 
 	path := filepath.Join(dir, "005.json")
@@ -348,17 +377,105 @@ func TestSaveReadPage(t *testing.T) {
 		t.Fatalf("read output: %v", err)
 	}
 
-	var loaded model.ReadPage
+	var loaded model.RegionPage
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
 	if loaded.PageNumber != 5 {
 		t.Errorf("expected page 5, got %d", loaded.PageNumber)
 	}
+	if loaded.Version != "2.0" {
+		t.Errorf("expected version 2.0, got %q", loaded.Version)
+	}
+	if len(loaded.Regions) != 1 {
+		t.Errorf("expected 1 region, got %d", len(loaded.Regions))
+	}
 
 	// Verify no .tmp file left behind
 	tmpPath := path + ".tmp"
 	if _, err := os.Stat(tmpPath); err == nil {
 		t.Error("tmp file should not exist after successful save")
+	}
+}
+
+func TestLoadReadPage_V1Format(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "001.json")
+	data := `{"version":"1.0","page_number":1,"entries":[{"type":"hadith","arabic_text":"test"}],"footnotes":[]}`
+	os.WriteFile(path, []byte(data), 0644)
+
+	page, err := loadReadPage(path)
+	if err != nil {
+		t.Fatalf("loadReadPage: %v", err)
+	}
+	if page.Version != "1.0" {
+		t.Errorf("Version = %q, want %q", page.Version, "1.0")
+	}
+	if len(page.Entries) != 1 {
+		t.Errorf("len(Entries) = %d, want 1", len(page.Entries))
+	}
+}
+
+func TestLoadReadPage_V2Format(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "001.json")
+	data := `{
+		"version": "2.0",
+		"page_number": 42,
+		"page_size": {"width": 1500, "height": 2200},
+		"regions": [
+			{"id": "r1", "bbox": [400,50,700,60], "text": "header text", "type": "header"},
+			{"id": "r2", "bbox": [800,150,600,400], "text": "entry text", "type": "entry"},
+			{"id": "r3", "bbox": [100,800,1300,200], "text": "footnote text", "type": "footnote"}
+		],
+		"reading_order": ["r1", "r2", "r3"],
+		"warnings": []
+	}`
+	os.WriteFile(path, []byte(data), 0644)
+
+	page, err := loadReadPage(path)
+	if err != nil {
+		t.Fatalf("loadReadPage: %v", err)
+	}
+	if page.Version != "1.0" {
+		t.Errorf("Version = %q, want %q (converted from 2.0)", page.Version, "1.0")
+	}
+	if page.PageNumber != 42 {
+		t.Errorf("PageNumber = %d, want 42", page.PageNumber)
+	}
+	if page.Header == nil || page.Header.Text != "header text" {
+		t.Errorf("Header = %+v, want header text", page.Header)
+	}
+	if len(page.Entries) != 1 || page.Entries[0].ArabicText != "entry text" {
+		t.Errorf("Entries = %+v, want 1 entry with 'entry text'", page.Entries)
+	}
+	if len(page.Footnotes) != 1 || page.Footnotes[0].ArabicText != "footnote text" {
+		t.Errorf("Footnotes = %+v, want 1 footnote with 'footnote text'", page.Footnotes)
+	}
+}
+
+func TestCountRegionTypes(t *testing.T) {
+	regions := []model.Region{
+		{Type: model.RegionTypeEntry},
+		{Type: model.RegionTypeEntry},
+		{Type: model.RegionTypeHeader},
+		{Type: model.RegionTypeFootnote},
+		{Type: model.RegionTypeSeparator},
+		{Type: model.RegionTypeFootnote},
+		{Type: model.RegionTypeEntry},
+	}
+
+	entries, footnotes := countRegionTypes(regions)
+	if entries != 3 {
+		t.Errorf("entries = %d, want 3", entries)
+	}
+	if footnotes != 2 {
+		t.Errorf("footnotes = %d, want 2", footnotes)
+	}
+
+	// Empty list
+	e, f := countRegionTypes(nil)
+	if e != 0 || f != 0 {
+		t.Errorf("empty: entries=%d, footnotes=%d, want 0,0", e, f)
 	}
 }

@@ -41,6 +41,7 @@ var schemaAnnotations = map[string]schemaMeta{
 
 	// read
 	"read":                   {Description: "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata)."},
+	"read.layout_tool":       {Description: "Layout detection tool for precise bounding boxes. 'surya' uses a Docker-based model (requires Docker running and mutercim/surya:latest image). Empty string or omitted means AI-only mode where the vision model handles both layout detection and text extraction.", Default: "", Enum: []string{"", "surya"}},
 	"read.models":            {Description: "Ordered failover chain of AI models for OCR. The first model is primary; if it returns 429/quota errors, the next model is tried. All models must support vision for the read phase."},
 	"read.models[]":          {},
 	"read.models[].provider": {Description: "AI provider name. Determines the API endpoint and authentication method.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
