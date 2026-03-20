@@ -92,7 +92,7 @@ func TestLineDisplayFinishPhase(t *testing.T) {
 	d.Update(PageResult{Phase: PhaseRead, Input: "vol1", Completed: 8, Failed: 2, Warnings: 3})
 
 	buf.Reset()
-	d.FinishPhase(PhaseRead, "vol1")
+	d.FinishPhase(PhaseRead, "vol1", "")
 	out := buf.String()
 	if !strings.Contains(out, "done") {
 		t.Errorf("should contain 'done', got: %q", out)
@@ -108,7 +108,7 @@ func TestLineDisplayFinishSummary(t *testing.T) {
 
 	d.StartPhase(PhaseRead, "vol1", 10, "")
 	d.Update(PageResult{Phase: PhaseRead, Input: "vol1", Total: 10, Completed: 10})
-	d.FinishPhase(PhaseRead, "vol1")
+	d.FinishPhase(PhaseRead, "vol1", "")
 
 	buf.Reset()
 	d.Finish()

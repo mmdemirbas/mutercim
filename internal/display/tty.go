@@ -26,6 +26,7 @@ type TTYDisplay struct {
 type phaseKey struct {
 	phase Phase
 	input string
+	lang  string
 }
 
 type phaseState struct {
@@ -114,8 +115,14 @@ func (d *TTYDisplay) StartPhase(phase Phase, input string, total int, lang strin
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	key := phaseKey{phase, input}
+	key := phaseKey{phase, input, lang}
 	now := d.now()
+	if _, exists := d.phases[key]; exists {
+		// Phase already registered (e.g. re-run), just update total
+		d.phases[key].total = total
+		d.render()
+		return
+	}
 	d.phases[key] = &phaseState{
 		total:     total,
 		lang:      lang,
@@ -131,7 +138,7 @@ func (d *TTYDisplay) Update(result PageResult) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	key := phaseKey{result.Phase, result.Input}
+	key := phaseKey{result.Phase, result.Input, result.Lang}
 	ps, ok := d.phases[key]
 	if !ok {
 		return
@@ -159,11 +166,11 @@ func (d *TTYDisplay) Update(result PageResult) {
 }
 
 // FinishPhase collapses the phase to a one-line summary.
-func (d *TTYDisplay) FinishPhase(phase Phase, input string) {
+func (d *TTYDisplay) FinishPhase(phase Phase, input string, lang string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	key := phaseKey{phase, input}
+	key := phaseKey{phase, input, lang}
 	if ps, ok := d.phases[key]; ok {
 		ps.finished = true
 		ps.finishTime = d.now()

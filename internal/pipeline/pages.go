@@ -91,7 +91,7 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 				Phase: display.PhasePages, Input: stem,
 				Total: 1, Failed: 1, Err: err,
 			})
-			opts.Display.FinishPhase(display.PhasePages, stem)
+			opts.Display.FinishPhase(display.PhasePages, stem, "")
 		}
 		return fmt.Errorf("convert PDF %s: %w", inputPath, err)
 	}
@@ -109,7 +109,7 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 			Phase: display.PhasePages, Input: stem,
 			Total: imageCount, Completed: imageCount,
 		})
-		opts.Display.FinishPhase(display.PhasePages, stem)
+		opts.Display.FinishPhase(display.PhasePages, stem, "")
 	}
 
 	return nil

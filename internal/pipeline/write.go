@@ -149,7 +149,7 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 			Phase: display.PhaseWrite, Input: stem,
 			Total: len(pages), Completed: len(pages), Lang: targetLang,
 		})
-		opts.Display.FinishPhase(display.PhaseWrite, stem)
+		opts.Display.FinishPhase(display.PhaseWrite, stem, targetLang)
 	}
 
 	logger.Info("write complete", "input", stem, "pages", len(pages), "formats", cfg.Write.Formats)

@@ -33,34 +33,6 @@
 
 # NEXT
 
-- Dashboard is not stable. It should update the output, not re-write it. The mechanism should be
-  rewrite but user should experience it like in-place update. Also the output is reporting 'tr' 3 times while it should report 'tr', 'en' and 'ar' according to the given input.
-
-   ```
-  ❯ mutercim all
-    Book: Anfas1-demo — Unknown Author
-   Input: Anfas1.pdf
-   Langs: ar → ar, en, tr
-  
-         PAGES  ████████████████████ 6/6  ✓  0s
-          READ  ░░░░░░░░░░░░░░░░░░░░ 0/6  ✓  11m
-                ✗ 3 errors
-    Book: Anfas1-demo — Unknown Author
-   Input: Anfas1.pdf
-   Langs: ar → ar, en, tr
-  
-         PAGES  ████████████████████ 6/6  ✓  0s
-          READ  ░░░░░░░░░░░░░░░░░░░░ 0/6  ✓  11m
-                ✗ 3 errors
-         SOLVE  ░░░░░░░░░░░░░░░░░░░░ 0/3  ✓  0s
-    TRANS [tr]  ░░░░░░░░░░░░░░░░░░░░ 0/3  ✓  0s
-    TRANS [tr]  ░░░░░░░░░░░░░░░░░░░░ 0/3  ✓  0s
-    TRANS [tr]  ░░░░░░░░░░░░░░░░░░░░ 0/3  ✓  0s
-    WRITE [tr]  ████████████████████ 3/3  ✓  1s
-    WRITE [tr]  ████████████████████ 3/3  ✓  1s
-    WRITE [tr]  ████████████████████ 3/3  ✓  1s
-  ```
-
 - Arabic output is wrong! Both direction and letter combination looks wrong.
 
 - Allow prompt customization by user to teach adab to the tool:

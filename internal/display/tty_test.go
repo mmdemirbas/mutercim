@@ -61,7 +61,7 @@ func TestTTYDisplayFinishPhase(t *testing.T) {
 	}
 
 	buf.Reset()
-	d.FinishPhase(PhaseRead, "vol1")
+	d.FinishPhase(PhaseRead, "vol1", "")
 	out := buf.String()
 	if !strings.Contains(out, "5/5") {
 		t.Errorf("FinishPhase should show 5/5, got: %q", out)
@@ -107,7 +107,7 @@ func TestTTYDisplayFinishSummary(t *testing.T) {
 	d := newTTYDisplay(&buf, now)
 	d.StartPhase(PhaseRead, "vol1", 10, "")
 	d.Update(PageResult{Phase: PhaseRead, Input: "vol1", PageNum: 1, Total: 10, Completed: 8, Failed: 2, Warnings: 3})
-	d.FinishPhase(PhaseRead, "vol1")
+	d.FinishPhase(PhaseRead, "vol1", "")
 
 	buf.Reset()
 	d.Finish()

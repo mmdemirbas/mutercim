@@ -267,7 +267,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	}
 
 	if opts.Display != nil {
-		opts.Display.FinishPhase(display.PhaseRead, stem)
+		opts.Display.FinishPhase(display.PhaseRead, stem, "")
 	}
 	logger.Info("input read complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil

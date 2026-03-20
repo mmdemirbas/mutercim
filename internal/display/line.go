@@ -87,7 +87,7 @@ func (d *LineDisplay) Update(result PageResult) {
 }
 
 // FinishPhase writes a phase completion summary line.
-func (d *LineDisplay) FinishPhase(phase Phase, input string) {
+func (d *LineDisplay) FinishPhase(phase Phase, input string, lang string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 

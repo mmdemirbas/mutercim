@@ -52,7 +52,7 @@ type Display interface {
 	// Update records one page's result and refreshes the display.
 	Update(result PageResult)
 	// FinishPhase marks a phase as complete and collapses it to a summary line.
-	FinishPhase(phase Phase, input string)
+	FinishPhase(phase Phase, input string, lang string)
 	// Finish prints a final summary. Called on normal exit or Ctrl+C.
 	Finish()
 }

@@ -167,7 +167,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 	}
 
 	if opts.Display != nil {
-		opts.Display.FinishPhase(display.PhaseSolve, stem)
+		opts.Display.FinishPhase(display.PhaseSolve, stem, "")
 	}
 	logger.Info("solve complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil

@@ -267,7 +267,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	}
 
 	if opts.Display != nil {
-		opts.Display.FinishPhase(display.PhaseTranslate, stem)
+		opts.Display.FinishPhase(display.PhaseTranslate, stem, targetLang)
 	}
 	logger.Info("translation complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
