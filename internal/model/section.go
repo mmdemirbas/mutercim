@@ -79,17 +79,3 @@ func ExpandPages(ranges []PageRange) []int {
 	}
 	return pages
 }
-
-// PageInRanges returns true if the given page number is within any of the ranges.
-// If ranges is nil (meaning "all"), returns true.
-func PageInRanges(page int, ranges []PageRange) bool {
-	if ranges == nil {
-		return true
-	}
-	for _, r := range ranges {
-		if r.Contains(page) {
-			return true
-		}
-	}
-	return false
-}

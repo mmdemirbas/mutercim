@@ -3,18 +3,14 @@ package apiclient
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"math/rand/v2"
-	"mime"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -256,32 +252,4 @@ func DoJSON[T any](c *Client, ctx context.Context, req Request) (T, error) {
 		return zero, fmt.Errorf("unmarshal response: %w", err)
 	}
 	return result, nil
-}
-
-// EncodeImageBase64 reads an image file and returns its base64 encoding and MIME type.
-func EncodeImageBase64(imagePath string) (data string, mimeType string, err error) {
-	raw, err := os.ReadFile(imagePath)
-	if err != nil {
-		return "", "", fmt.Errorf("read image %s: %w", imagePath, err)
-	}
-
-	ext := strings.ToLower(filepath.Ext(imagePath))
-	mimeType = mime.TypeByExtension(ext)
-	if mimeType == "" {
-		switch ext {
-		case ".png":
-			mimeType = "image/png"
-		case ".jpg", ".jpeg":
-			mimeType = "image/jpeg"
-		case ".gif":
-			mimeType = "image/gif"
-		case ".webp":
-			mimeType = "image/webp"
-		default:
-			mimeType = "application/octet-stream"
-		}
-	}
-
-	data = base64.StdEncoding.EncodeToString(raw)
-	return data, mimeType, nil
 }

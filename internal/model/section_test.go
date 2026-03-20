@@ -56,26 +56,6 @@ func TestExpandPages(t *testing.T) {
 	}
 }
 
-func TestPageInRanges(t *testing.T) {
-	tests := []struct {
-		page   int
-		ranges []PageRange
-		want   bool
-	}{
-		{5, nil, true}, // nil = "all"
-		{5, []PageRange{{1, 10}}, true},
-		{15, []PageRange{{1, 10}}, false},
-		{5, []PageRange{{1, 3}, {5, 5}}, true},
-		{4, []PageRange{{1, 3}, {5, 5}}, false},
-	}
-	for _, tt := range tests {
-		got := PageInRanges(tt.page, tt.ranges)
-		if got != tt.want {
-			t.Errorf("PageInRanges(%d, %v) = %v, want %v", tt.page, tt.ranges, got, tt.want)
-		}
-	}
-}
-
 func TestPageRangeContains(t *testing.T) {
 	pr := PageRange{First: 10, Last: 20}
 	tests := []struct {

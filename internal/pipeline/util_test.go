@@ -101,18 +101,6 @@ func TestDiscoverSubdirsNonexistent(t *testing.T) {
 	}
 }
 
-func TestContainsInt(t *testing.T) {
-	if !containsInt([]int{1, 2, 3}, 2) {
-		t.Error("expected true for 2 in [1,2,3]")
-	}
-	if containsInt([]int{1, 2, 3}, 4) {
-		t.Error("expected false for 4 in [1,2,3]")
-	}
-	if containsInt(nil, 1) {
-		t.Error("expected false for nil slice")
-	}
-}
-
 func TestFileStem(t *testing.T) {
 	tests := []struct {
 		input string
@@ -128,27 +116,6 @@ func TestFileStem(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("fileStem(%q) = %q, want %q", tt.input, got, tt.want)
 		}
-	}
-}
-
-func TestFileExists(t *testing.T) {
-	dir := t.TempDir()
-
-	// File exists
-	path := filepath.Join(dir, "test.json")
-	os.WriteFile(path, []byte("{}"), 0644)
-	if !fileExists(path) {
-		t.Error("expected true for existing file")
-	}
-
-	// File doesn't exist
-	if fileExists(filepath.Join(dir, "nonexistent")) {
-		t.Error("expected false for missing file")
-	}
-
-	// Directory — not a file
-	if fileExists(dir) {
-		t.Error("expected false for directory")
 	}
 }
 

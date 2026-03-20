@@ -6,12 +6,12 @@ import (
 	"strings"
 )
 
-// SanitizeResponse strips invisible Unicode characters that LLMs occasionally emit
+// sanitizeResponse strips invisible Unicode characters that LLMs occasionally emit
 // and that break JSON parsing. Specifically: zero-width spaces (U+200B),
 // byte-order marks (U+FEFF), and other zero-width characters.
 // Note: U+200C (ZWNJ) and U+200D (ZWJ) are preserved because they have
 // legitimate uses in Arabic typography.
-func SanitizeResponse(response string) string {
+func sanitizeResponse(response string) string {
 	return strings.Map(func(r rune) rune {
 		switch r {
 		case '\u200B': // zero-width space
@@ -34,7 +34,7 @@ func SanitizeResponse(response string) string {
 // Returns the raw JSON string (not unmarshaled) so the caller can unmarshal
 // into their specific type.
 func ExtractJSON(response string) (string, error) {
-	sanitized := SanitizeResponse(response)
+	sanitized := sanitizeResponse(response)
 
 	// Strategy 1: Direct parse
 	trimmed := strings.TrimSpace(sanitized)

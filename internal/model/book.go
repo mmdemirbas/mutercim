@@ -14,11 +14,3 @@ func (b *Book) PrimarySourceLang() string {
 	}
 	return "ar"
 }
-
-// PrimaryTargetLang returns the first (primary) target language.
-func (b *Book) PrimaryTargetLang() string {
-	if len(b.TargetLangs) > 0 {
-		return b.TargetLangs[0]
-	}
-	return "tr"
-}

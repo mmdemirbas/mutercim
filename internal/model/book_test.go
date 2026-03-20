@@ -19,21 +19,3 @@ func TestPrimarySourceLang(t *testing.T) {
 		})
 	}
 }
-
-func TestPrimaryTargetLang(t *testing.T) {
-	tests := []struct {
-		name string
-		book Book
-		want string
-	}{
-		{"from TargetLangs", Book{TargetLangs: []string{"tr", "en"}}, "tr"},
-		{"default", Book{}, "tr"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.book.PrimaryTargetLang(); got != tt.want {
-				t.Errorf("PrimaryTargetLang() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}

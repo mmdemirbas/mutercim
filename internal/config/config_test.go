@@ -43,10 +43,6 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Book.PrimarySourceLang() != "ar" {
 		t.Errorf("PrimarySourceLang() = %q, want %q", cfg.Book.PrimarySourceLang(), "ar")
 	}
-	if cfg.Book.PrimaryTargetLang() != "tr" {
-		t.Errorf("PrimaryTargetLang() = %q, want %q", cfg.Book.PrimaryTargetLang(), "tr")
-	}
-
 	// Verify models migration from legacy provider/model
 	if len(cfg.Read.Models) != 1 {
 		t.Fatalf("Read.Models len = %d, want 1", len(cfg.Read.Models))

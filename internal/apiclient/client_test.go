@@ -6,8 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -184,57 +182,6 @@ func TestDoJSON(t *testing.T) {
 	}
 	if resp.Count != 42 {
 		t.Errorf("expected count 42, got %d", resp.Count)
-	}
-}
-
-func TestEncodeImageBase64(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	tests := []struct {
-		name         string
-		fileName     string
-		content      []byte
-		expectedMIME string
-	}{
-		{
-			name:         "PNG file",
-			fileName:     "test.png",
-			content:      []byte{0x89, 0x50, 0x4E, 0x47},
-			expectedMIME: "image/png",
-		},
-		{
-			name:         "JPEG file",
-			fileName:     "test.jpg",
-			content:      []byte{0xFF, 0xD8, 0xFF, 0xE0},
-			expectedMIME: "image/jpeg",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			imgPath := filepath.Join(tmpDir, tt.fileName)
-			if err := os.WriteFile(imgPath, tt.content, 0644); err != nil {
-				t.Fatalf("write test file: %v", err)
-			}
-
-			data, mimeType, err := EncodeImageBase64(imgPath)
-			if err != nil {
-				t.Fatalf("EncodeImageBase64() error: %v", err)
-			}
-			if data == "" {
-				t.Fatal("EncodeImageBase64() returned empty data")
-			}
-			if mimeType != tt.expectedMIME {
-				t.Errorf("expected mime type %q, got %q", tt.expectedMIME, mimeType)
-			}
-		})
-	}
-}
-
-func TestEncodeImageBase64FileNotFound(t *testing.T) {
-	_, _, err := EncodeImageBase64("/nonexistent/file.png")
-	if err == nil {
-		t.Fatal("EncodeImageBase64() expected error for missing file")
 	}
 }
 

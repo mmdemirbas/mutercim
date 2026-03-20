@@ -94,24 +94,8 @@ func fileStem(path string) string {
 	return base[:len(base)-len(ext)]
 }
 
-// fileExists returns true if the path exists and is a regular file.
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && !info.IsDir()
-}
-
 // dirHasEntries returns true if the directory exists and has at least one entry.
 func dirHasEntries(dir string) bool {
 	entries, err := os.ReadDir(dir)
 	return err == nil && len(entries) > 0
-}
-
-// containsInt returns true if s contains v.
-func containsInt(s []int, v int) bool {
-	for _, x := range s {
-		if x == v {
-			return true
-		}
-	}
-	return false
 }
