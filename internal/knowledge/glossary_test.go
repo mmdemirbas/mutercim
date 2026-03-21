@@ -1,6 +1,8 @@
 package knowledge
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -142,27 +144,28 @@ func TestFormatGlossaryLine_MissingLanguage(t *testing.T) {
 	}
 }
 
-func TestEmbeddedDefaultsLoadAndParse(t *testing.T) {
-	k, err := Load("", "")
+func TestLoadAndBuildGlossary(t *testing.T) {
+	dir := t.TempDir()
+	yaml := `entries:
+  - ar: "فقه"
+    tr: "fıkıh"
+    en: "fiqh"
+  - ar: "حديث"
+    tr: "hadîs-i şerîf"
+    en: "hadith"
+`
+	os.WriteFile(filepath.Join(dir, "glossary.yaml"), []byte(yaml), 0644)
+
+	k, err := Load(dir, "")
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
-
-	// Should have a substantial number of entries
-	if len(k.Entries) < 50 {
-		t.Errorf("expected at least 50 embedded entries, got %d", len(k.Entries))
+	if len(k.Entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(k.Entries))
 	}
 
-	// Verify entries have proper structure
-	for i, e := range k.Entries {
-		if len(e.Forms) < 2 {
-			t.Errorf("entry %d has fewer than 2 languages: %v", i, e.Forms)
-		}
-	}
-
-	// Verify glossary building works with embedded defaults
 	glossary := k.BuildGlossary("ar", "tr")
 	if glossary == "" {
-		t.Error("expected non-empty ar→tr glossary from embedded defaults")
+		t.Error("expected non-empty ar→tr glossary")
 	}
 }

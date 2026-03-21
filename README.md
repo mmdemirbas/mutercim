@@ -295,13 +295,13 @@ The `note` field is optional guidance for the AI translator.
 
 ### Knowledge layers
 
-Knowledge loads in three layers (later layers override earlier on key conflicts):
+Knowledge loads in two layers (later layers override earlier on key conflicts):
 
-1. **Embedded defaults** — compiled into the binary. Ships with Arabic/Turkish/English
-   glossary (~100+ entries covering Islamic scholarly terminology, honorifics, companion names).
-2. **Workspace `knowledge/`** — user-edited YAML files specific to this book.
-   Any `.yaml` file in the directory is loaded and merged.
-3. **Auto-extracted `memory/`** — knowledge extracted by the solve phase during processing.
+1. **Workspace `knowledge/`** — user-provided YAML files specific to this book.
+   Any `.yaml` file in the directory is loaded and merged. A comprehensive Arabic/Turkish/English
+   glossary is available at `config/glossary.yaml` in the repository — copy it to your workspace
+   `knowledge/` directory as a starting point.
+2. **Auto-extracted `memory/`** — knowledge extracted by the solve phase during processing.
    Can be reset with `mutercim clean memory`.
 
 ## Model failover

@@ -259,3 +259,10 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Removed: `CheckPdftoppm()`, `CheckPandoc()`, `CheckDocker()` — replaced by `docker.CheckAvailable()`
 - `docker.CheckAvailable()` verifies Docker is installed and daemon is running (single check at startup)
 - `docker.FindDockerDir(tool)` discovers `docker/<tool>/` relative to cwd or executable for auto-build
+
+## Remove Built-in Glossary
+- Removed `go:embed` of `internal/knowledge/defaults/glossary.yaml` — no built-in glossary in the binary
+- Glossary moved to `config/glossary.yaml` as a reference example file users can copy
+- Knowledge loads from two layers only: workspace `knowledge/` + auto-extracted `memory/`
+- `mutercim init` scaffolds `knowledge/glossary.yaml` with format examples and a pointer to `config/glossary.yaml`
+- Smaller binary, clearer separation: tool knows no domain-specific terms, users provide all knowledge

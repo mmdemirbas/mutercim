@@ -137,22 +137,29 @@ const glossaryScaffold = `# Glossary entries for translation knowledge.
 # Values can be a single string or a list (first is canonical, rest are variants).
 # The "note" field is optional guidance for the AI.
 #
-# entries:
-#   # Simple: one form per language
-#   - ar: "أبو هريرة"
-#     tr: "Ebû Hüreyre"
-#     en: "Abu Hurayra"
-#     note: "Prominent companion, narrator of most hadiths"
-#
-#   # Variants: abbreviations, alternate spellings
-#   - ar: ["صلى الله عليه وسلم", "ﷺ", "صلعم"]
-#     tr: ["sallallâhu aleyhi ve sellem", "s.a.v."]
-#     en: ["peace be upon him", "PBUH"]
-#     note: "Salawat. Must appear after every mention of the Prophet."
-#
-#   # Minimal: two languages only
-#   - ar: "فقه"
-#     tr: "fıkıh"
+# For a comprehensive Arabic/Turkish/English glossary covering Islamic scholarly
+# terminology, honorifics, companion names, and places, see:
+#   config/glossary.yaml in the mutercim repository
+# Copy it here and customize for your book.
+
+entries:
+  # === Format examples ===
+
+  # Simple: one form per language
+  # - ar: "أبو هريرة"
+  #   tr: "Ebû Hüreyre"
+  #   en: "Abu Hurayra"
+  #   note: "Prominent companion, narrator of most hadiths"
+
+  # Variants: abbreviations, alternate spellings
+  # - ar: ["صلى الله عليه وسلم", "ﷺ", "صلعم"]
+  #   tr: ["sallallâhu aleyhi ve sellem", "s.a.v."]
+  #   en: ["peace be upon him", "PBUH"]
+  #   note: "Salawat. Must appear after every mention of the Prophet."
+
+  # Minimal: two languages only
+  # - ar: "فقه"
+  #   tr: "fıkıh"
 `
 
 // splitLangs splits a comma-separated language string into a slice.

@@ -11,24 +11,21 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Load loads knowledge from all three layers and merges them.
+// Load loads knowledge from workspace and memory layers and merges them.
 // Later layers override earlier ones on key conflicts.
+// Workspace knowledge/ contains user-provided glossary files.
+// Memory/ contains auto-extracted entries from the solve phase.
 func Load(workspaceKnowledgeDir, memoryDir string) (*Knowledge, error) {
 	k := &Knowledge{}
 
-	// Layer 1: Embedded defaults
-	if err := loadFromFS(k, embeddedFS, "defaults"); err != nil {
-		return nil, fmt.Errorf("load embedded knowledge: %w", err)
-	}
-
-	// Layer 2: Workspace knowledge directory
+	// Layer 1: Workspace knowledge directory
 	if workspaceKnowledgeDir != "" {
 		if err := loadFromDir(k, workspaceKnowledgeDir); err != nil && !os.IsNotExist(err) {
 			return nil, fmt.Errorf("load workspace knowledge: %w", err)
 		}
 	}
 
-	// Layer 3: Memory (auto-extracted by solve phase)
+	// Layer 2: Memory (auto-extracted by solve phase)
 	if memoryDir != "" {
 		if err := loadFromDir(k, memoryDir); err != nil && !os.IsNotExist(err) {
 			return nil, fmt.Errorf("load memory knowledge: %w", err)

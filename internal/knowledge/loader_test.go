@@ -6,28 +6,13 @@ import (
 	"testing"
 )
 
-func TestLoadEmbeddedDefaults(t *testing.T) {
+func TestLoadEmptyDirs(t *testing.T) {
 	k, err := Load("", "")
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
-
-	if len(k.Entries) == 0 {
-		t.Fatal("expected embedded entries, got none")
-	}
-
-	// Verify we can find some known entries
-	_, ok := k.LookupByForm("ar", "حديث")
-	if !ok {
-		t.Error("expected to find حديث in embedded defaults")
-	}
-	_, ok = k.LookupByForm("ar", "مكة")
-	if !ok {
-		t.Error("expected to find مكة in embedded defaults")
-	}
-	_, ok = k.LookupByForm("ar", "أبو هريرة")
-	if !ok {
-		t.Error("expected to find أبو هريرة in embedded defaults")
+	if len(k.Entries) != 0 {
+		t.Errorf("expected 0 entries with empty dirs, got %d", len(k.Entries))
 	}
 }
 
@@ -286,9 +271,9 @@ func TestLoadNonexistentDirs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
-	// Should still have embedded defaults
-	if len(k.Entries) == 0 {
-		t.Error("expected embedded entries even with missing dirs")
+	// No embedded defaults — nonexistent dirs are silently skipped
+	if len(k.Entries) != 0 {
+		t.Errorf("expected 0 entries with nonexistent dirs, got %d", len(k.Entries))
 	}
 }
 
