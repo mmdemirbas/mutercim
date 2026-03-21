@@ -174,8 +174,16 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	failed := 0
 	skipped := 0
 
+	maxFailPct := opts.Config.Retry.MaxFailPercent
 	for _, pf := range pages {
 		if ctx.Err() != nil {
+			break
+		}
+		// Check error threshold
+		result := PhaseResult{Completed: completed, Failed: failed}
+		if result.ExceedsErrorThreshold(maxFailPct) {
+			logger.Error("aborting: failure rate exceeds threshold",
+				"completed", completed, "failed", failed, "threshold", fmt.Sprintf("%d%%", maxFailPct))
 			break
 		}
 		// Skip if output is up-to-date (mtime check)

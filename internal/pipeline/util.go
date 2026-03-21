@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -18,6 +17,21 @@ type PhaseResult struct {
 // IsEmpty returns true if no pages were completed or skipped (nothing useful produced).
 func (r PhaseResult) IsEmpty() bool {
 	return r.Completed == 0 && r.Skipped == 0
+}
+
+// ExceedsErrorThreshold returns true if the failure rate exceeds maxPercent.
+// A maxPercent of 0 means no limit. Requires at least 5 processed pages
+// before triggering to avoid aborting on early transient failures.
+func (r PhaseResult) ExceedsErrorThreshold(maxPercent int) bool {
+	if maxPercent <= 0 {
+		return false
+	}
+	processed := r.Completed + r.Failed
+	if processed < 5 {
+		return false
+	}
+	failRate := r.Failed * 100 / processed
+	return failRate > maxPercent
 }
 
 // pageFile represents a JSON page file with its parsed page number.
@@ -114,21 +128,4 @@ func pageFilename(pageNum, totalPages int) string {
 		width = 4
 	}
 	return fmt.Sprintf("%0*d.json", width, pageNum)
-}
-
-// maxPageNum returns the maximum page number seen across a list of page numbers.
-// Returns 0 if the slice is empty.
-func maxPageNum(pages []int) int {
-	m := 0
-	for _, p := range pages {
-		if p > m {
-			m = p
-		}
-	}
-	return m
-}
-
-// estimateTotalPages returns the max of two ints, used for deciding padding width.
-func estimateTotalPages(a, b int) int {
-	return int(math.Max(float64(a), float64(b)))
 }

@@ -69,7 +69,7 @@ func (w *Workspace) ReadDir() string {
 	return filepath.Join(w.Root, "read")
 }
 
-// SolveDir returns the enriched data directory path.
+// SolveDir returns the solved data directory path.
 func (w *Workspace) SolveDir() string {
 	return filepath.Join(w.Root, "solve")
 }

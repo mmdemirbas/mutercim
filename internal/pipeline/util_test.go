@@ -166,6 +166,37 @@ func TestPageFilename(t *testing.T) {
 	}
 }
 
+func TestExceedsErrorThreshold(t *testing.T) {
+	tests := []struct {
+		name       string
+		completed  int
+		failed     int
+		maxPercent int
+		want       bool
+	}{
+		{"zero limit disables", 50, 50, 0, false},
+		{"under threshold", 90, 10, 10, false},
+		{"at threshold", 90, 10, 10, false}, // 10% == 10%, not exceeded
+		{"over threshold", 80, 20, 10, true},
+		{"too few pages", 3, 1, 10, false}, // only 4 processed, minimum not met
+		{"exactly 5 pages all fail", 0, 5, 10, true},
+		{"5 pages 1 fail 20pct", 4, 1, 10, true},           // 1/5 = 20% > 10%
+		{"5 pages 1 fail high threshold", 4, 1, 25, false}, // 1/5 = 20% < 25%
+		{"no failures", 100, 0, 10, false},
+		{"all failures", 0, 10, 10, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := PhaseResult{Completed: tt.completed, Failed: tt.failed}
+			got := r.ExceedsErrorThreshold(tt.maxPercent)
+			if got != tt.want {
+				t.Errorf("ExceedsErrorThreshold(%d) = %v, want %v (completed=%d, failed=%d)",
+					tt.maxPercent, got, tt.want, tt.completed, tt.failed)
+			}
+		})
+	}
+}
+
 func TestSaveRegionPageAtomicWrite(t *testing.T) {
 	dir := t.TempDir()
 

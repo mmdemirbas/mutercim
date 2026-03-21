@@ -61,6 +61,7 @@ type WriteConfig struct {
 type RetryConfig struct {
 	MaxAttempts    int `yaml:"max_attempts" mapstructure:"max_attempts" json:"max_attempts"`
 	BackoffSeconds int `yaml:"backoff_seconds" mapstructure:"backoff_seconds" json:"backoff_seconds"`
+	MaxFailPercent int `yaml:"max_fail_percent" mapstructure:"max_fail_percent" json:"max_fail_percent"` // 0 = no limit
 }
 
 // RateLimitConfig holds rate limiting settings.
@@ -87,6 +88,7 @@ func SetDefaults(v *viper.Viper) {
 
 	v.SetDefault("retry.max_attempts", 3)
 	v.SetDefault("retry.backoff_seconds", 2)
+	v.SetDefault("retry.max_fail_percent", 10)
 
 	v.SetDefault("rate_limit.requests_per_minute", 14)
 }
@@ -168,6 +170,9 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Retry.BackoffSeconds == 0 {
 		cfg.Retry.BackoffSeconds = 2
+	}
+	if cfg.Retry.MaxFailPercent == 0 {
+		cfg.Retry.MaxFailPercent = 10
 	}
 	if cfg.RateLimit.RequestsPerMinute == 0 {
 		cfg.RateLimit.RequestsPerMinute = 14

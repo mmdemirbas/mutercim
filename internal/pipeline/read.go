@@ -212,8 +212,16 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	completed := 0
 	failed := 0
 	skipped := 0
+	maxFailPct := cfg.Retry.MaxFailPercent
 	for _, pageNum := range pagesToProcess {
 		if ctx.Err() != nil {
+			break
+		}
+		// Check error threshold
+		result := PhaseResult{Completed: completed, Failed: failed}
+		if result.ExceedsErrorThreshold(maxFailPct) {
+			logger.Error("aborting: failure rate exceeds threshold",
+				"completed", completed, "failed", failed, "threshold", fmt.Sprintf("%d%%", maxFailPct))
 			break
 		}
 		// Skip pages not in the image set

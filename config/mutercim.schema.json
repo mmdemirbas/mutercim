@@ -160,6 +160,9 @@
           "description": "Maximum number of retry attempts per API call before marking the page as failed and moving to the next one.",
           "minimum": 0,
           "type": "integer"
+        },
+        "max_fail_percent": {
+          "type": "integer"
         }
       },
       "type": "object"
