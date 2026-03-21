@@ -14,23 +14,21 @@ Items are ordered by priority within each tier. Check off as completed.
 - [x] Glossary refactor to unified schema
 - [x] Error threshold — `retry.max_fail_percent` (default 10%), aborts read/translate if exceeded
 - [x] Codebase cleanup — removed dead code (maxPageNum, estimateTotalPages), fixed stale comments
-- [ ] Test coverage gaps — context cancellation, failover callbacks, docx error path, layout tool
+- [x] Test coverage gaps — context cancellation, failover callbacks, docx error path, layout tool
   fallback, non-retryable status codes, config validation, huge page ranges
 - [x] Fix known dashboard bug — cursor-up count correctly tracks line count across phase changes
 
 ## P1 — Should ship
 
-- [ ] CI pipeline — GitHub Actions: `go build`, `go vet`, `go test -race`, `staticcheck`, Docker
-  service for integration tests
+- [x] CI pipeline — GitHub Actions: build, vet, test, test -race on push/PR to main
 - [ ] Pre-built binaries — goreleaser: linux/amd64, darwin/arm64, darwin/amd64
 - [ ] Publish Docker images to ghcr.io — poppler, doclayout-yolo, xelatex, pandoc; fall back to
   local build if pull fails
 - [x] Sample workspace — example/ with PDF, mutercim.yaml, glossary, full pipeline output
 - [x] Config validation — Validate() in config.Load(), checks input paths and page ranges
 - [x] `mutercim init` — scaffolds workspace with mutercim.yaml, input/, knowledge/, glossary.yaml
-- [ ] `.env.example` — all API key var names commented with signup URLs; `.env` in `.gitignore`
-- [ ] CONTRIBUTING.md — dev setup, prompt-driven workflow, how to run tests, reference CLAUDE.md and
-  GO_CONVENTIONS.md
+- [x] `.env.example` — at config/.env.example with API key var names and signup URLs
+- [x] CONTRIBUTING.md — dev setup, build workflow, conventions, references to CLAUDE.md and GO-CONVENTIONS.md
 - [x] Graceful Ctrl+C — signal.NotifyContext + display.Finish() for clean terminal state
 
 ## P2 — After launch
