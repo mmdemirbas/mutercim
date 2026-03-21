@@ -69,7 +69,7 @@ var schemaAnnotations = map[string]schemaMeta{
 	"write.latex_docker_image": {Description: "Docker image used to compile LaTeX to PDF. Must have xelatex with Arabic/Turkish font support. The image is invoked as: docker run --rm -v <dir>:/data <image> book.tex", Default: "mutercim/xelatex:latest"},
 
 	// knowledge
-	"knowledge_dir": {Description: "Directory containing knowledge YAML files (phrases, people, terms, places, sources). These are merged with embedded defaults and auto-extracted memory/ entries. Relative to workspace root.", Default: "./knowledge"},
+	"knowledge": {Description: "List of knowledge YAML files and/or directories. Directories include all .yaml/.yml files. Merged with auto-extracted memory/ entries. Relative to workspace root.", Default: []string{"./knowledge"}},
 
 	// retry
 	"retry":                 {Description: "Retry settings for failed API calls. Applies to both read and translate phases."},

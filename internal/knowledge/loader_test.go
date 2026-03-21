@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-func TestLoadEmptyDirs(t *testing.T) {
-	k, err := Load("", "")
+func TestLoadEmptyPaths(t *testing.T) {
+	k, err := Load(nil, "")
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
 	if len(k.Entries) != 0 {
-		t.Errorf("expected 0 entries with empty dirs, got %d", len(k.Entries))
+		t.Errorf("expected 0 entries with nil paths, got %d", len(k.Entries))
 	}
 }
 
@@ -250,7 +250,7 @@ func TestLoadFromKnowledgeAndMemoryMerge(t *testing.T) {
 		t.Fatalf("write memory: %v", err)
 	}
 
-	k, err := Load(knowledgeDir, memoryDir)
+	k, err := Load([]string{knowledgeDir}, memoryDir)
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
@@ -266,14 +266,62 @@ func TestLoadFromKnowledgeAndMemoryMerge(t *testing.T) {
 	}
 }
 
-func TestLoadNonexistentDirs(t *testing.T) {
-	k, err := Load("/nonexistent/knowledge", "/nonexistent/memory")
+func TestLoadNonexistentPaths(t *testing.T) {
+	k, err := Load([]string{"/nonexistent/knowledge"}, "/nonexistent/memory")
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
-	// No embedded defaults — nonexistent dirs are silently skipped
 	if len(k.Entries) != 0 {
-		t.Errorf("expected 0 entries with nonexistent dirs, got %d", len(k.Entries))
+		t.Errorf("expected 0 entries with nonexistent paths, got %d", len(k.Entries))
+	}
+}
+
+func TestLoadMixedFileAndDir(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create a directory with one entry
+	subDir := filepath.Join(dir, "subdir")
+	os.MkdirAll(subDir, 0755)
+	os.WriteFile(filepath.Join(subDir, "terms.yaml"), []byte(`entries:
+  - ar: "فقه"
+    tr: "fıkıh"
+`), 0644)
+
+	// Create a standalone file with a different entry
+	filePath := filepath.Join(dir, "extra.yaml")
+	os.WriteFile(filePath, []byte(`entries:
+  - ar: "مكة"
+    tr: "Mekke"
+`), 0644)
+
+	k, err := Load([]string{subDir, filePath}, "")
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if len(k.Entries) != 2 {
+		t.Errorf("expected 2 entries from dir+file, got %d", len(k.Entries))
+	}
+}
+
+func TestLoadInvalidSchemaWarnsAndContinues(t *testing.T) {
+	dir := t.TempDir()
+
+	// Valid file
+	os.WriteFile(filepath.Join(dir, "good.yaml"), []byte(`entries:
+  - ar: "فقه"
+    tr: "fıkıh"
+`), 0644)
+
+	// Invalid file (not a knowledge schema)
+	os.WriteFile(filepath.Join(dir, "bad.yaml"), []byte(`not_entries: true`), 0644)
+
+	k, err := Load([]string{dir}, "")
+	if err != nil {
+		t.Fatalf("Load() should not error on invalid schema: %v", err)
+	}
+	// Only the good file's entry should be loaded
+	if len(k.Entries) != 1 {
+		t.Errorf("expected 1 entry (bad file skipped), got %d", len(k.Entries))
 	}
 }
 

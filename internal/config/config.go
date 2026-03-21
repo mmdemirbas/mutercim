@@ -17,15 +17,15 @@ type InputSpec struct {
 
 // Config represents the full workspace configuration.
 type Config struct {
-	Book         model.Book      `yaml:"book" mapstructure:"book" json:"book"`
-	Inputs       []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
-	DPI          int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
-	Read         ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
-	Translate    TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
-	Write        WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
-	KnowledgeDir string          `yaml:"knowledge_dir" mapstructure:"knowledge_dir" json:"knowledge_dir"`
-	Retry        RetryConfig     `yaml:"retry" mapstructure:"retry" json:"retry"`
-	RateLimit    RateLimitConfig `yaml:"rate_limit" mapstructure:"rate_limit" json:"rate_limit"`
+	Book      model.Book      `yaml:"book" mapstructure:"book" json:"book"`
+	Inputs    []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
+	DPI       int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
+	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
+	Translate TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
+	Write     WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
+	Knowledge []string        `yaml:"knowledge" mapstructure:"knowledge" json:"knowledge"`
+	Retry     RetryConfig     `yaml:"retry" mapstructure:"retry" json:"retry"`
+	RateLimit RateLimitConfig `yaml:"rate_limit" mapstructure:"rate_limit" json:"rate_limit"`
 }
 
 // ModelSpec describes a single AI model in a failover chain.
@@ -71,7 +71,6 @@ type RateLimitConfig struct {
 
 // SetDefaults configures default values in viper.
 func SetDefaults(v *viper.Viper) {
-	v.SetDefault("book.source_langs", []string{"ar"})
 	v.SetDefault("book.target_langs", []string{"tr"})
 	v.SetDefault("dpi", 300)
 
@@ -84,7 +83,7 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("write.expand_sources", true)
 	v.SetDefault("write.latex_docker_image", "mutercim/xelatex:latest")
 
-	v.SetDefault("knowledge_dir", "./knowledge")
+	v.SetDefault("knowledge", []string{"./knowledge"})
 
 	v.SetDefault("retry.max_attempts", 3)
 	v.SetDefault("retry.backoff_seconds", 2)
@@ -132,9 +131,6 @@ func Load(configPath string) (*Config, error) {
 
 // applyDefaults fills in zero-valued fields with their defaults.
 func applyDefaults(cfg *Config) {
-	if len(cfg.Book.SourceLangs) == 0 {
-		cfg.Book.SourceLangs = []string{"ar"}
-	}
 	if len(cfg.Book.TargetLangs) == 0 {
 		cfg.Book.TargetLangs = []string{"tr"}
 	}
@@ -162,8 +158,8 @@ func applyDefaults(cfg *Config) {
 	if cfg.Write.LaTeXDockerImage == "" {
 		cfg.Write.LaTeXDockerImage = "mutercim/xelatex:latest"
 	}
-	if cfg.KnowledgeDir == "" {
-		cfg.KnowledgeDir = "./knowledge"
+	if len(cfg.Knowledge) == 0 {
+		cfg.Knowledge = []string{"./knowledge"}
 	}
 	if cfg.Retry.MaxAttempts == 0 {
 		cfg.Retry.MaxAttempts = 3
@@ -186,6 +182,15 @@ func (c *Config) InputPaths() []string {
 		paths[i] = inp.Path
 	}
 	return paths
+}
+
+// ResolveKnowledgePaths resolves all knowledge paths against the workspace root.
+func (c *Config) ResolveKnowledgePaths(base string) []string {
+	resolved := make([]string, len(c.Knowledge))
+	for i, p := range c.Knowledge {
+		resolved[i] = c.ResolvePath(base, p)
+	}
+	return resolved
 }
 
 // IsPDF returns true if the given path points to a PDF file.

@@ -18,13 +18,14 @@ import (
 
 // SolveOptions configures the solver pipeline.
 type SolveOptions struct {
-	Workspace  *workspace.Workspace
-	Knowledge  *knowledge.Knowledge
-	SourceLang string // primary source language for glossary matching (default: "ar")
-	Pages      []int  // specific pages to process; nil means all available
-	Force      bool   // force re-processing of already completed pages
-	Logger     *slog.Logger
-	Display    display.Display
+	Workspace      *workspace.Workspace
+	Knowledge      *knowledge.Knowledge
+	KnowledgePaths []string // resolved paths for mtime rebuild checks
+	SourceLang     string   // primary source language for glossary matching (default: "ar")
+	Pages          []int    // specific pages to process; nil means all available
+	Force          bool     // force re-processing of already completed pages
+	Logger         *slog.Logger
+	Display        display.Display
 }
 
 // Solve runs the Phase 2 solver pipeline for all inputs.
@@ -104,7 +105,8 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		}
 
 		outputPath := filepath.Join(solvedDir, pageFilename(pf.pageNum, len(pages)))
-		if !opts.Force && !rebuild.NeedsRebuild(outputPath, pf.path, ws.KnowledgeDir(), ws.MemoryDir()) {
+		rebuildInputs := append([]string{pf.path}, append(opts.KnowledgePaths, ws.MemoryDir())...)
+		if !opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
 			skipped++
 			// Load skipped page so it can serve as previous for the next iteration

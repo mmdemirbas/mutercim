@@ -31,8 +31,11 @@ inputs:
   - path: ./input                    # Path to input PDF or image directory (relative to workspace root)
     pages: all                       # Page range for this input: "1-10,20-30" or "all" (default)
 
-knowledge_dir: ./knowledge           # Knowledge YAML files directory (phrases, people, terms, places, sources)
-                                     #   Merged with embedded defaults and auto-extracted memory/ entries
+# Knowledge: list of YAML files and/or directories.
+# Directories include all .yaml/.yml files. Merged with auto-extracted memory/ entries.
+knowledge:
+  - ./knowledge                      # directory: loads all .yaml/.yml files inside
+  # - ./extra-glossary.yaml          # file: loaded directly
 
 # ─── PDF conversion ──────────────────────────────────────────────────────────
 

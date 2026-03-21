@@ -12,3 +12,5 @@
 
 - Provide AR/TR/ZH translations for docs
 - Support multiple app languages (help messages, logs etc)? (ar/tr/zh)
+
+- No report.json written in the steps other than the 'read' step.

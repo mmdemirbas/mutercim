@@ -156,7 +156,7 @@ func TestLoadAndBuildGlossary(t *testing.T) {
 `
 	os.WriteFile(filepath.Join(dir, "glossary.yaml"), []byte(yaml), 0644)
 
-	k, err := Load(dir, "")
+	k, err := Load([]string{dir}, "")
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}

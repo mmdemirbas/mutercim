@@ -106,8 +106,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 	}
 
 	if startPhase <= phaseSolve && phaseSolve < targetPhase {
-		knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
-		k, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
+		k, err := knowledge.Load(cfg.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())
 		if err != nil {
 			return fmt.Errorf("auto load knowledge: %w", err)
 		}
@@ -119,8 +118,8 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 
 		logger.Info("=== AUTO: SOLVE ===")
 		result, err := pipeline.Solve(ctx, pipeline.SolveOptions{
-			Workspace: ws, Knowledge: k, SourceLang: sourceLang,
-			Pages: pagesToProcess, Logger: logger, Display: disp,
+			Workspace: ws, Knowledge: k, KnowledgePaths: cfg.ResolveKnowledgePaths(ws.Root),
+			SourceLang: sourceLang, Pages: pagesToProcess, Logger: logger, Display: disp,
 		})
 		if err != nil {
 			return fmt.Errorf("auto solve: %w", err)
@@ -131,8 +130,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 	}
 
 	if startPhase <= phaseTranslate && phaseTranslate < targetPhase {
-		knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
-		k, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
+		k, err := knowledge.Load(cfg.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())
 		if err != nil {
 			return fmt.Errorf("auto load knowledge: %w", err)
 		}

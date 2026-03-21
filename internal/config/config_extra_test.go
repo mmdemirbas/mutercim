@@ -224,9 +224,9 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 		t.Errorf("Write.LaTeXDockerImage = %q, want %q", cfg.Write.LaTeXDockerImage, "mutercim/xelatex:latest")
 	}
 
-	// KnowledgeDir
-	if cfg.KnowledgeDir != "./knowledge" {
-		t.Errorf("KnowledgeDir = %q, want %q", cfg.KnowledgeDir, "./knowledge")
+	// Knowledge
+	if len(cfg.Knowledge) != 1 || cfg.Knowledge[0] != "./knowledge" {
+		t.Errorf("Knowledge = %v, want [./knowledge]", cfg.Knowledge)
 	}
 
 	// Retry
@@ -245,15 +245,15 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 
 func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	cfg := &Config{
-		DPI:          600,
-		Inputs:       []InputSpec{{Path: "./custom.pdf"}},
-		Read:         ReadConfig{Models: []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}}, Concurrency: 4},
-		Translate:    TranslateConfig{Models: []ModelSpec{{Provider: "openai", Model: "gpt-4"}}, ContextWindow: 5},
-		Write:        WriteConfig{Formats: []string{"docx"}, LaTeXDockerImage: "custom:latest"},
-		KnowledgeDir: "/custom/knowledge",
-		Retry:        RetryConfig{MaxAttempts: 5, BackoffSeconds: 10},
-		RateLimit:    RateLimitConfig{RequestsPerMinute: 100},
-		Book:         model.Book{SourceLangs: []string{"fa"}, TargetLangs: []string{"en"}},
+		DPI:       600,
+		Inputs:    []InputSpec{{Path: "./custom.pdf"}},
+		Read:      ReadConfig{Models: []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}}, Concurrency: 4},
+		Translate: TranslateConfig{Models: []ModelSpec{{Provider: "openai", Model: "gpt-4"}}, ContextWindow: 5},
+		Write:     WriteConfig{Formats: []string{"docx"}, LaTeXDockerImage: "custom:latest"},
+		Knowledge: []string{"/custom/knowledge"},
+		Retry:     RetryConfig{MaxAttempts: 5, BackoffSeconds: 10},
+		RateLimit: RateLimitConfig{RequestsPerMinute: 100},
+		Book:      model.Book{SourceLangs: []string{"fa"}, TargetLangs: []string{"en"}},
 	}
 	applyDefaults(cfg)
 
@@ -275,8 +275,8 @@ func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	if len(cfg.Write.Formats) != 1 || cfg.Write.Formats[0] != "docx" {
 		t.Errorf("Write.Formats was overwritten: got %v", cfg.Write.Formats)
 	}
-	if cfg.KnowledgeDir != "/custom/knowledge" {
-		t.Errorf("KnowledgeDir was overwritten: got %q", cfg.KnowledgeDir)
+	if len(cfg.Knowledge) != 1 || cfg.Knowledge[0] != "/custom/knowledge" {
+		t.Errorf("Knowledge was overwritten: got %v", cfg.Knowledge)
 	}
 	if cfg.Retry.MaxAttempts != 5 {
 		t.Errorf("Retry.MaxAttempts was overwritten: got %d", cfg.Retry.MaxAttempts)

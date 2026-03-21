@@ -3,6 +3,7 @@ package knowledge
 import (
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path"
 	"sort"
@@ -11,23 +12,26 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Load loads knowledge from workspace and memory layers and merges them.
-// Later layers override earlier ones on key conflicts.
-// Workspace knowledge/ contains user-provided glossary files.
-// Memory/ contains auto-extracted entries from the solve phase.
-func Load(workspaceKnowledgeDir, memoryDir string) (*Knowledge, error) {
+// Load loads knowledge from the given paths and memory directory, merging them.
+// Each path can be a directory (all .yaml/.yml files are loaded) or a single YAML file.
+// Later entries override earlier ones on key conflicts.
+// Schema mismatches in individual files are logged as warnings and skipped.
+func Load(knowledgePaths []string, memoryDir string) (*Knowledge, error) {
 	k := &Knowledge{}
 
-	// Layer 1: Workspace knowledge directory
-	if workspaceKnowledgeDir != "" {
-		if err := loadFromDir(k, workspaceKnowledgeDir); err != nil && !os.IsNotExist(err) {
-			return nil, fmt.Errorf("load workspace knowledge: %w", err)
+	// Layer 1: Knowledge paths (files and directories)
+	for _, p := range knowledgePaths {
+		if p == "" {
+			continue
+		}
+		if err := loadPath(k, p); err != nil && !os.IsNotExist(err) {
+			return nil, fmt.Errorf("load knowledge %q: %w", p, err)
 		}
 	}
 
 	// Layer 2: Memory (auto-extracted by solve phase)
 	if memoryDir != "" {
-		if err := loadFromDir(k, memoryDir); err != nil && !os.IsNotExist(err) {
+		if err := loadPath(k, memoryDir); err != nil && !os.IsNotExist(err) {
 			return nil, fmt.Errorf("load memory knowledge: %w", err)
 		}
 	}
@@ -35,7 +39,26 @@ func Load(workspaceKnowledgeDir, memoryDir string) (*Knowledge, error) {
 	return k, nil
 }
 
-func loadFromFS(k *Knowledge, fsys fs.FS, root string) error {
+// loadPath loads knowledge from a single path — either a directory or a YAML file.
+func loadPath(k *Knowledge, p string) error {
+	info, err := os.Stat(p)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		return loadFromDir(k, p)
+	}
+	if isYAMLFile(info.Name()) {
+		return loadFile(k, p)
+	}
+	return nil
+}
+
+func loadFromDir(k *Knowledge, dir string) error {
+	return loadFromFS(k, os.DirFS(dir), ".", dir)
+}
+
+func loadFromFS(k *Knowledge, fsys fs.FS, root, displayRoot string) error {
 	dirEntries, err := fs.ReadDir(fsys, root)
 	if err != nil {
 		return nil // directory might not exist
@@ -46,24 +69,27 @@ func loadFromFS(k *Knowledge, fsys fs.FS, root string) error {
 		}
 		data, err := fs.ReadFile(fsys, path.Join(root, de.Name()))
 		if err != nil {
-			return fmt.Errorf("read %s: %w", de.Name(), err)
+			slog.Warn("failed to read knowledge file", "file", de.Name(), "dir", displayRoot, "error", err)
+			continue
 		}
 		if err := mergeRawEntries(k, data); err != nil {
-			return fmt.Errorf("parse %s: %w", de.Name(), err)
+			slog.Warn("skipping knowledge file with invalid schema", "file", de.Name(), "dir", displayRoot, "error", err)
+			continue
 		}
 	}
 	return nil
 }
 
-func loadFromDir(k *Knowledge, dir string) error {
-	info, err := os.Stat(dir)
+func loadFile(k *Knowledge, filePath string) error {
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
-	if !info.IsDir() {
+	if err := mergeRawEntries(k, data); err != nil {
+		slog.Warn("skipping knowledge file with invalid schema", "file", filePath, "error", err)
 		return nil
 	}
-	return loadFromFS(k, os.DirFS(dir), ".")
+	return nil
 }
 
 func isYAMLFile(name string) bool {

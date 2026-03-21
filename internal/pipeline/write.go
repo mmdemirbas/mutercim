@@ -98,7 +98,8 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 				continue
 			}
 			outputPath := filepath.Join(langWriteDir, title+ext)
-			if rebuild.NeedsRebuild(outputPath, translatedDir, ws.ConfigPath(), ws.KnowledgeDir()) {
+			rebuildInputs := append([]string{translatedDir, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
+			if rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
 				allUpToDate = false
 				break
 			}

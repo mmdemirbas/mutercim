@@ -118,9 +118,8 @@ write:
   expand_sources: true
   latex_docker_image: mutercim/xelatex:latest
 
-# Knowledge paths (relative to workspace root)
-knowledge:
-  dir: ./knowledge
+# Knowledge: files and/or directories (relative to workspace root)
+knowledge: [./knowledge]
 
 # Processing behavior
 retry:

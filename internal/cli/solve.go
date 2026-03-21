@@ -33,8 +33,7 @@ func newSolveCmd() *cobra.Command {
 			}
 
 			// Load knowledge from all three layers
-			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
-			k, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
+			k, err := knowledge.Load(cfg.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
 			}
@@ -67,12 +66,13 @@ func newSolveCmd() *cobra.Command {
 			}
 
 			_, err = pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
-				Workspace:  ws,
-				Knowledge:  k,
-				SourceLang: sourceLang,
-				Pages:      pagesToProcess,
-				Force:      force,
-				Display:    display.FromContext(cmd.Context()),
+				Workspace:      ws,
+				Knowledge:      k,
+				KnowledgePaths: cfg.ResolveKnowledgePaths(ws.Root),
+				SourceLang:     sourceLang,
+				Pages:          pagesToProcess,
+				Force:          force,
+				Display:        display.FromContext(cmd.Context()),
 			})
 			return err
 		},

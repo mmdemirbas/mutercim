@@ -233,7 +233,8 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 
 		// Skip if output is up-to-date (mtime check)
 		outputPath := filepath.Join(readDir, pageFilename(pageNum, len(pagesToProcess)))
-		if !opts.Force && !rebuild.NeedsRebuild(outputPath, imgPath, ws.ConfigPath(), ws.KnowledgeDir()) {
+		rebuildInputs := append([]string{imgPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
+		if !opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pageNum)
 			skipped++
 			continue

@@ -131,8 +131,7 @@ func newAllCmd() *cobra.Command {
 
 			// Phase 2: Solve
 			logger.Info("=== Phase 2: SOLVE ===")
-			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
-			k, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
+			k, err := knowledge.Load(cfg.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
 			}
@@ -143,13 +142,14 @@ func newAllCmd() *cobra.Command {
 			}
 
 			solveResult, err := pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
-				Workspace:  ws,
-				Knowledge:  k,
-				SourceLang: sourceLang,
-				Pages:      pagesToProcess,
-				Force:      force,
-				Logger:     logger,
-				Display:    disp,
+				Workspace:      ws,
+				Knowledge:      k,
+				KnowledgePaths: cfg.ResolveKnowledgePaths(ws.Root),
+				SourceLang:     sourceLang,
+				Pages:          pagesToProcess,
+				Force:          force,
+				Logger:         logger,
+				Display:        disp,
 			})
 			if err != nil {
 				return fmt.Errorf("solve: %w", err)

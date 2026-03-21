@@ -201,8 +201,11 @@ write:
   expand_sources: true         # expand source abbreviations in output
   latex_docker_image: mutercim/xelatex:latest
 
-# Knowledge directory for glossary YAML files (default: ./knowledge)
-knowledge_dir: ./knowledge
+# Knowledge: list of YAML files and/or directories (default: [./knowledge])
+# Directories include all .yaml/.yml files.
+knowledge:
+  - ./knowledge
+  # - ./extra-terms.yaml
 
 # Retry settings for API calls
 retry:

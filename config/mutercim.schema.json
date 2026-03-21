@@ -67,10 +67,15 @@
       },
       "type": "array"
     },
-    "knowledge_dir": {
-      "default": "./knowledge",
-      "description": "Directory containing knowledge YAML files (phrases, people, terms, places, sources). These are merged with embedded defaults and auto-extracted memory/ entries. Relative to workspace root.",
-      "type": "string"
+    "knowledge": {
+      "default": [
+        "./knowledge"
+      ],
+      "description": "List of knowledge YAML files and/or directories. Directories include all .yaml/.yml files. Merged with auto-extracted memory/ entries. Relative to workspace root.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     },
     "rate_limit": {
       "additionalProperties": false,

@@ -61,8 +61,7 @@ func newTranslateCmd() *cobra.Command {
 			defer chain.Close()
 
 			// Load knowledge
-			knowledgeDir := cfg.ResolvePath(ws.Root, cfg.KnowledgeDir)
-			k, err := knowledge.Load(knowledgeDir, ws.MemoryDir())
+			k, err := knowledge.Load(cfg.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
 			}

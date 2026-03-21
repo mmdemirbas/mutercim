@@ -266,3 +266,10 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Knowledge loads from two layers only: workspace `knowledge/` + auto-extracted `memory/`
 - `mutercim init` scaffolds `knowledge/glossary.yaml` with format examples and a pointer to `config/glossary.yaml`
 - Smaller binary, clearer separation: tool knows no domain-specific terms, users provide all knowledge
+
+## Rename knowledge_dir to knowledge, accept multiple paths
+- Config field renamed: `knowledge_dir` (string) → `knowledge` ([]string)
+- Each path can be a directory (all .yaml/.yml files loaded) or a single YAML file
+- Schema mismatches in individual files are logged as warnings and skipped, not fatal errors
+- Default: `["./knowledge"]` (backward compatible for directory-only usage)
+- All pipeline phases updated to pass resolved knowledge paths for mtime rebuild checks

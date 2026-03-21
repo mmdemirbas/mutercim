@@ -188,7 +188,8 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		}
 		// Skip if output is up-to-date (mtime check)
 		outputPath := filepath.Join(translatedDir, pageFilename(pf.pageNum, len(pages)))
-		if !opts.Force && !rebuild.NeedsRebuild(outputPath, pf.path, ws.ConfigPath(), ws.KnowledgeDir(), ws.MemoryDir()) {
+		rebuildInputs := append([]string{pf.path, ws.ConfigPath()}, append(opts.Config.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())...)
+		if !opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
 			skipped++
 			continue
