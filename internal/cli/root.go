@@ -48,12 +48,21 @@ between languages, preserving layout, structure, and domain-specific terminology
 			var logFileHandle *os.File
 			ws, wsErr := workspace.Discover(".")
 			if wsErr == nil {
-				if err := os.MkdirAll(ws.LogDir(), 0755); err == nil {
-					f, err := os.OpenFile(ws.LogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-					if err == nil {
-						logFileHandle = f
-						fileLogger = slog.New(newHumanHandler(f, level))
-					}
+				// Resolve output dir from config so log goes to the right place
+				configPath := cfgFile
+				if configPath == "" {
+					configPath = ws.ConfigPath()
+				}
+				if cfg, err := config.Load(configPath); err == nil {
+					applyOutputDir(ws, cfg)
+				}
+				if ws.OutputDir != ws.Root {
+					os.MkdirAll(ws.OutputDir, 0755)
+				}
+				f, err := os.OpenFile(ws.LogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+				if err == nil {
+					logFileHandle = f
+					fileLogger = slog.New(newHumanHandler(f, level))
 				}
 			}
 			if fileLogger == nil {

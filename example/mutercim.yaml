@@ -37,7 +37,7 @@ knowledge:
   #- ./knowledge                     # directory: loads all .yaml/.yml files inside
   - ./glossary.yaml                  # file: loaded directly
 
-output: ./
+output: ./output
 
 # ─── PDF conversion ──────────────────────────────────────────────────────────
 

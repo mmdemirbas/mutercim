@@ -19,7 +19,7 @@ var cleanablePhases = []string{"log", "memory", "pages", "read", "solve", "trans
 func phaseDir(ws *workspace.Workspace, phase string) string {
 	switch phase {
 	case "log":
-		return ws.LogDir()
+		return "" // log file handled specially, not a directory
 	case "memory":
 		return ws.MemoryDir()
 	case "pages":
@@ -147,6 +147,17 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 				return err
 			}
 
+			// Handle log file separately (it's a file, not a directory)
+			cleanLog := false
+			var dirPhases []string
+			for _, phase := range phases {
+				if phase == "log" {
+					cleanLog = true
+				} else {
+					dirPhases = append(dirPhases, phase)
+				}
+			}
+
 			// Collect directories to delete with sizes
 			type target struct {
 				phase string
@@ -154,7 +165,7 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 				size  int64
 			}
 			var targets []target
-			for _, phase := range phases {
+			for _, phase := range dirPhases {
 				dir := phaseDir(ws, phase)
 				if dir == "" {
 					continue
@@ -165,7 +176,17 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 				targets = append(targets, target{phase: phase, dir: dir, size: dirSize(dir)})
 			}
 
-			if len(targets) == 0 {
+			// Check if log file exists
+			var logSize int64
+			if cleanLog {
+				if info, err := os.Stat(ws.LogPath()); err == nil {
+					logSize = info.Size()
+				} else {
+					cleanLog = false // file doesn't exist
+				}
+			}
+
+			if len(targets) == 0 && !cleanLog {
 				fmt.Println("Nothing to clean.")
 				return nil
 			}
@@ -173,25 +194,33 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 			colors := display.NewStatusColors(os.Stdout)
 
 			// Print what will be deleted
+			if cleanLog {
+				fmt.Printf("  %s\t%s\n", colors.Red("mutercim.log"), colors.Dim(formatSize(logSize)))
+			}
 			for _, t := range targets {
 				fmt.Printf("  %s\t%s\n", colors.Red(t.phase+"/"), colors.Dim(formatSize(t.size)))
 			}
 
-			// Delete directories (truncate log instead of removing)
-			for _, t := range targets {
-				if t.phase == "log" {
-					f, err := os.OpenFile(ws.LogPath(), os.O_TRUNC|os.O_WRONLY, 0644)
-					if err == nil {
-						f.Close()
-					}
-					continue // don't RemoveAll
+			// Truncate log file
+			if cleanLog {
+				f, err := os.OpenFile(ws.LogPath(), os.O_TRUNC|os.O_WRONLY, 0644)
+				if err == nil {
+					f.Close()
 				}
+			}
+
+			// Delete directories
+			for _, t := range targets {
 				if err := os.RemoveAll(t.dir); err != nil {
 					return fmt.Errorf("remove %s: %w", t.dir, err)
 				}
 			}
 
-			fmt.Printf("%s %d directories.\n", colors.Green("\u2713"), len(targets))
+			cleaned := len(targets)
+			if cleanLog {
+				cleaned++
+			}
+			fmt.Printf("%s %d cleaned.\n", colors.Green("\u2713"), cleaned)
 			return nil
 		},
 	}

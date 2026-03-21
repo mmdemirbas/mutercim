@@ -47,13 +47,6 @@ func Init(opts InitOptions) (*Workspace, error) {
 	dirs := []string{
 		"input",
 		"knowledge",
-		"log",
-		"memory",
-		"pages",
-		"read",
-		"solve",
-		"translate",
-		"write",
 	}
 
 	for _, d := range dirs {

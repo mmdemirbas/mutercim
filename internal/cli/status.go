@@ -74,7 +74,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	warnings = append(warnings, collectValidationWarnings(ws, inputs)...)
 
 	// Log file info
-	logPath := "log/mutercim.log"
+	logPath := "mutercim.log"
 	var logSize int64
 	if info, err := os.Stat(ws.LogPath()); err == nil {
 		logSize = info.Size()

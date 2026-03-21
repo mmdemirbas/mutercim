@@ -56,14 +56,9 @@ func (w *Workspace) KnowledgeDir() string {
 	return filepath.Join(w.Root, "knowledge")
 }
 
-// LogDir returns the log directory path.
-func (w *Workspace) LogDir() string {
-	return filepath.Join(w.outputBase(), "log")
-}
-
 // LogPath returns the path to the log file.
 func (w *Workspace) LogPath() string {
-	return filepath.Join(w.outputBase(), "log", "mutercim.log")
+	return filepath.Join(w.outputBase(), "mutercim.log")
 }
 
 // MemoryDir returns the auto-extracted knowledge directory path.

@@ -27,13 +27,6 @@ func TestInit(t *testing.T) {
 	dirs := []string{
 		"input",
 		"knowledge",
-		"log",
-		"memory",
-		"pages",
-		"read",
-		"solve",
-		"translate",
-		"write",
 	}
 	for _, d := range dirs {
 		fullPath := filepath.Join(dir, d)
@@ -138,10 +131,7 @@ func TestWorkspacePaths(t *testing.T) {
 	if ws.MemoryDir() != "/tmp/test/memory" {
 		t.Errorf("MemoryDir() = %q", ws.MemoryDir())
 	}
-	if ws.LogDir() != "/tmp/test/log" {
-		t.Errorf("LogDir() = %q", ws.LogDir())
-	}
-	if ws.LogPath() != "/tmp/test/log/mutercim.log" {
+	if ws.LogPath() != "/tmp/test/mutercim.log" {
 		t.Errorf("LogPath() = %q", ws.LogPath())
 	}
 }
