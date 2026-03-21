@@ -41,8 +41,8 @@ TODO: add before/after screenshots
 
 - **Go 1.23+** (the project uses Go 1.26, but 1.23+ should work)
 - **pdftoppm** (from poppler-utils) — for PDF-to-image conversion
-  - macOS: `brew install poppler`
-  - Debian/Ubuntu: `apt install poppler-utils`
+    - macOS: `brew install poppler`
+    - Debian/Ubuntu: `apt install poppler-utils`
 - **Docker** — for layout detection (DocLayout-YOLO) and PDF rendering (XeLaTeX)
 - **pandoc** (optional) — only needed for DOCX output
 - **At least one AI provider API key** — see [Provider authentication](#provider-authentication)
@@ -64,7 +64,7 @@ mutercim init
 cp /path/to/book.pdf input/
 
 # Set API key(s)
-echo 'GEMINI_API_KEY=your-key-here' > .env
+echo 'GEMINI_API_KEY=your-key-here' >.env
 
 # Edit mutercim.yaml to configure your book
 # (at minimum, set the title and input path)
@@ -88,8 +88,8 @@ Minimal `mutercim.yaml`:
 ```yaml
 book:
   title: "My Book"
-  source_langs: [ar]
-  target_langs: [en]
+  source_langs: [ ar ]
+  target_langs: [ en ]
 
 inputs:
   - path: ./input/book.pdf
@@ -102,23 +102,23 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 
 ### Pipeline Commands
 
-| Command     | Description |
-|-------------|-------------|
+| Command     | Description                                                        |
+|-------------|--------------------------------------------------------------------|
 | `all`       | Run all phases sequentially (pages, read, solve, translate, write) |
-| `pages`     | Convert PDF inputs to per-page images |
-| `read`      | Read structured data from page images via AI vision |
-| `solve`     | Resolve abbreviations and knowledge context |
-| `translate` | Translate solved pages into target languages |
-| `write`     | Render translated data to output formats |
+| `pages`     | Convert PDF inputs to per-page images                              |
+| `read`      | Read structured data from page images via AI vision                |
+| `solve`     | Resolve abbreviations and knowledge context                        |
+| `translate` | Translate solved pages into target languages                       |
+| `write`     | Render translated data to output formats                           |
 
 ### Workspace Commands
 
-| Command  | Description |
-|----------|-------------|
-| `init`   | Initialize a new book workspace in current directory |
-| `status` | Show processing progress and validation warnings |
+| Command  | Description                                                     |
+|----------|-----------------------------------------------------------------|
+| `init`   | Initialize a new book workspace in current directory            |
+| `status` | Show processing progress and validation warnings                |
 | `config` | Show effective configuration (merged config + flags + defaults) |
-| `clean`  | Delete generated data for specified phases |
+| `clean`  | Delete generated data for specified phases                      |
 
 ### Common flags
 
@@ -135,11 +135,11 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 Targets: `log`, `memory`, `pages`, `read`, `solve`, `translate`, `write`, `all`
 
 ```bash
-mutercim clean read          # delete only read/
-mutercim clean read+         # delete read/ and all downstream (solve/, translate/, write/)
-mutercim clean pages+        # delete pages/ through write/
-mutercim clean all           # delete everything except input/, knowledge/, mutercim.yaml, .env
-mutercim clean log read      # delete multiple specific targets
+mutercim clean read # delete only read/
+mutercim clean read+ # delete read/ and all downstream (solve/, translate/, write/)
+mutercim clean pages+ # delete pages/ through write/
+mutercim clean all # delete everything except input/, knowledge/, mutercim.yaml, .env
+mutercim clean log read # delete multiple specific targets
 ```
 
 ### Output format arguments
@@ -147,9 +147,9 @@ mutercim clean log read      # delete multiple specific targets
 `write` and `all` accept positional format arguments that override the config:
 
 ```bash
-mutercim write md            # only Markdown
-mutercim all pdf docx        # only PDF and DOCX
-mutercim write latex         # only .tex (no PDF compilation)
+mutercim write md # only Markdown
+mutercim all pdf docx # only PDF and DOCX
+mutercim write latex # only .tex (no PDF compilation)
 ```
 
 ## Configuration
@@ -160,8 +160,8 @@ Full annotated `mutercim.yaml`:
 # Book metadata
 book:
   title: "My Book"
-  source_langs: [ar]           # ISO 639-1 codes
-  target_langs: [tr, en]       # translate into multiple languages
+  source_langs: [ ar ]           # ISO 639-1 codes
+  target_langs: [ tr, en ]       # translate into multiple languages
 
 # Input files — PDF or directories of images
 # Each can have an optional per-input page range
@@ -197,10 +197,10 @@ translate:
 
 # Write phase — output rendering
 write:
-  formats: [md, pdf]           # output formats (default: [md, pdf])
-                               # options: md, latex, pdf, docx
-                               # "pdf" implies LaTeX generation + Docker compilation
-                               # "latex" generates only .tex
+  formats: [ md, pdf ]           # output formats (default: [md, pdf])
+    # options: md, latex, pdf, docx
+    # "pdf" implies LaTeX generation + Docker compilation
+  # "latex" generates only .tex
   expand_sources: true         # expand source abbreviations in output
   latex_docker_image: mutercim/xelatex:latest
 
@@ -284,9 +284,9 @@ entries:
     en: "hadith"
 
   # Entry with variants
-  - ar: ["صلى الله عليه وسلم", "ﷺ", "صلعم"]
-    tr: ["sallallâhu aleyhi ve sellem", "s.a.v."]
-    en: ["peace be upon him", "PBUH"]
+  - ar: [ "صلى الله عليه وسلم", "ﷺ", "صلعم" ]
+    tr: [ "sallallâhu aleyhi ve sellem", "s.a.v." ]
+    en: [ "peace be upon him", "PBUH" ]
     note: "Salawat. Must appear after every mention of the Prophet."
 
   # Minimal — just two languages
@@ -327,15 +327,15 @@ read:
 
 ### Provider architecture
 
-| Provider   | API format       | Vision | Default RPM | Env var |
-|------------|------------------|--------|-------------|---------|
-| gemini     | Gemini native    | Yes    | 10          | `GEMINI_API_KEY` |
-| claude     | Anthropic native | Yes    | 50          | `ANTHROPIC_API_KEY` |
-| openai     | OpenAI           | Yes    | 500         | `OPENAI_API_KEY` |
-| groq       | OpenAI-compat    | No*    | 30          | `GROQ_API_KEY` |
-| mistral    | OpenAI-compat    | No*    | 60          | `MISTRAL_API_KEY` |
-| openrouter | OpenAI-compat    | No*    | 200         | `OPENROUTER_API_KEY` |
-| xai        | OpenAI-compat    | No*    | 60          | `XAI_API_KEY` |
+| Provider   | API format       | Vision | Default RPM | Env var                                           |
+|------------|------------------|--------|-------------|---------------------------------------------------|
+| gemini     | Gemini native    | Yes    | 10          | `GEMINI_API_KEY`                                  |
+| claude     | Anthropic native | Yes    | 50          | `ANTHROPIC_API_KEY`                               |
+| openai     | OpenAI           | Yes    | 500         | `OPENAI_API_KEY`                                  |
+| groq       | OpenAI-compat    | No*    | 30          | `GROQ_API_KEY`                                    |
+| mistral    | OpenAI-compat    | No*    | 60          | `MISTRAL_API_KEY`                                 |
+| openrouter | OpenAI-compat    | No*    | 200         | `OPENROUTER_API_KEY`                              |
+| xai        | OpenAI-compat    | No*    | 60          | `XAI_API_KEY`                                     |
 | ollama     | Ollama native    | Yes    | 1000        | `OLLAMA_HOST` (default: `http://localhost:11434`) |
 
 \* Vision support can be enabled per-model with `vision: true` in the model spec.
@@ -358,11 +358,11 @@ The `.env` file supports `KEY=value`, `export KEY=value`, quoted values, and inl
 Layout detection identifies document structure (columns, headers, footnotes, tables) before
 sending pages to the AI for text extraction. Three options:
 
-| Tool | How it works | When to use |
-|------|-------------|-------------|
+| Tool                       | How it works                                                                      | When to use                                                  |
+|----------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------|
 | `doclayout-yolo` (default) | Docker-based YOLO model. Detects regions with bounding boxes and types (no text). | Best for most documents. Detects columns, tables, footnotes. |
-| `surya` | Docker-based OCR. Detects text lines with bounding boxes and preliminary text. | When you need text-line-level detection. |
-| `""` (empty/AI-only) | No layout tool. AI analyzes the full page image directly. | Simpler documents, or when Docker is unavailable. |
+| `surya`                    | Docker-based OCR. Detects text lines with bounding boxes and preliminary text.    | When you need text-line-level detection.                     |
+| `""` (empty/AI-only)       | No layout tool. AI analyzes the full page image directly.                         | Simpler documents, or when Docker is unavailable.            |
 
 Configure in `mutercim.yaml`:
 
@@ -374,9 +374,9 @@ read:
 Docker images need to be built once:
 
 ```bash
-task docker-doclayout   # or: docker build -t mutercim/doclayout-yolo docker/doclayout-yolo/
-task docker-surya       # or: docker build -t mutercim/surya docker/surya/
-task docker-xelatex     # or: docker build -t mutercim/xelatex docker/xelatex/
+task docker-doclayout # or: docker build -t mutercim/doclayout-yolo docker/doclayout-yolo/
+task docker-surya # or: docker build -t mutercim/surya docker/surya/
+task docker-xelatex # or: docker build -t mutercim/xelatex docker/xelatex/
 ```
 
 ## Smart rebuilds
@@ -398,13 +398,13 @@ outputs don't exist.
 This project uses [Task](https://taskfile.dev) for automation (not Make):
 
 ```bash
-task build              # build for current platform
-task vet                # run static analysis
-task test               # run tests (normal + race detector)
-task install            # install binary + zsh completion
-task all                # build + vet + test + install
-task dist               # cross-compile for linux/windows/darwin
-task schema             # regenerate config JSON schema
+task build # build for current platform
+task vet # run static analysis
+task test # run tests (normal + race detector)
+task install # install binary + zsh completion
+task all # build + vet + test + install
+task dist # cross-compile for linux/windows/darwin
+task schema # regenerate config JSON schema
 ```
 
 ### After every change
