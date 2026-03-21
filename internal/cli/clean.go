@@ -102,6 +102,17 @@ func dirSize(path string) int64 {
 	return total
 }
 
+// removeIfEmpty removes a directory if it exists and contains no entries.
+func removeIfEmpty(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	if len(entries) == 0 {
+		os.Remove(dir)
+	}
+}
+
 // formatSize returns a human-readable size string.
 func formatSize(bytes int64) string {
 	if bytes == 0 {
@@ -201,12 +212,9 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 				fmt.Printf("  %s\t%s\n", colors.Red(t.phase+"/"), colors.Dim(formatSize(t.size)))
 			}
 
-			// Truncate log file
+			// Remove log file
 			if cleanLog {
-				f, err := os.OpenFile(ws.LogPath(), os.O_TRUNC|os.O_WRONLY, 0644)
-				if err == nil {
-					f.Close()
-				}
+				os.Remove(ws.LogPath())
 			}
 
 			// Delete directories
@@ -214,6 +222,11 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 				if err := os.RemoveAll(t.dir); err != nil {
 					return fmt.Errorf("remove %s: %w", t.dir, err)
 				}
+			}
+
+			// Remove output directory if it's separate from root and now empty
+			if ws.OutputDir != ws.Root {
+				removeIfEmpty(ws.OutputDir)
 			}
 
 			cleaned := len(targets)
