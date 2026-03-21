@@ -75,6 +75,51 @@ func TestLatexPreamble_FrenchLanguageCode(t *testing.T) {
 	}
 }
 
+func TestTruncateOutput_ASCII(t *testing.T) {
+	got := truncateOutput("abcdefghij", 5)
+	if !strings.Contains(got, "fghij") {
+		t.Errorf("expected last 5 chars, got %q", got)
+	}
+	if !strings.Contains(got, "truncated") {
+		t.Error("expected truncation notice")
+	}
+}
+
+func TestTruncateOutput_ShortString(t *testing.T) {
+	got := truncateOutput("short", 100)
+	if got != "short" {
+		t.Errorf("short string should not be truncated, got %q", got)
+	}
+}
+
+func TestTruncateOutput_MultibyteUTF8(t *testing.T) {
+	// Arabic text — each char is multi-byte in UTF-8
+	input := "كتاب الأحكام الكبير في الفقه"
+	got := truncateOutput(input, 10)
+	runes := []rune(got)
+	// Should not corrupt mid-character — result should be valid UTF-8
+	if !strings.Contains(got, "truncated") {
+		t.Error("expected truncation notice")
+	}
+	// The visible runes before the notice should be exactly 10
+	idx := strings.Index(got, "\n")
+	if idx < 0 {
+		t.Fatal("expected newline in truncated output")
+	}
+	visible := []rune(got[:idx])
+	if len(visible) != 10 {
+		t.Errorf("expected 10 visible runes, got %d: %q", len(visible), string(visible))
+	}
+	_ = runes
+}
+
+func TestTruncateOutput_ExactLength(t *testing.T) {
+	got := truncateOutput("12345", 5)
+	if got != "12345" {
+		t.Errorf("exact length should not truncate, got %q", got)
+	}
+}
+
 func TestLatexRenderPage_AllRegionTypes(t *testing.T) {
 	r := &LaTeXRenderer{Lang: "tr"}
 	page := &model.TranslatedRegionPage{

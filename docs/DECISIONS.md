@@ -200,3 +200,15 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 ## ExpandPages Bounds Check
 - `ExpandPages()` returns `([]int, error)` and caps at 100,000 pages (`MaxExpandedPages`)
 - Prevents unbounded memory allocation from huge ranges like "1-10000000"
+
+## Stability and Hardening Fixes
+- Solver memory: `solveOneInput` loads pages on-demand instead of pre-loading all into `allPages` map
+- Failover errors: `tryProviders` accumulates all provider errors via `errors.Join` instead of keeping only the last
+- Code block extraction: tolerates trailing whitespace after ``` markers (e.g. ```` ```json  \n ````)
+- Atomic writes: `atomicWriteFile` removes destination before rename for Windows compatibility
+- UTF-8 truncation: `truncateOutput` uses `[]rune` slicing to avoid corrupting multi-byte characters
+- HTTP pooling: `NewClient` sets `MaxIdleConnsPerHost=100` to improve connection reuse
+- Title length: `SanitizeTitle` truncates to 80 runes to stay within 255-byte filesystem limits
+- .env parser: handles inline comments (`KEY=value # comment`) for unquoted values
+- Surya Docker: mounts parent directory instead of single file (fixes macOS Docker + AppArmor)
+- API key redaction: error response bodies are scrubbed for `sk-*` and `AIza*` patterns before storage

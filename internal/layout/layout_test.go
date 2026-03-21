@@ -221,16 +221,27 @@ func TestSuryaTool_DetectRegions_Success(t *testing.T) {
 	if call.name != "docker" {
 		t.Errorf("call.name = %q, want %q", call.name, "docker")
 	}
-	// Check that the image path is mounted
+	// Check that the directory is mounted (not the single file)
 	foundMount := false
 	for _, arg := range call.args {
-		if arg == "/tmp/page.png:/input/page.png:ro" {
+		if arg == "/tmp:/input:ro" {
 			foundMount = true
 			break
 		}
 	}
 	if !foundMount {
-		t.Errorf("expected volume mount for /tmp/page.png, args = %v", call.args)
+		t.Errorf("expected directory volume mount /tmp:/input:ro, args = %v", call.args)
+	}
+	// Check that the container path uses the base filename
+	foundPath := false
+	for _, arg := range call.args {
+		if arg == "/input/page.png" {
+			foundPath = true
+			break
+		}
+	}
+	if !foundPath {
+		t.Errorf("expected container path /input/page.png, args = %v", call.args)
 	}
 }
 

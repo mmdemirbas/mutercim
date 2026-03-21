@@ -88,17 +88,6 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		return PhaseResult{}, fmt.Errorf("create solve dir: %w", err)
 	}
 
-	// Load all read pages for cross-page context
-	allPages := make(map[int]*model.RegionPage)
-	for _, pf := range pages {
-		page, err := loadRegionPage(pf.path)
-		if err != nil {
-			logger.Error("failed to load read page", "page", pf.pageNum, "error", err)
-			continue
-		}
-		allPages[pf.pageNum] = page
-	}
-
 	// Start progress display
 	if opts.Display != nil {
 		opts.Display.StartPhase(display.PhaseSolve, stem, len(pages), "")
@@ -118,12 +107,16 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		if !opts.Force && !rebuild.NeedsRebuild(outputPath, pf.path, ws.KnowledgeDir(), ws.MemoryDir()) {
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
 			skipped++
-			previous = allPages[pf.pageNum]
+			// Load skipped page so it can serve as previous for the next iteration
+			if loaded, loadErr := loadRegionPage(pf.path); loadErr == nil {
+				previous = loaded
+			}
 			continue
 		}
 
-		current, ok := allPages[pf.pageNum]
-		if !ok {
+		current, err := loadRegionPage(pf.path)
+		if err != nil {
+			logger.Error("failed to load read page", "page", pf.pageNum, "error", err)
 			continue
 		}
 
@@ -185,15 +178,9 @@ func saveSolvedRegionPage(dir string, pageNum int, page *model.SolvedRegionPage)
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	filename := fmt.Sprintf("%03d.json", pageNum)
-	tmpPath := filepath.Join(dir, filename+".tmp")
-	finalPath := filepath.Join(dir, filename)
-
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
-		return fmt.Errorf("write page %d tmp: %w", pageNum, err)
-	}
-	if err := os.Rename(tmpPath, finalPath); err != nil {
-		return fmt.Errorf("rename page %d: %w", pageNum, err)
+	finalPath := filepath.Join(dir, fmt.Sprintf("%03d.json", pageNum))
+	if err := atomicWriteFile(finalPath, data); err != nil {
+		return fmt.Errorf("write page %d: %w", pageNum, err)
 	}
 	return nil
 }

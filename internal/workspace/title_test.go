@@ -32,6 +32,10 @@ func TestSanitizeTitle(t *testing.T) {
 		{"only dots", "...", "book"},
 		{"only prohibited chars", "/:*?", "book"},
 		{"mixed unicode and prohibited", "كتاب/الأول", "كتاب-الأول"},
+		{"long ASCII title truncated to 80 runes", "ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ", "ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABCDEFGHIJ ABC"},
+		{"long Arabic title truncated to 80 runes", "كتاب الأحكام الكبير في الفقه الإسلامي المقارن والسنة النبوية الشريفة والعقائد والتوحيد والأصول والفروع", "كتاب الأحكام الكبير في الفقه الإسلامي المقارن والسنة النبوية الشريفة والعقائد وا"},
+		{"exactly 80 runes not truncated", "ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ", "ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+		{"truncation trims trailing dash", "ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-AB-CDEFGHIJ", "ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-ABCDEFGHIJ-AB"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

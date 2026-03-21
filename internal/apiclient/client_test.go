@@ -328,3 +328,83 @@ func TestRedactURL_InvalidURL(t *testing.T) {
 		t.Errorf("invalid URL should be returned as-is, got: %s", got)
 	}
 }
+
+func TestRedactSecrets(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "sk- prefix redacted",
+			input: `{"error": "invalid key sk-abcdef1234567890"}`,
+			want:  `{"error": "invalid key [REDACTED]"}`,
+		},
+		{
+			name:  "AIza prefix redacted",
+			input: `{"error": "key AIzaSyD1234567890_abc is invalid"}`,
+			want:  `{"error": "key [REDACTED] is invalid"}`,
+		},
+		{
+			name:  "no secrets unchanged",
+			input: `{"error": "something went wrong"}`,
+			want:  `{"error": "something went wrong"}`,
+		},
+		{
+			name:  "short sk- not redacted",
+			input: `{"note": "sk-short"}`,
+			want:  `{"note": "sk-short"}`,
+		},
+		{
+			name:  "multiple secrets redacted",
+			input: `key1=sk-aaaaaaaaaa key2=AIzaBBBBBBBBBB`,
+			want:  `key1=[REDACTED] key2=[REDACTED]`,
+		},
+		{
+			name:  "empty input",
+			input: "",
+			want:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := string(redactSecrets([]byte(tt.input)))
+			if got != tt.want {
+				t.Errorf("redactSecrets(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDoOnce_RedactsSecretsInErrorBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "invalid API key sk-supersecretkey1234567890"}`))
+	}))
+	defer server.Close()
+
+	cfg := DefaultClientConfig()
+	cfg.RequestsPerMinute = 100
+	client := NewClient(cfg, nil)
+	defer client.Close()
+
+	_, err := client.Do(context.Background(), Request{
+		Method: "POST",
+		URL:    server.URL,
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	var httpErr *HTTPError
+	if !errors.As(err, &httpErr) {
+		t.Fatalf("expected HTTPError, got %T", err)
+	}
+	body := string(httpErr.Body)
+	if strings.Contains(body, "sk-supersecretkey1234567890") {
+		t.Errorf("error body should not contain API key, got: %s", body)
+	}
+	if !strings.Contains(body, "[REDACTED]") {
+		t.Errorf("error body should contain [REDACTED], got: %s", body)
+	}
+}

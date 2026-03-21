@@ -24,6 +24,13 @@ func SanitizeTitle(title string) string {
 	s = multiDash.ReplaceAllString(s, "-")
 	s = strings.Trim(s, " .")
 	s = strings.Trim(s, "-")
+	// Truncate to 80 runes to stay within filesystem limits (255 bytes)
+	// even after appending extensions like .docx
+	runes := []rune(s)
+	if len(runes) > 80 {
+		s = string(runes[:80])
+		s = strings.TrimRight(s, "- .")
+	}
 	if s == "" {
 		return "book"
 	}

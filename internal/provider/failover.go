@@ -127,7 +127,7 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 	now := f.now()
 	f.mu.Unlock()
 
-	var lastErr error
+	var errs []error
 	for i := range f.entries {
 		e := &f.entries[i]
 		p := e.provider
@@ -178,7 +178,7 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 			if f.OnFailover != nil && nextName != "" {
 				f.OnFailover(p.Name(), nextName)
 			}
-			lastErr = err
+			errs = append(errs, fmt.Errorf("%s: %w", p.Name(), err))
 			continue
 		}
 
@@ -186,8 +186,8 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 		return "", err
 	}
 
-	if lastErr != nil {
-		return "", fmt.Errorf("all providers exhausted: %w", lastErr)
+	if len(errs) > 0 {
+		return "", fmt.Errorf("all providers exhausted: %w", errors.Join(errs...))
 	}
 	return "", fmt.Errorf("no eligible providers in failover chain")
 }

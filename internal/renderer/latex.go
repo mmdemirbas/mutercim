@@ -166,10 +166,11 @@ func CompilePDF(ctx context.Context, latexDir, dockerImage string) error {
 }
 
 func truncateOutput(s string, maxLen int) string {
-	if len(s) <= maxLen {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
 		return s
 	}
-	return s[len(s)-maxLen:] + "\n  ... (truncated, see book.log for full output)"
+	return string(runes[len(runes)-maxLen:]) + "\n  ... (truncated, see book.log for full output)"
 }
 
 // CheckDocker returns an error if docker is not available.

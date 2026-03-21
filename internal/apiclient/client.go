@@ -11,6 +11,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -51,8 +52,10 @@ func NewClient(cfg ClientConfig, logger *slog.Logger) *Client {
 	if logger == nil {
 		logger = slog.Default()
 	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.MaxIdleConnsPerHost = 100
 	return &Client{
-		httpClient:  &http.Client{Timeout: cfg.Timeout},
+		httpClient:  &http.Client{Timeout: cfg.Timeout, Transport: transport},
 		rateLimiter: NewRateLimiter(cfg.RequestsPerMinute),
 		maxRetries:  cfg.MaxRetries,
 		baseBackoff: cfg.BaseBackoff,
@@ -176,7 +179,7 @@ func (c *Client) doOnce(ctx context.Context, req Request) ([]byte, error) {
 		httpErr := &HTTPError{
 			StatusCode: resp.StatusCode,
 			Status:     resp.Status,
-			Body:       respBody,
+			Body:       redactSecrets(respBody),
 		}
 		if ra := resp.Header.Get("Retry-After"); ra != "" {
 			if seconds, parseErr := strconv.Atoi(ra); parseErr == nil {
@@ -238,6 +241,13 @@ func isRetryable(statusCode int) bool {
 	default:
 		return false
 	}
+}
+
+var secretPattern = regexp.MustCompile(`(sk-[a-zA-Z0-9_-]{10,}|AIza[a-zA-Z0-9_-]{10,})`)
+
+// redactSecrets replaces API key patterns in response bodies to prevent logging leaks.
+func redactSecrets(data []byte) []byte {
+	return secretPattern.ReplaceAll(data, []byte("[REDACTED]"))
 }
 
 // DoJSON executes the request and unmarshals the response into the given type.

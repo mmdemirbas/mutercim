@@ -194,3 +194,29 @@ func TestFailoverChain_SecondCallUsesRecoveredProvider(t *testing.T) {
 		t.Errorf("after recovery: expected primary, got %q", result)
 	}
 }
+
+func TestFailoverChain_AllExhausted_AccumulatesErrors(t *testing.T) {
+	chain := NewFailoverChain(
+		[]Provider{
+			&errorProvider{name: "alpha", vision: true, err: quota429()},
+			&errorProvider{name: "beta", vision: true, err: quota429()},
+		},
+		nil, 60*time.Second, nil,
+	)
+
+	_, err := chain.Translate(context.Background(), "sys", "user")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	msg := err.Error()
+	// Should contain both provider names in the accumulated error
+	if !strings.Contains(msg, "alpha") {
+		t.Errorf("error should mention alpha: %v", err)
+	}
+	if !strings.Contains(msg, "beta") {
+		t.Errorf("error should mention beta: %v", err)
+	}
+	if !strings.Contains(msg, "all providers exhausted") {
+		t.Errorf("error should say 'all providers exhausted': %v", err)
+	}
+}

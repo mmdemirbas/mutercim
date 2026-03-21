@@ -97,6 +97,31 @@ func TestParseEnvLines(t *testing.T) {
 			content: `FOO="bar`,
 			want:    map[string]string{"FOO": `"bar`},
 		},
+		{
+			name:    "inline comment stripped",
+			content: "FOO=bar # this is a comment",
+			want:    map[string]string{"FOO": "bar"},
+		},
+		{
+			name:    "inline comment with hash inside double quotes preserved",
+			content: `FOO="bar # not a comment"`,
+			want:    map[string]string{"FOO": "bar # not a comment"},
+		},
+		{
+			name:    "inline comment with hash inside single quotes preserved",
+			content: `FOO='bar # not a comment'`,
+			want:    map[string]string{"FOO": "bar # not a comment"},
+		},
+		{
+			name:    "hash without preceding space is not an inline comment",
+			content: "FOO=bar#baz",
+			want:    map[string]string{"FOO": "bar#baz"},
+		},
+		{
+			name:    "value with multiple inline comments",
+			content: "FOO=bar baz # comment here",
+			want:    map[string]string{"FOO": "bar baz"},
+		},
 	}
 
 	for _, tt := range tests {

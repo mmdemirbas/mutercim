@@ -258,6 +258,13 @@ func parseEnvLines(content string) map[string]string {
 		}
 		key = strings.TrimSpace(key)
 		value = strings.TrimSpace(value)
+		// Strip inline comments: only if # is preceded by whitespace
+		// (but not inside quotes)
+		if value == "" || (value[0] != '"' && value[0] != '\'') {
+			if idx := strings.Index(value, " #"); idx >= 0 {
+				value = strings.TrimSpace(value[:idx])
+			}
+		}
 		// Remove surrounding quotes
 		if len(value) >= 2 && (value[0] == '"' && value[len(value)-1] == '"' || value[0] == '\'' && value[len(value)-1] == '\'') {
 			value = value[1 : len(value)-1]

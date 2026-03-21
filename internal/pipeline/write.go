@@ -282,9 +282,5 @@ func loadTranslatedRegionPageForWrite(path string) (*model.TranslatedRegionPage,
 }
 
 func atomicWrite(path string, data []byte) error {
-	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
-		return err
-	}
-	return os.Rename(tmpPath, path)
+	return atomicWriteFile(path, data)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -103,11 +104,13 @@ type suryaRegion struct {
 // DetectRegions runs the Surya Docker container on the given image and
 // returns detected regions with bounding boxes and preliminary OCR text.
 func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string) ([]model.Region, error) {
+	dir := filepath.Dir(imagePath)
+	base := filepath.Base(imagePath)
 	args := []string{
 		"run", "--rm",
-		"-v", imagePath + ":/input/page.png:ro",
+		"-v", dir + ":/input:ro",
 		s.DockerImage,
-		"/input/page.png",
+		"/input/" + base,
 	}
 
 	out, err := s.commander.Run(ctx, "docker", args...)

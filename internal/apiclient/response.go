@@ -60,20 +60,28 @@ func ExtractJSON(response string) (string, error) {
 }
 
 func extractFromCodeBlock(s string) (string, bool) {
-	markers := []string{"```json\n", "```json\r\n", "```\n", "```\r\n"}
-	for _, marker := range markers {
-		start := strings.Index(s, marker)
-		if start < 0 {
-			continue
-		}
-		content := s[start+len(marker):]
-		end := strings.Index(content, "```")
-		if end < 0 {
-			continue
-		}
-		return strings.TrimSpace(content[:end]), true
+	// Find opening fence: ``` optionally followed by "json" and whitespace, then newline
+	idx := strings.Index(s, "```")
+	if idx < 0 {
+		return "", false
 	}
-	return "", false
+	rest := s[idx+3:]
+	// Skip optional language tag and whitespace until newline
+	nlIdx := strings.IndexByte(rest, '\n')
+	if nlIdx < 0 {
+		return "", false
+	}
+	tag := strings.TrimSpace(rest[:nlIdx])
+	if tag != "" && tag != "json" {
+		return "", false // unknown language tag
+	}
+	content := rest[nlIdx+1:]
+	// Find closing fence
+	end := strings.Index(content, "```")
+	if end < 0 {
+		return "", false
+	}
+	return strings.TrimSpace(content[:end]), true
 }
 
 func extractByBraces(s string) (string, bool) {

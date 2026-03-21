@@ -278,15 +278,9 @@ func saveTranslatedRegionPage(dir string, pageNum int, page *model.TranslatedReg
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	filename := fmt.Sprintf("%03d.json", pageNum)
-	tmpPath := filepath.Join(dir, filename+".tmp")
-	finalPath := filepath.Join(dir, filename)
-
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
-		return fmt.Errorf("write page %d tmp: %w", pageNum, err)
-	}
-	if err := os.Rename(tmpPath, finalPath); err != nil {
-		return fmt.Errorf("rename page %d: %w", pageNum, err)
+	finalPath := filepath.Join(dir, fmt.Sprintf("%03d.json", pageNum))
+	if err := atomicWriteFile(finalPath, data); err != nil {
+		return fmt.Errorf("write page %d: %w", pageNum, err)
 	}
 	return nil
 }
