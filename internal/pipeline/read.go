@@ -138,6 +138,12 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	// Create reader
 	rdr := reader.NewReader(opts.Provider, logger)
 
+	// Enable layout debug overlays if configured
+	if cfg.Read.Debug {
+		rdr.DebugDir = filepath.Join(readDir, "debug")
+		logger.Info("layout debug enabled, writing overlay images", "dir", rdr.DebugDir)
+	}
+
 	// Ensure output directory exists
 	if err := os.MkdirAll(readDir, 0755); err != nil {
 		return PhaseResult{}, fmt.Errorf("create read dir: %w", err)

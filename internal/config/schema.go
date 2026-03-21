@@ -40,6 +40,7 @@ var schemaAnnotations = map[string]schemaMeta{
 
 	// read
 	"read":                                {Description: "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata)."},
+	"read.debug":                          {Description: "When true, write annotated PNG images showing layout tool bounding boxes to read/<input>/debug/. Useful for verifying layout detection before AI processing.", Default: false},
 	"read.layout_tool":                    {Description: "Layout detection tool for precise bounding boxes. 'doclayout-yolo' uses DocLayout-YOLO (default, best for document structure). 'surya' uses Surya OCR. Both require Docker. Empty string means AI-only mode.", Default: "doclayout-yolo", Enum: []string{"", "doclayout-yolo", "surya"}},
 	"read.models":                         {Description: "Ordered failover chain of AI models for OCR. The first model is primary; if it returns 429/quota errors, the next model is tried. All models must support vision for the read phase."},
 	"read.models[]":                       {},

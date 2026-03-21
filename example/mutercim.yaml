@@ -30,6 +30,7 @@ pages:
 #   OpenRouter: openrouter.ai — free models available immediately
 
 read:
+  debug: true
   layout_tool: "doclayout-yolo"      # Layout detection tool (default: doclayout-yolo)
   #   "doclayout-yolo" — DocLayout-YOLO: detects document structure (headers, columns,
   #     footnotes, tables). Best for multi-column layouts. Requires Docker + image.

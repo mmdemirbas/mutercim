@@ -44,6 +44,7 @@ type ModelSpec struct {
 
 // ReadConfig holds read-phase settings.
 type ReadConfig struct {
+	Debug       bool            `yaml:"debug,omitempty" mapstructure:"debug" json:"debug,omitempty"`                   // when true, write layout debug overlay images
 	LayoutTool  string          `yaml:"layout_tool,omitempty" mapstructure:"layout_tool" json:"layout_tool,omitempty"` // "doclayout-yolo" (default), "surya", or "" (disabled)
 	Models      []ModelSpec     `yaml:"models" mapstructure:"models" json:"models"`
 	Concurrency int             `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"` // reserved for future parallel processing

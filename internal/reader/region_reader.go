@@ -4,7 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
@@ -20,6 +25,9 @@ type Reader struct {
 	// OnLayoutDone is called after layout detection completes (before AI call).
 	// Parameters: tool name, elapsed ms, region count, error string (empty on success).
 	OnLayoutDone func(tool string, ms int, regions int, layoutErr string)
+	// DebugDir, when non-empty, enables layout debug overlays.
+	// Annotated PNG images are written to this directory after layout detection.
+	DebugDir string
 }
 
 // ReadResult bundles the read page with layout detection metrics.
@@ -88,6 +96,11 @@ func (r *Reader) ReadRegionPage(ctx context.Context, image []byte, imagePath str
 		// Notify callback after layout detection
 		if r.OnLayoutDone != nil {
 			r.OnLayoutDone(toolName, layoutMs, len(layoutRegions), layoutErr)
+		}
+
+		// Generate debug overlay if enabled
+		if r.DebugDir != "" && len(layoutRegions) > 0 {
+			r.generateDebugImage(imagePath, layoutRegions, pageNum)
 		}
 	} else {
 		// AI-only: no layout tool configured or not available
@@ -215,6 +228,33 @@ func strategyName(layoutTool string) string {
 		return "local+ai"
 	}
 	return "ai-only"
+}
+
+// generateDebugImage loads the page image and renders layout overlay.
+func (r *Reader) generateDebugImage(imagePath string, regions []model.Region, pageNum int) {
+	f, err := os.Open(imagePath)
+	if err != nil {
+		r.logger.Warn("debug overlay: cannot open page image", "page", pageNum, "error", err)
+		return
+	}
+	defer f.Close()
+
+	pageImg, _, err := image.Decode(f)
+	if err != nil {
+		r.logger.Warn("debug overlay: cannot decode page image", "page", pageNum, "error", err)
+		return
+	}
+
+	// Build reading order map (1-based)
+	readingOrder := make(map[string]int)
+	for i, region := range regions {
+		readingOrder[region.ID] = i + 1
+	}
+
+	outputPath := filepath.Join(r.DebugDir, fmt.Sprintf("%d_layout.png", pageNum))
+	if err := GenerateDebugOverlay(pageImg, regions, readingOrder, outputPath); err != nil {
+		r.logger.Warn("debug overlay: failed to generate", "page", pageNum, "error", err)
+	}
 }
 
 // isLayoutRegion checks if a region ID was among the layout-tool-detected regions.

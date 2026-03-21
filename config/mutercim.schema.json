@@ -76,6 +76,11 @@
           "minimum": 1,
           "type": "integer"
         },
+        "debug": {
+          "default": false,
+          "description": "When true, write annotated PNG images showing layout tool bounding boxes to read/\u003cinput\u003e/debug/. Useful for verifying layout detection before AI processing.",
+          "type": "boolean"
+        },
         "layout_tool": {
           "default": "doclayout-yolo",
           "description": "Layout detection tool for precise bounding boxes. 'doclayout-yolo' uses DocLayout-YOLO (default, best for document structure). 'surya' uses Surya OCR. Both require Docker. Empty string means AI-only mode.",
