@@ -79,6 +79,21 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		logSize = info.Size()
 	}
 
+	// Build config summary fields
+	layoutTool := cfg.Read.LayoutTool
+	if layoutTool == "" {
+		layoutTool = "ai-only"
+	}
+
+	var readModels []string
+	for _, m := range cfg.Read.Models {
+		readModels = append(readModels, m.Provider+"/"+m.Model)
+	}
+	var transModels []string
+	for _, m := range cfg.Translate.Models {
+		transModels = append(transModels, m.Provider+"/"+m.Model)
+	}
+
 	data := display.StatusData{
 		BookTitle:   cfg.Book.Title,
 		InputName:   inputName,
@@ -86,6 +101,9 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		PageRange:   "",
 		SourceLangs: cfg.Book.SourceLangs,
 		TargetLangs: cfg.Book.TargetLangs,
+		LayoutTool:  layoutTool,
+		ReadModels:  readModels,
+		TransModels: transModels,
 		Phases:      rows,
 		Warnings:    warnings,
 		Errors:      nil,

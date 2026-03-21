@@ -3,6 +3,7 @@ package display
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 // StatusData holds all data needed to render the status dashboard.
@@ -13,6 +14,9 @@ type StatusData struct {
 	PageRange   string
 	SourceLangs []string
 	TargetLangs []string
+	LayoutTool  string   // configured layout tool name (e.g. "doclayout-yolo", "ai-only")
+	ReadModels  []string // ordered model chain (e.g. ["gemini/gemini-2.5-flash-lite", "groq/llama-3.2-90b"])
+	TransModels []string // ordered model chain
 	Phases      []ProgressRow
 	Warnings    []string // warning messages (page N — description)
 	Errors      []string // error messages
@@ -33,6 +37,22 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 		SourceLangs: data.SourceLangs,
 		TargetLangs: data.TargetLangs,
 	}, colors)
+
+	// Config summary — layout tool and model chains
+	if data.LayoutTool != "" || len(data.ReadModels) > 0 || len(data.TransModels) > 0 {
+		if data.LayoutTool != "" {
+			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Layout")), data.LayoutTool)
+		}
+		if len(data.ReadModels) > 0 {
+			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Read")),
+				strings.Join(data.ReadModels, " \u2192 "))
+		}
+		if len(data.TransModels) > 0 {
+			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Trans")),
+				strings.Join(data.TransModels, " \u2192 "))
+		}
+		fmt.Fprintln(w)
+	}
 
 	// Phase rows — uses same shared renderer as live dashboard
 	for _, row := range data.Phases {

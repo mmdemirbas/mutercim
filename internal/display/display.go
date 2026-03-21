@@ -20,17 +20,21 @@ const (
 
 // PageResult describes the outcome of processing one page.
 type PageResult struct {
-	Phase     Phase
-	PageNum   int
-	Total     int
-	Completed int
-	Failed    int
-	Warnings  int
-	Entries   int
-	Footnotes int
-	Lang      string // target language code (translate/write phases)
-	Input     string // input stem
-	Err       error  // non-nil if this page failed
+	Phase         Phase
+	PageNum       int
+	Total         int
+	Completed     int
+	Failed        int
+	Warnings      int
+	Entries       int
+	Footnotes     int
+	Lang          string // target language code (translate/write phases)
+	Input         string // input stem
+	Err           error  // non-nil if this page failed
+	LayoutTool    string // "doclayout-yolo", "surya", or "ai-only" (read phase only)
+	LayoutMs      int    // milliseconds spent in layout detection
+	LayoutRegions int    // number of regions the layout tool detected
+	LayoutError   string // non-empty if layout tool failed and fell back to ai-only
 }
 
 // StatusLine describes an in-progress operation shown below the active phase bar.

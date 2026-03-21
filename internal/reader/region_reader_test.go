@@ -61,11 +61,12 @@ func TestReadRegionPage_AIOnly(t *testing.T) {
 	mock := &mockProvider{response: response}
 	r := NewReader(mock, nil)
 
-	page, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 42, "test-model", nil)
+	result, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 42, "test-model", nil)
 	if err != nil {
 		t.Fatalf("ReadRegionPage: %v", err)
 	}
 
+	page := result.Page
 	if page.Version != "2.0" {
 		t.Errorf("Version = %q, want %q", page.Version, "2.0")
 	}
@@ -80,6 +81,14 @@ func TestReadRegionPage_AIOnly(t *testing.T) {
 	}
 	if len(page.Regions) != 2 {
 		t.Fatalf("len(Regions) = %d, want 2", len(page.Regions))
+	}
+
+	// Check ReadResult layout fields
+	if result.LayoutTool != "ai-only" {
+		t.Errorf("result.LayoutTool = %q, want %q", result.LayoutTool, "ai-only")
+	}
+	if result.LayoutMs != 0 {
+		t.Errorf("result.LayoutMs = %d, want 0", result.LayoutMs)
 	}
 
 	r1 := page.Regions[0]
@@ -159,16 +168,28 @@ func TestReadRegionPage_WithLayoutTool(t *testing.T) {
 		regions:   layoutRegions,
 	}
 
-	page, err := r.ReadRegionPage(context.Background(), []byte("image"), "/tmp/page.png", 10, "test-model", lt)
+	result, err := r.ReadRegionPage(context.Background(), []byte("image"), "/tmp/page.png", 10, "test-model", lt)
 	if err != nil {
 		t.Fatalf("ReadRegionPage: %v", err)
 	}
 
+	page := result.Page
 	if page.LayoutTool != "surya" {
 		t.Errorf("LayoutTool = %q, want %q", page.LayoutTool, "surya")
 	}
 	if len(page.Regions) != 3 {
 		t.Fatalf("len(Regions) = %d, want 3", len(page.Regions))
+	}
+
+	// Check ReadResult layout metrics
+	if result.LayoutTool != "surya" {
+		t.Errorf("result.LayoutTool = %q, want %q", result.LayoutTool, "surya")
+	}
+	if result.LayoutRegions != 2 {
+		t.Errorf("result.LayoutRegions = %d, want 2", result.LayoutRegions)
+	}
+	if result.LayoutError != "" {
+		t.Errorf("result.LayoutError = %q, want empty", result.LayoutError)
 	}
 
 	// r1 and r2 were from layout tool
@@ -202,14 +223,17 @@ func TestReadRegionPage_LayoutToolUnavailable_FallsBackToAIOnly(t *testing.T) {
 		available: false, // not available
 	}
 
-	page, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 1, "test-model", lt)
+	result, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 1, "test-model", lt)
 	if err != nil {
 		t.Fatalf("ReadRegionPage: %v", err)
 	}
 
-	// Should fall back to AI-only (no layout tool name)
-	if page.LayoutTool != "" {
-		t.Errorf("LayoutTool = %q, want empty (fallback to ai-only)", page.LayoutTool)
+	// Should fall back to AI-only (no layout tool name in page)
+	if result.Page.LayoutTool != "" {
+		t.Errorf("Page.LayoutTool = %q, want empty (fallback to ai-only)", result.Page.LayoutTool)
+	}
+	if result.LayoutTool != "ai-only" {
+		t.Errorf("result.LayoutTool = %q, want %q", result.LayoutTool, "ai-only")
 	}
 }
 
@@ -231,14 +255,82 @@ func TestReadRegionPage_LayoutToolError_FallsBackToAIOnly(t *testing.T) {
 		err:       fmt.Errorf("docker container crashed"),
 	}
 
-	page, err := r.ReadRegionPage(context.Background(), []byte("image"), "/tmp/page.png", 1, "test-model", lt)
+	result, err := r.ReadRegionPage(context.Background(), []byte("image"), "/tmp/page.png", 1, "test-model", lt)
 	if err != nil {
 		t.Fatalf("ReadRegionPage: %v", err)
 	}
 
 	// Should fall back to AI-only due to error
-	if page.LayoutTool != "" {
-		t.Errorf("LayoutTool = %q, want empty (error fallback)", page.LayoutTool)
+	if result.Page.LayoutTool != "" {
+		t.Errorf("Page.LayoutTool = %q, want empty (error fallback)", result.Page.LayoutTool)
+	}
+	if result.LayoutTool != "surya" {
+		t.Errorf("result.LayoutTool = %q, want %q (records attempted tool)", result.LayoutTool, "surya")
+	}
+	if result.LayoutError == "" {
+		t.Error("result.LayoutError should be non-empty on failure")
+	}
+}
+
+func TestReadRegionPage_OnLayoutDoneCallback(t *testing.T) {
+	response := `{"regions": [], "reading_order": [], "warnings": []}`
+	mock := &mockProvider{response: response}
+	r := NewReader(mock, nil)
+
+	var callbackTool string
+	var callbackMs int
+	var callbackRegions int
+	var callbackErr string
+
+	r.OnLayoutDone = func(tool string, ms int, regions int, layoutErr string) {
+		callbackTool = tool
+		callbackMs = ms
+		callbackRegions = regions
+		callbackErr = layoutErr
+	}
+
+	lt := &mockLayoutTool{
+		name:      "doclayout-yolo",
+		available: true,
+		regions:   []model.Region{{ID: "r1"}, {ID: "r2"}, {ID: "r3"}},
+	}
+
+	_, err := r.ReadRegionPage(context.Background(), []byte("image"), "/tmp/page.png", 1, "test-model", lt)
+	if err != nil {
+		t.Fatalf("ReadRegionPage: %v", err)
+	}
+
+	if callbackTool != "doclayout-yolo" {
+		t.Errorf("callback tool = %q, want %q", callbackTool, "doclayout-yolo")
+	}
+	if callbackRegions != 3 {
+		t.Errorf("callback regions = %d, want 3", callbackRegions)
+	}
+	if callbackErr != "" {
+		t.Errorf("callback error = %q, want empty", callbackErr)
+	}
+	if callbackMs < 0 {
+		t.Errorf("callback ms = %d, should be >= 0", callbackMs)
+	}
+}
+
+func TestReadRegionPage_OnLayoutDoneCallback_AIOnly(t *testing.T) {
+	response := `{"regions": [], "reading_order": [], "warnings": []}`
+	mock := &mockProvider{response: response}
+	r := NewReader(mock, nil)
+
+	var callbackTool string
+	r.OnLayoutDone = func(tool string, ms int, regions int, layoutErr string) {
+		callbackTool = tool
+	}
+
+	_, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 1, "test-model", nil)
+	if err != nil {
+		t.Fatalf("ReadRegionPage: %v", err)
+	}
+
+	if callbackTool != "ai-only" {
+		t.Errorf("callback tool = %q, want %q for nil layout tool", callbackTool, "ai-only")
 	}
 }
 
@@ -256,18 +348,18 @@ func TestReadRegionPage_BadJSON_PreservesRawText(t *testing.T) {
 	mock := &mockProvider{response: "Not JSON at all"}
 	r := NewReader(mock, nil)
 
-	page, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 5, "test-model", nil)
+	result, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 5, "test-model", nil)
 	if err != nil {
 		t.Fatalf("should not error on bad JSON: %v", err)
 	}
-	if page.RawText != "Not JSON at all" {
-		t.Errorf("RawText = %q, want original response", page.RawText)
+	if result.Page.RawText != "Not JSON at all" {
+		t.Errorf("RawText = %q, want original response", result.Page.RawText)
 	}
-	if len(page.Warnings) == 0 {
+	if len(result.Page.Warnings) == 0 {
 		t.Error("expected warnings on JSON failure")
 	}
-	if page.Version != "2.0" {
-		t.Errorf("Version = %q, want %q", page.Version, "2.0")
+	if result.Page.Version != "2.0" {
+		t.Errorf("Version = %q, want %q", result.Page.Version, "2.0")
 	}
 }
 
@@ -275,14 +367,14 @@ func TestReadRegionPage_InvalidJSONStructure(t *testing.T) {
 	mock := &mockProvider{response: `{"regions": "not_an_array"}`}
 	r := NewReader(mock, nil)
 
-	page, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 1, "test-model", nil)
+	result, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 1, "test-model", nil)
 	if err != nil {
 		t.Fatalf("should not error: %v", err)
 	}
-	if page.RawText == "" {
+	if result.Page.RawText == "" {
 		t.Error("expected raw text preserved on unmarshal failure")
 	}
-	if len(page.Warnings) == 0 {
+	if len(result.Page.Warnings) == 0 {
 		t.Error("expected warnings on unmarshal failure")
 	}
 }
@@ -293,12 +385,12 @@ func TestReadRegionPage_CodeBlockResponse(t *testing.T) {
 	mock := &mockProvider{response: response}
 	r := NewReader(mock, nil)
 
-	page, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 1, "test-model", nil)
+	result, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 1, "test-model", nil)
 	if err != nil {
 		t.Fatalf("ReadRegionPage: %v", err)
 	}
-	if len(page.Regions) != 1 {
-		t.Errorf("len(Regions) = %d, want 1", len(page.Regions))
+	if len(result.Page.Regions) != 1 {
+		t.Errorf("len(Regions) = %d, want 1", len(result.Page.Regions))
 	}
 }
 
@@ -307,12 +399,12 @@ func TestReadRegionPage_NilLayoutTool(t *testing.T) {
 	mock := &mockProvider{response: response}
 	r := NewReader(mock, nil)
 
-	page, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 1, "test-model", nil)
+	result, err := r.ReadRegionPage(context.Background(), []byte("image"), "", 1, "test-model", nil)
 	if err != nil {
 		t.Fatalf("ReadRegionPage: %v", err)
 	}
-	if page.LayoutTool != "" {
-		t.Errorf("LayoutTool = %q, want empty", page.LayoutTool)
+	if result.Page.LayoutTool != "" {
+		t.Errorf("Page.LayoutTool = %q, want empty", result.Page.LayoutTool)
 	}
 }
 

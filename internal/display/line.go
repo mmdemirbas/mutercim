@@ -70,6 +70,13 @@ func (d *LineDisplay) Update(result PageResult) {
 	}
 
 	var details []string
+	if result.LayoutTool != "" && result.LayoutTool != "ai-only" {
+		if result.LayoutError != "" {
+			details = append(details, fmt.Sprintf("%s failed", result.LayoutTool))
+		} else {
+			details = append(details, fmt.Sprintf("%s %dms", result.LayoutTool, result.LayoutMs))
+		}
+	}
 	if result.Entries > 0 {
 		details = append(details, fmt.Sprintf("%d entries", result.Entries))
 	}
@@ -79,7 +86,7 @@ func (d *LineDisplay) Update(result PageResult) {
 
 	detail := ""
 	if len(details) > 0 {
-		detail = " — " + strings.Join(details, ", ")
+		detail = " \u2014 " + strings.Join(details, ", ")
 	}
 
 	fmt.Fprintf(d.out, "[%s] %s %d/%d%s\n",

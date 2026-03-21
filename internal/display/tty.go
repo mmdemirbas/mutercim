@@ -358,7 +358,43 @@ func logEntryFromResult(result PageResult, now time.Time) LogEntry {
 
 	if result.Err != nil {
 		level = LogError
-		msg = fmt.Sprintf("page %d \u2014 %v", result.PageNum, result.Err)
+		if result.LayoutError != "" {
+			msg = fmt.Sprintf("page %d \u2014 %s \u2717 fallback \u2014 %v", result.PageNum, result.LayoutTool, result.Err)
+		} else {
+			msg = fmt.Sprintf("page %d \u2014 %v", result.PageNum, result.Err)
+		}
+	} else if result.Phase == PhaseRead && result.LayoutTool != "" {
+		// Read phase: show layout tool info and region type breakdown
+		var regionParts []string
+		if result.Entries > 0 {
+			regionParts = append(regionParts, fmt.Sprintf("%d entry", result.Entries))
+		}
+		if result.Footnotes > 0 {
+			regionParts = append(regionParts, fmt.Sprintf("%d footnote", result.Footnotes))
+		}
+
+		totalRegions := result.Entries + result.Footnotes
+		regionDetail := ""
+		if totalRegions > 0 && len(regionParts) > 0 {
+			regionDetail = fmt.Sprintf("%d regions (%s)", totalRegions, strings.Join(regionParts, ", "))
+		} else if totalRegions > 0 {
+			regionDetail = fmt.Sprintf("%d regions", totalRegions)
+		}
+
+		if result.LayoutError != "" {
+			msg = fmt.Sprintf("page %d \u2014 %s \u2717 fallback", result.PageNum, result.LayoutTool)
+			level = LogWarning
+		} else if result.LayoutTool == "ai-only" {
+			msg = fmt.Sprintf("page %d \u2014 ai-only", result.PageNum)
+		} else {
+			msg = fmt.Sprintf("page %d \u2014 %s %dms", result.PageNum, result.LayoutTool, result.LayoutMs)
+		}
+		if regionDetail != "" {
+			msg += " \u2014 " + regionDetail
+		}
+		if result.Warnings > 0 {
+			level = LogWarning
+		}
 	} else {
 		var details []string
 		if result.Entries > 0 {

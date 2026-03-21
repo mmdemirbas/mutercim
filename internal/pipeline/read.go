@@ -129,6 +129,12 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 	}
 
+	// Layout tool name for display/logging
+	layoutToolName := "ai-only"
+	if opts.LayoutTool != nil && opts.LayoutTool.Name() != "" {
+		layoutToolName = opts.LayoutTool.Name()
+	}
+
 	// Create reader
 	rdr := reader.NewReader(opts.Provider, logger)
 
@@ -173,6 +179,35 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 	}
 
+	// Set up layout status callback on the reader
+	rdr.OnLayoutDone = func(tool string, ms int, regions int, layoutErr string) {
+		if opts.Display == nil {
+			return
+		}
+		currentModel := activeModel()
+		if layoutErr != "" {
+			// Layout failed — show failure and fallback
+			opts.Display.SetStatus(display.StatusLine{
+				Text:      fmt.Sprintf("page %d: %s \u2717 (%s) \u2192 ai-only \u2192 %s", statusPageNum, tool, truncateErr(layoutErr), currentModel),
+				StartedAt: time.Now(),
+			})
+		} else if tool == "ai-only" {
+			opts.Display.SetStatus(display.StatusLine{
+				Text:      fmt.Sprintf("page %d: ai-only \u2192 %s", statusPageNum, currentModel),
+				StartedAt: time.Now(),
+			})
+		} else {
+			opts.Display.SetStatus(display.StatusLine{
+				Text:      fmt.Sprintf("page %d: %s %dms \u2192 %s", statusPageNum, tool, ms, currentModel),
+				StartedAt: time.Now(),
+			})
+		}
+	}
+
+	// Layout stats for report
+	var layoutPagesProcessed, layoutPagesFailed int
+	var layoutTotalMs int64
+
 	// Process pages
 	completed := 0
 	failed := 0
@@ -210,16 +245,17 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			continue
 		}
 
-		// Read page via AI (region-based)
+		// Set status before layout detection begins
 		statusPageNum = pageNum
 		currentModel := activeModel()
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{
-				Text:      fmt.Sprintf("reading page %d via %s", pageNum, currentModel),
+				Text:      fmt.Sprintf("page %d: %s ...", pageNum, layoutToolName),
 				StartedAt: time.Now(),
 			})
 		}
-		regionPage, err := rdr.ReadRegionPage(ctx, imageData, imgPath, pageNum, currentModel, opts.LayoutTool)
+
+		readResult, err := rdr.ReadRegionPage(ctx, imageData, imgPath, pageNum, currentModel, opts.LayoutTool)
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{}) // clear status
 		}
@@ -233,6 +269,17 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 				})
 			}
 			continue
+		}
+
+		regionPage := readResult.Page
+
+		// Track layout stats
+		if readResult.LayoutTool != "ai-only" || layoutToolName != "ai-only" {
+			layoutPagesProcessed++
+			layoutTotalMs += int64(readResult.LayoutMs)
+			if readResult.LayoutError != "" {
+				layoutPagesFailed++
+			}
 		}
 
 		// Save region page atomically (new v2.0 format)
@@ -252,12 +299,32 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		entryCount, footnoteCount := countRegionTypes(regionPage.Regions)
 
 		completed++
-		logger.Info("page read", "input", stem, "page", pageNum, "completed", completed)
+
+		// Structured log with layout fields (Change 5)
+		logAttrs := []any{
+			"input", stem,
+			"page", pageNum,
+			"layout_tool", readResult.LayoutTool,
+			"model", currentModel,
+			"regions", len(regionPage.Regions),
+			"warnings", len(regionPage.Warnings),
+		}
+		if readResult.LayoutTool != "ai-only" {
+			logAttrs = append(logAttrs, "layout_ms", readResult.LayoutMs, "layout_regions", readResult.LayoutRegions)
+		}
+		logger.Info("page read complete", logAttrs...)
+
 		if opts.Display != nil {
 			opts.Display.Update(display.PageResult{
 				Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
 				Total: len(pagesToProcess), Completed: completed, Failed: failed,
-				Warnings: len(regionPage.Warnings), Entries: entryCount, Footnotes: footnoteCount,
+				Warnings:      len(regionPage.Warnings),
+				Entries:       entryCount,
+				Footnotes:     footnoteCount,
+				LayoutTool:    readResult.LayoutTool,
+				LayoutMs:      readResult.LayoutMs,
+				LayoutRegions: readResult.LayoutRegions,
+				LayoutError:   readResult.LayoutError,
 			})
 		}
 	}
@@ -266,7 +333,55 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		opts.Display.FinishPhase(display.PhaseRead, stem, "")
 	}
 	logger.Info("input read complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
+
+	// Write layout report (Change 6)
+	if completed > 0 {
+		avgMs := 0
+		if layoutPagesProcessed > 0 {
+			avgMs = int(layoutTotalMs / int64(layoutPagesProcessed))
+		}
+		report := readReport{
+			LayoutTool: layoutToolName,
+			LayoutStats: layoutStats{
+				PagesProcessed: layoutPagesProcessed,
+				PagesFailed:    layoutPagesFailed,
+				AvgMs:          avgMs,
+			},
+		}
+		if err := saveReadReport(readDir, report); err != nil {
+			logger.Warn("failed to write read report", "error", err)
+		}
+	}
+
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
+}
+
+// truncateErr shortens an error string for display in the status line.
+func truncateErr(s string) string {
+	if len(s) > 30 {
+		return s[:27] + "..."
+	}
+	return s
+}
+
+// readReport is written to read/{stem}/report.json after processing.
+type readReport struct {
+	LayoutTool  string      `json:"layout_tool"`
+	LayoutStats layoutStats `json:"layout_stats"`
+}
+
+type layoutStats struct {
+	PagesProcessed int `json:"pages_processed"`
+	PagesFailed    int `json:"pages_failed"`
+	AvgMs          int `json:"avg_ms"`
+}
+
+func saveReadReport(readDir string, report readReport) error {
+	data, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal report: %w", err)
+	}
+	return atomicWriteFile(filepath.Join(readDir, "report.json"), data)
 }
 
 func saveRegionPage(dir string, pageNum, totalPages int, page *model.RegionPage) error {
