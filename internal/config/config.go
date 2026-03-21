@@ -39,7 +39,7 @@ type ModelSpec struct {
 
 // ReadConfig holds read-phase settings.
 type ReadConfig struct {
-	LayoutTool  string      `yaml:"layout_tool,omitempty" mapstructure:"layout_tool" json:"layout_tool,omitempty"` // "surya" or "" (disabled)
+	LayoutTool  string      `yaml:"layout_tool,omitempty" mapstructure:"layout_tool" json:"layout_tool,omitempty"` // "doclayout-yolo" (default), "surya", or "" (disabled)
 	Models      []ModelSpec `yaml:"models" mapstructure:"models" json:"models"`
 	Concurrency int         `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"` // reserved for future parallel processing
 }
@@ -74,6 +74,7 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("book.target_langs", []string{"tr"})
 	v.SetDefault("dpi", 300)
 
+	v.SetDefault("read.layout_tool", "doclayout-yolo")
 	v.SetDefault("read.concurrency", 1)
 
 	v.SetDefault("translate.context_window", 2)

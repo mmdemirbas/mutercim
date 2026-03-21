@@ -96,10 +96,11 @@
           "type": "integer"
         },
         "layout_tool": {
-          "default": "",
-          "description": "Layout detection tool for precise bounding boxes. 'surya' uses a Docker-based model (requires Docker running and mutercim/surya:latest image). Empty string or omitted means AI-only mode where the vision model handles both layout detection and text extraction.",
+          "default": "doclayout-yolo",
+          "description": "Layout detection tool for precise bounding boxes. 'doclayout-yolo' uses DocLayout-YOLO (default, best for document structure). 'surya' uses Surya OCR. Both require Docker. Empty string means AI-only mode.",
           "enum": [
             "",
+            "doclayout-yolo",
             "surya"
           ],
           "type": "string"

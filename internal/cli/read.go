@@ -91,10 +91,7 @@ func newReadCmd() *cobra.Command {
 			}
 
 			// Create layout tool if configured
-			var layoutTool layout.Tool
-			if cfg.Read.LayoutTool == "surya" {
-				layoutTool = layout.NewSuryaTool("")
-			}
+			layoutTool := layout.NewTool(cfg.Read.LayoutTool)
 
 			// Run read pipeline
 			_, err = pipeline.Read(cmd.Context(), pipeline.ReadOptions{

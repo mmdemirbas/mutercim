@@ -64,6 +64,20 @@ tasks:
     generates:
       - config/mutercim.schema.json
 
+  docker-all:
+    desc: Build all Docker images
+    deps: [ docker-doclayout, docker-surya, docker-xelatex ]
+
+  docker-doclayout:
+    desc: Build the DocLayout-YOLO Docker image
+    cmds:
+      - docker build -t mutercim/doclayout-yolo docker/doclayout-yolo/
+
+  docker-surya:
+    desc: Build the Surya Docker image
+    cmds:
+      - docker build -t mutercim/surya docker/surya/
+
   docker-xelatex:
     desc: Build the XeLaTeX Docker image
     cmds:

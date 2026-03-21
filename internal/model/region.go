@@ -62,8 +62,9 @@ const (
 
 // Layout source constants.
 const (
-	LayoutSourceSurya = "surya"
-	LayoutSourceAI    = "ai"
+	LayoutSourceSurya     = "surya"
+	LayoutSourceDocLayout = "doclayout-yolo"
+	LayoutSourceAI        = "ai"
 )
 
 // SolvedRegionPage extends RegionPage with solver metadata.

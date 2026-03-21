@@ -11,6 +11,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
+	"github.com/mmdemirbas/mutercim/internal/layout"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
@@ -117,13 +118,14 @@ func newAllCmd() *cobra.Command {
 			defer readChain.Close()
 
 			readResult, err := pipeline.Read(cmd.Context(), pipeline.ReadOptions{
-				Workspace: ws,
-				Config:    cfg,
-				Provider:  readChain,
-				Pages:     pagesToProcess,
-				Force:     force,
-				Logger:    logger,
-				Display:   disp,
+				Workspace:  ws,
+				Config:     cfg,
+				Provider:   readChain,
+				LayoutTool: layout.NewTool(cfg.Read.LayoutTool),
+				Pages:      pagesToProcess,
+				Force:      force,
+				Logger:     logger,
+				Display:    disp,
 			})
 			if err != nil {
 				return fmt.Errorf("read: %w", err)

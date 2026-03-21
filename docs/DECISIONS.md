@@ -235,3 +235,18 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Log clean: truncates active log file instead of deleting (safe on Windows)
 - Tashkeel: `stripTashkeel` removes Arabic diacriticals before glossary matching (vowelized text matches unvowelized terms)
 - Page images: pdftoppm output renamed from `page-NNN.png` to `NNN.png` (consistent with all subsequent phases)
+
+## DocLayout-YOLO as Default Layout Tool
+- Added DocLayout-YOLO as a layout detection tool alongside Surya
+- DocLayout-YOLO detects document-level structure (headers, columns, tables, footnotes) vs Surya's text-line detection
+- Default `read.layout_tool` changed from `""` (AI-only) to `"doclayout-yolo"`
+- Config accepts three values: `"doclayout-yolo"` (default), `"surya"`, `""` (AI-only)
+- DocLayout-YOLO outputs regions with bbox + type (NO text); Surya outputs regions with bbox + text
+- Docker image: `mutercim/doclayout-yolo:latest` with pre-downloaded model from HuggingFace
+- BBox format conversion: DocLayout-YOLO outputs [x1,y1,x2,y2]; converted to [x,y,w,h] in Go code
+- Regions sorted by reading order (RTL: top-to-bottom, right-to-left within rows)
+- Confidence threshold: 0.2 (regions below this are filtered out)
+- `layout.NewTool(name)` factory replaces inline `if/else` in CLI code
+- Fixed `make.go` (all command): layout tool was not being passed to read phase
+- User prompt updated to include `type=` field alongside `bbox=` for layout-detected regions
+- `"abandon"` type from DocLayout-YOLO is silently skipped (artifacts/noise)

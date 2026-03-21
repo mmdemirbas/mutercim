@@ -10,6 +10,12 @@ When making structural changes, update docs/DECISIONS.md (one line) not docs/SPE
 docs/GO-CONVENTIONS.md contains code-level Go conventions (error handling, testing patterns, entry
 point structure). Follow these for implementation style.
 
+## Build System
+
+This project uses [Task](https://taskfile.dev) (Taskfile.yml), NOT Make/Makefile.
+Never create a Makefile. If you need to add a build/dev automation command, add it to Taskfile.yml.
+Run tasks with `task <name>`, list available tasks with `task --list`.
+
 ## Build Discipline
 
 After implementing any phase or making any significant change:
@@ -105,7 +111,7 @@ Create DEVIATIONS.md if it doesn't exist.
 - Do not use `interface{}` or `any` for typed data — use the concrete model types from
   `internal/model/`
 - Do not use `panic` or `os.Exit` outside of `main.go`
-- Do not write Python scripts, shell scripts, or Makefiles that duplicate Go logic
+- Do not write Python scripts, shell scripts, or Makefiles that duplicate Go logic (use Taskfile.yml for automation)
 - Do not embed large string literals for prompts inline in function bodies — use `prompts.go` files
   as specified
 

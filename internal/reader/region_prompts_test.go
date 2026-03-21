@@ -41,17 +41,17 @@ func TestBuildRegionUserPromptWithLayout_WithRegions(t *testing.T) {
 
 	prompt := BuildRegionUserPromptWithLayout(regions)
 
-	if !strings.Contains(prompt, "r1: bbox=[400, 50, 700, 60]") {
+	if !strings.Contains(prompt, "r1: bbox=[400,50,700,60]") {
 		t.Error("prompt should contain r1 bbox")
 	}
 	if !strings.Contains(prompt, `preliminary_text="باب الألف"`) {
 		t.Error("prompt should contain r1 preliminary text")
 	}
-	if !strings.Contains(prompt, "r2: bbox=[800, 150, 600, 400]") {
+	if !strings.Contains(prompt, "r2: bbox=[800,150,600,400]") {
 		t.Error("prompt should contain r2 bbox")
 	}
 	// r2 has no text, should not have preliminary_text
-	if strings.Contains(prompt, "r2: bbox=[800, 150, 600, 400], preliminary_text") {
+	if strings.Contains(prompt, "r2: bbox=[800,150,600,400] preliminary_text") {
 		t.Error("prompt should not contain preliminary_text for empty text region")
 	}
 	if !strings.Contains(prompt, "layout analysis tool") {

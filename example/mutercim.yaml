@@ -60,10 +60,11 @@ dpi: 300                             # DPI for PDF-to-image conversion (min: 72)
 #   OpenRouter: openrouter.ai — free models available immediately
 
 read:
-  layout_tool: "surya"               # Layout detection tool: "surya" (Docker-based) or "" (AI-only, default)
-                                     #   When set to "surya", requires Docker running and mutercim/surya:latest image
-                                     #   Provides precise bounding boxes for text regions; AI refines text and semantics
-                                     #   When empty or omitted, AI handles both layout detection and text extraction
+  layout_tool: "doclayout-yolo"      # Layout detection tool (default: doclayout-yolo)
+                                     #   "doclayout-yolo" — DocLayout-YOLO: detects document structure (headers, columns,
+                                     #     footnotes, tables). Best for multi-column layouts. Requires Docker + image.
+                                     #   "surya" — Surya OCR: detects text lines with preliminary OCR. Requires Docker + image.
+                                     #   "" — AI-only: vision model handles both layout detection and text extraction
   models:                            # Ordered failover chain — first is primary
     # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
     - { provider: gemini, model: gemini-2.5-flash-lite }

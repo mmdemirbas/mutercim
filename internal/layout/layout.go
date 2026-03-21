@@ -24,6 +24,20 @@ type Tool interface {
 	Name() string
 }
 
+// NewTool creates a layout tool by name.
+// Known names: "doclayout-yolo" (default), "surya".
+// Returns nil for empty or unknown names (AI-only mode).
+func NewTool(name string) Tool {
+	switch name {
+	case "doclayout-yolo":
+		return NewDocLayoutTool("")
+	case "surya":
+		return NewSuryaTool("")
+	default:
+		return nil
+	}
+}
+
 // NoneTool is a no-op layout tool that returns no regions.
 // It is used when no layout tool is configured, falling back to
 // AI-only region detection.

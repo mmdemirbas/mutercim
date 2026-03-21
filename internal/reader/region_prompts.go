@@ -105,9 +105,12 @@ func BuildRegionUserPromptWithLayout(regions []model.Region) string {
 	b.WriteString("I have detected the following text regions on this page using a layout analysis tool. The bounding boxes are in pixels [x, y, width, height].\n\nDetected regions:\n")
 
 	for _, r := range regions {
-		fmt.Fprintf(&b, "[%s: bbox=[%d, %d, %d, %d]", r.ID, r.BBox[0], r.BBox[1], r.BBox[2], r.BBox[3])
+		fmt.Fprintf(&b, "[%s: bbox=[%d,%d,%d,%d]", r.ID, r.BBox[0], r.BBox[1], r.BBox[2], r.BBox[3])
+		if r.Type != "" {
+			fmt.Fprintf(&b, " type=%s", r.Type)
+		}
 		if r.Text != "" {
-			fmt.Fprintf(&b, ", preliminary_text=%q", r.Text)
+			fmt.Fprintf(&b, " preliminary_text=%q", r.Text)
 		}
 		b.WriteString("]\n")
 	}
