@@ -135,9 +135,6 @@ func TestWorkspacePaths(t *testing.T) {
 	if ws.ConfigPath() != "/tmp/test/mutercim.yaml" {
 		t.Errorf("ConfigPath() = %q", ws.ConfigPath())
 	}
-	if ws.InputDir() != "/tmp/test/input" {
-		t.Errorf("InputDir() = %q", ws.InputDir())
-	}
 	if ws.MemoryDir() != "/tmp/test/memory" {
 		t.Errorf("MemoryDir() = %q", ws.MemoryDir())
 	}

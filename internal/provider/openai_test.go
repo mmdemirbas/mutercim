@@ -17,8 +17,7 @@ func newTestOpenAIProvider(t *testing.T, serverURL string) *OpenAIProvider {
 	client := apiclient.NewClient(cfg, nil)
 	t.Cleanup(client.Close)
 
-	p := NewOpenAIProvider(client, "test-key", "gpt-4o")
-	p.baseURL = serverURL
+	p := NewOpenAICompatProvider(client, "openai", "test-key", "gpt-4o", serverURL, true)
 	return p
 }
 

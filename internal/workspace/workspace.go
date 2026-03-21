@@ -39,11 +39,6 @@ func (w *Workspace) ConfigPath() string {
 	return filepath.Join(w.Root, "mutercim.yaml")
 }
 
-// InputDir returns the input directory path.
-func (w *Workspace) InputDir() string {
-	return filepath.Join(w.Root, "input")
-}
-
 // KnowledgeDir returns the knowledge directory path.
 func (w *Workspace) KnowledgeDir() string {
 	return filepath.Join(w.Root, "knowledge")

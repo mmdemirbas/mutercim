@@ -209,7 +209,7 @@ func dirHasFiles(dir string) bool {
 	return false
 }
 
-// discoverInputs finds input stems by scanning midstate subdirectories.
+// discoverInputs finds input stems by scanning workspace subdirectories.
 func discoverInputs(ws *workspace.Workspace) []string {
 	seen := make(map[string]bool)
 	for _, dir := range []string{ws.PagesDir(), ws.ReadDir(), ws.SolveDir()} {

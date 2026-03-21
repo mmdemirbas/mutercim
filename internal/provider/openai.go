@@ -64,13 +64,6 @@ type OpenAIProvider struct {
 	supportsVision bool
 }
 
-const openaiDefaultBaseURL = "https://api.openai.com"
-
-// NewOpenAIProvider creates a new OpenAI provider with default settings.
-func NewOpenAIProvider(client *apiclient.Client, apiKey, model string) *OpenAIProvider {
-	return NewOpenAICompatProvider(client, "openai", apiKey, model, openaiDefaultBaseURL, true)
-}
-
 // NewOpenAICompatProvider creates an OpenAI-compatible provider with a custom name and base URL.
 func NewOpenAICompatProvider(client *apiclient.Client, name, apiKey, model, baseURL string, vision bool) *OpenAIProvider {
 	return &OpenAIProvider{

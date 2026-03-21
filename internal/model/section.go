@@ -12,11 +12,6 @@ type PageRange struct {
 	Last  int
 }
 
-// Contains returns true if the given page number falls within this range.
-func (pr PageRange) Contains(page int) bool {
-	return page >= pr.First && page <= pr.Last
-}
-
 // ParsePageRanges parses a page range string like "1-50", "1,5,10-20", or "all".
 // Returns a slice of PageRange. For "all", returns nil (meaning all pages).
 func ParsePageRanges(s string) ([]PageRange, error) {

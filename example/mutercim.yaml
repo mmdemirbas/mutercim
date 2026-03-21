@@ -86,7 +86,7 @@ read:
 #
 # Sends structured page data to AI with knowledge-enriched prompts.
 # Vision is NOT required — text-only models work here.
-# Knowledge (honorifics, sources, terminology) is injected into the system prompt.
+# Glossary knowledge is injected into the system prompt.
 
 translate:
   models:                            # Ordered failover chain — vision not required

@@ -77,22 +77,3 @@ func TestExpandPages_ExactlyAtLimit(t *testing.T) {
 		t.Errorf("expected %d pages, got %d", MaxExpandedPages, len(pages))
 	}
 }
-
-func TestPageRangeContains(t *testing.T) {
-	pr := PageRange{First: 10, Last: 20}
-	tests := []struct {
-		page int
-		want bool
-	}{
-		{9, false},
-		{10, true},
-		{15, true},
-		{20, true},
-		{21, false},
-	}
-	for _, tt := range tests {
-		if got := pr.Contains(tt.page); got != tt.want {
-			t.Errorf("PageRange{10,20}.Contains(%d) = %v, want %v", tt.page, got, tt.want)
-		}
-	}
-}

@@ -108,9 +108,10 @@ func TestClean_never_deletes_input_or_knowledge(t *testing.T) {
 	ws := &workspace.Workspace{Root: dir}
 
 	// Create protected directories
-	os.MkdirAll(ws.InputDir(), 0755)
+	inputDir := filepath.Join(dir, "input")
+	os.MkdirAll(inputDir, 0755)
 	os.MkdirAll(ws.KnowledgeDir(), 0755)
-	os.WriteFile(filepath.Join(ws.InputDir(), "test.pdf"), []byte("pdf"), 0644)
+	os.WriteFile(filepath.Join(inputDir, "test.pdf"), []byte("pdf"), 0644)
 	os.WriteFile(filepath.Join(ws.KnowledgeDir(), "terms.yaml"), []byte("yaml"), 0644)
 
 	// Create cleanable directories
