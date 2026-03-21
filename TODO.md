@@ -31,3 +31,5 @@
 - Optimize token usage
     * short JSON keys
     * shorter system prompts
+
+- make surya use more visible

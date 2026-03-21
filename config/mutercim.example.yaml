@@ -31,8 +31,6 @@ inputs:
   - path: ./input                    # Path to input PDF or image directory (relative to workspace root)
     pages: all                       # Page range for this input: "1-10,20-30" or "all" (default)
 
-# ─── Knowledge ───────────────────────────────────────────────────────────────
-
 knowledge_dir: ./knowledge           # Knowledge YAML files directory (phrases, people, terms, places, sources)
                                      #   Merged with embedded defaults and auto-extracted memory/ entries
 
@@ -62,22 +60,21 @@ dpi: 300                             # DPI for PDF-to-image conversion (min: 72)
 #   OpenRouter: openrouter.ai — free models available immediately
 
 read:
+  #layout_tool: "surya"               # Layout detection tool: "surya" (Docker-based) or "" (AI-only, default)
+                                     #   When set to "surya", requires Docker running and mutercim/surya:latest image
+                                     #   Provides precise bounding boxes for text regions; AI refines text and semantics
+                                     #   When empty or omitted, AI handles both layout detection and text extraction
   models:                            # Ordered failover chain — first is primary
     # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
-    - provider: gemini
-      model: gemini-2.5-flash-lite
+    - { provider: gemini, model: gemini-2.5-flash-lite }
     # 2. Gemini Flash: higher quality, lower quota (250 RPD, 10 RPM)
-    - provider: gemini
-      model: gemini-2.5-flash
+    - { provider: gemini, model: gemini-2.5-flash }
     # 3. Groq: fast, vision via Llama (1,000 RPD, 30 RPM)
-    - provider: groq
-      model: llama-3.2-90b-vision-preview
+    - { provider: groq, model: llama-3.2-90b-vision-preview }
     # 4. xAI: $25 free credits, good vision
-    - provider: xai
-      model: grok-2-vision-latest
+    #- { provider: xai, model: grok-2-vision-latest }
     # 5. Local fallback: always available, slow
-    - provider: ollama
-      model: qwen2.5vl:7b
+    - { provider: ollama, model: qwen2.5vl:7b }
   concurrency: 1                     # Parallel read workers (min: 1) — currently only 1 supported
 
 # ─── Translation phase ───────────────────────────────────────────────────────
@@ -89,26 +86,19 @@ read:
 translate:
   models:                            # Ordered failover chain — vision not required
     # 1. Groq: fastest inference, good Arabic (1,000 RPD, 30 RPM)
-    - provider: groq
-      model: llama-3.3-70b-versatile
+    - { provider: groq, model: llama-3.3-70b-versatile }
     # 2. Gemini Flash-Lite: good quality (1,000 RPD, 15 RPM)
-    - provider: gemini
-      model: gemini-2.5-flash-lite
+    - { provider: gemini, model: gemini-2.5-flash-lite }
     # 3. Mistral: massive free quota (~1B tokens/month)
-    - provider: mistral
-      model: mistral-small-latest
+    - { provider: mistral, model: mistral-small-latest }
     # 4. Gemini Flash: higher quality fallback (250 RPD)
-    - provider: gemini
-      model: gemini-2.5-flash
+    - { provider: gemini, model: gemini-2.5-flash }
     # 5. xAI: $25 free credits
-    - provider: xai
-      model: grok-2-latest
+    #- { provider: xai, model: grok-2-latest }
     # 6. OpenRouter: community-funded free models
-    - provider: openrouter
-      model: meta-llama/llama-3.3-70b-instruct:free
+    - { provider: openrouter, model: meta-llama/llama-3.3-70b-instruct:free }
     # 7. Local fallback
-    - provider: ollama
-      model: qwen3:14b
+    - { provider: ollama, model: qwen3:14b }
   context_window: 2                  # Previous pages included for continuity (min: 0, higher = more tokens)
 
 # ─── Write phase ─────────────────────────────────────────────────────────────
