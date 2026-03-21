@@ -10,17 +10,19 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
 
 var (
-	cfgFile  string
-	logLevel string
-	pages    string
-	auto     bool
-	force    bool
+	cfgFile   string
+	logLevel  string
+	pages     string
+	outputDir string
+	auto      bool
+	force     bool
 )
 
 // NewRootCmd creates the root cobra command.
@@ -84,6 +86,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "path to config file (default: ./mutercim.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&pages, "pages", "p", "", "page range: \"1-50\", \"1,5,10-20\", \"all\" (default: from config or all)")
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "log verbosity: debug, info, warn, error")
+	rootCmd.PersistentFlags().StringVarP(&outputDir, "output", "o", "", "output directory (default: ./write)")
 	rootCmd.PersistentFlags().BoolVar(&auto, "auto", false, "auto-run missing prerequisite phases before the requested phase")
 	rootCmd.PersistentFlags().BoolVar(&force, "force", false, "force re-processing of already completed pages")
 
@@ -174,6 +177,19 @@ func ungroupedCommands(cmds []*cobra.Command) []*cobra.Command {
 		}
 	}
 	return commandsByOrder(filtered)
+}
+
+// applyOutputDir sets ws.OutputDir from the config's output field and CLI --output flag.
+// CLI flag takes precedence over config.
+func applyOutputDir(ws *workspace.Workspace, cfg *config.Config) {
+	output := cfg.Output
+	if outputDir != "" {
+		output = outputDir
+		cfg.Output = output
+	}
+	if output != "" && output != "." {
+		ws.OutputDir = cfg.ResolvePath(ws.Root, output)
+	}
 }
 
 // Execute runs the root command.

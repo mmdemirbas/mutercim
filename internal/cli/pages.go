@@ -34,6 +34,7 @@ func newPagesCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("config: %w", err)
 			}
+			applyOutputDir(ws, cfg)
 
 			if dpi > 0 {
 				cfg.DPI = dpi

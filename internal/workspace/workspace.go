@@ -7,8 +7,12 @@ import (
 )
 
 // Workspace represents a book workspace directory.
+// Root is where mutercim.yaml, input/, and knowledge/ live.
+// OutputDir is the base for all generated directories (pages/, read/, solve/,
+// translate/, write/, log/, memory/). Defaults to Root.
 type Workspace struct {
-	Root string
+	Root      string
+	OutputDir string
 }
 
 // Discover finds the workspace root by looking for mutercim.yaml
@@ -22,7 +26,7 @@ func Discover(startDir string) (*Workspace, error) {
 	for {
 		configPath := filepath.Join(dir, "mutercim.yaml")
 		if _, err := os.Stat(configPath); err == nil {
-			return &Workspace{Root: dir}, nil
+			return &Workspace{Root: dir, OutputDir: dir}, nil
 		}
 
 		parent := filepath.Dir(dir)
@@ -32,6 +36,14 @@ func Discover(startDir string) (*Workspace, error) {
 		dir = parent
 	}
 	return nil, fmt.Errorf("no mutercim.yaml found (searched from %s to filesystem root)", startDir)
+}
+
+// outputBase returns the effective output base directory.
+func (w *Workspace) outputBase() string {
+	if w.OutputDir != "" {
+		return w.OutputDir
+	}
+	return w.Root
 }
 
 // ConfigPath returns the path to the workspace config file.
@@ -46,40 +58,40 @@ func (w *Workspace) KnowledgeDir() string {
 
 // LogDir returns the log directory path.
 func (w *Workspace) LogDir() string {
-	return filepath.Join(w.Root, "log")
+	return filepath.Join(w.outputBase(), "log")
 }
 
 // LogPath returns the path to the log file.
 func (w *Workspace) LogPath() string {
-	return filepath.Join(w.Root, "log", "mutercim.log")
+	return filepath.Join(w.outputBase(), "log", "mutercim.log")
 }
 
 // MemoryDir returns the auto-extracted knowledge directory path.
 func (w *Workspace) MemoryDir() string {
-	return filepath.Join(w.Root, "memory")
+	return filepath.Join(w.outputBase(), "memory")
 }
 
 // PagesDir returns the page images directory path.
 func (w *Workspace) PagesDir() string {
-	return filepath.Join(w.Root, "pages")
+	return filepath.Join(w.outputBase(), "pages")
 }
 
 // ReadDir returns the OCR extraction directory path.
 func (w *Workspace) ReadDir() string {
-	return filepath.Join(w.Root, "read")
+	return filepath.Join(w.outputBase(), "read")
 }
 
 // SolveDir returns the solved data directory path.
 func (w *Workspace) SolveDir() string {
-	return filepath.Join(w.Root, "solve")
+	return filepath.Join(w.outputBase(), "solve")
 }
 
 // TranslateDir returns the translated data directory path.
 func (w *Workspace) TranslateDir() string {
-	return filepath.Join(w.Root, "translate")
+	return filepath.Join(w.outputBase(), "translate")
 }
 
 // WriteDir returns the final output directory path.
 func (w *Workspace) WriteDir() string {
-	return filepath.Join(w.Root, "write")
+	return filepath.Join(w.outputBase(), "write")
 }

@@ -38,6 +38,7 @@ func newTranslateCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("config: %w", err)
 			}
+			applyOutputDir(ws, cfg)
 
 			// Apply CLI flag overrides
 			if translateProvider != "" || translateModel != "" {

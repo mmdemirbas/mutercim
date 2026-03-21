@@ -39,6 +39,8 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("config: %w", err)
 			}
 
+			applyOutputDir(ws, cfg)
+
 			// Override write formats if positional args provided
 			if len(args) > 0 {
 				fmts, err := normalizeFormats(args)

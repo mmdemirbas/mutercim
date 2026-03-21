@@ -30,6 +30,9 @@ var schemaAnnotations = map[string]schemaMeta{
 	"book.source_langs": {Description: `Source language codes (required). The primary (first) language is used for source-language markdown output and AI prompt configuration.`},
 	"book.target_langs": {Description: `Target language codes. Each language gets its own translate/ and write/ subdirectory. Translation runs once per target language.`, Default: []string{"tr"}},
 
+	// output
+	"output": {Description: "Base directory for all generated output (pages/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.", Default: "."},
+
 	// inputs
 	"inputs":         {Description: "Input files or directories. PDFs are converted to page images via pdftoppm; image directories are used as-is. Multiple inputs are processed independently through read/solve/translate, then merged in write.", Default: []map[string]string{{"path": "./input"}}},
 	"inputs[]":       {Required: []string{"path"}},

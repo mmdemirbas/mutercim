@@ -19,6 +19,7 @@ type InputSpec struct {
 type Config struct {
 	Book      model.Book      `yaml:"book" mapstructure:"book" json:"book"`
 	Inputs    []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
+	Output    string          `yaml:"output" mapstructure:"output" json:"output"`
 	DPI       int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
 	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
 	Translate TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
@@ -72,6 +73,7 @@ type RateLimitConfig struct {
 // SetDefaults configures default values in viper.
 func SetDefaults(v *viper.Viper) {
 	v.SetDefault("book.target_langs", []string{"tr"})
+	v.SetDefault("output", ".")
 	v.SetDefault("dpi", 300)
 
 	v.SetDefault("read.layout_tool", "doclayout-yolo")
@@ -137,6 +139,9 @@ func applyDefaults(cfg *Config) {
 	if len(cfg.Inputs) == 0 {
 		cfg.Inputs = []InputSpec{{Path: "./input"}}
 	}
+	if cfg.Output == "" {
+		cfg.Output = "."
+	}
 	if cfg.DPI == 0 {
 		cfg.DPI = 300
 	}
@@ -182,6 +187,11 @@ func (c *Config) InputPaths() []string {
 		paths[i] = inp.Path
 	}
 	return paths
+}
+
+// ResolveOutputDir resolves the output directory against the workspace root.
+func (c *Config) ResolveOutputDir(base string) string {
+	return c.ResolvePath(base, c.Output)
 }
 
 // ResolveKnowledgePaths resolves all knowledge paths against the workspace root.

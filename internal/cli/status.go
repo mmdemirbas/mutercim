@@ -39,6 +39,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("config: %w", err)
 	}
+	applyOutputDir(ws, cfg)
 
 	// Discover inputs
 	inputs := discoverInputs(ws)

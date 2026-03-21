@@ -43,6 +43,7 @@ func newReadCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("config: %w", err)
 			}
+			applyOutputDir(ws, cfg)
 
 			// Apply CLI flag overrides — override the models list
 			if readProvider != "" || readModel != "" {

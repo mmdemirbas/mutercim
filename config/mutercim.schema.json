@@ -74,6 +74,11 @@
       },
       "type": "array"
     },
+    "output": {
+      "default": ".",
+      "description": "Base directory for all generated output (pages/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.",
+      "type": "string"
+    },
     "rate_limit": {
       "additionalProperties": false,
       "description": "Global rate limiting fallback for API calls. Per-model RPM in the models list takes precedence over this setting.",

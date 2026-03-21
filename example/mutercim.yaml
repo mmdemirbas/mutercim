@@ -37,6 +37,8 @@ knowledge:
   #- ./knowledge                     # directory: loads all .yaml/.yml files inside
   - ./glossary.yaml                  # file: loaded directly
 
+output: ./
+
 # ─── PDF conversion ──────────────────────────────────────────────────────────
 
 dpi: 300                             # DPI for PDF-to-image conversion (min: 72) — higher = better OCR, larger files

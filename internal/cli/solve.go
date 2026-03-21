@@ -31,6 +31,7 @@ func newSolveCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("config: %w", err)
 			}
+			applyOutputDir(ws, cfg)
 
 			// Load knowledge from all three layers
 			k, err := knowledge.Load(cfg.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())
