@@ -56,8 +56,8 @@ func TestGenerateSchema_ValidJSON(t *testing.T) {
 		t.Fatal("missing properties")
 	}
 
-	// Verify key config sections exist (sections field removed)
-	for _, key := range []string{"book", "inputs", "read", "translate", "write", "retry", "rate_limit"} {
+	// Verify key config sections exist
+	for _, key := range []string{"inputs", "output", "pages", "read", "solve", "translate", "write", "knowledge"} {
 		if props[key] == nil {
 			t.Errorf("missing property %q", key)
 		}
@@ -84,8 +84,18 @@ func TestGenerateSchema_InputsRequiredPath(t *testing.T) {
 	if !ok {
 		t.Fatal("inputs items should have required")
 	}
-	if len(required) != 1 || required[0] != "path" {
+	if len(required) != 2 {
+		t.Errorf("inputs items should require 2 fields, got %v", required)
+	}
+	requiredSet := make(map[string]bool)
+	for _, r := range required {
+		requiredSet[r.(string)] = true
+	}
+	if !requiredSet["path"] {
 		t.Errorf("inputs items should require 'path', got %v", required)
+	}
+	if !requiredSet["languages"] {
+		t.Errorf("inputs items should require 'languages', got %v", required)
 	}
 }
 

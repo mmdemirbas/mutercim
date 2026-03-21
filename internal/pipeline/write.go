@@ -40,12 +40,12 @@ func Write(ctx context.Context, opts WriteOptions) error {
 	ws := opts.Workspace
 	cfg := opts.Config
 
-	if len(cfg.Book.TargetLangs) == 0 {
+	if len(cfg.Translate.Languages) == 0 {
 		return fmt.Errorf("no target languages configured")
 	}
 
 	// Render per target language
-	for _, targetLang := range cfg.Book.TargetLangs {
+	for _, targetLang := range cfg.Translate.Languages {
 		langDir := filepath.Join(ws.TranslateDir(), targetLang)
 		inputs, err := discoverSubdirs(langDir)
 		if err != nil {
@@ -79,7 +79,7 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 	translatedDir := filepath.Join(ws.TranslateDir(), targetLang, stem)
 
 	// Skip if ALL expected outputs are up-to-date
-	title := workspace.SanitizeTitle(cfg.Book.Title)
+	title := "book"
 	langWriteDir := filepath.Join(ws.WriteDir(), targetLang)
 	if !opts.Force {
 		allUpToDate := true
@@ -210,7 +210,7 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 
 func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedRegionPage, logger *slog.Logger) error {
 	targetDir := filepath.Join(ws.WriteDir(), targetLang)
-	sourceDir := filepath.Join(ws.WriteDir(), cfg.Book.PrimarySourceLang())
+	sourceDir := filepath.Join(ws.WriteDir(), cfg.PrimarySourceLang())
 
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		return fmt.Errorf("create target output dir: %w", err)
@@ -222,7 +222,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 	// Target language book
 	mdRenderer := &renderer.MarkdownRenderer{}
 	targetBook := mdRenderer.RenderBook(pages)
-	title := workspace.SanitizeTitle(cfg.Book.Title)
+	title := "book"
 	targetPath := filepath.Join(targetDir, title+".md")
 	if err := atomicWrite(targetPath, []byte(targetBook)); err != nil {
 		return fmt.Errorf("write target markdown: %w", err)
@@ -242,7 +242,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 }
 
 func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedRegionPage, compilePDF bool, logger *slog.Logger) error {
-	title := workspace.SanitizeTitle(cfg.Book.Title)
+	title := "book"
 	langDir := filepath.Join(ws.WriteDir(), targetLang)
 	buildDir := filepath.Join(langDir, "latex-build", stem)
 	if err := os.MkdirAll(buildDir, 0755); err != nil {
@@ -266,8 +266,9 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 	logger.Info("wrote latex", "path", finalTexPath)
 
 	if compilePDF {
-		logger.Info("compiling PDF via Docker", "image", cfg.Write.LaTeXDockerImage)
-		if err := renderer.CompilePDF(ctx, buildDir, cfg.Write.LaTeXDockerImage, docker.FindDockerDir("xelatex")); err != nil {
+		const latexDockerImage = "mutercim/xelatex:latest"
+		logger.Info("compiling PDF via Docker", "image", latexDockerImage)
+		if err := renderer.CompilePDF(ctx, buildDir, latexDockerImage, docker.FindDockerDir("xelatex")); err != nil {
 			return fmt.Errorf("compile PDF: %w", err)
 		}
 
@@ -288,7 +289,7 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 }
 
 func compileDocx(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, logger *slog.Logger) error {
-	title := workspace.SanitizeTitle(cfg.Book.Title)
+	title := "book"
 	mdPath := filepath.Join(ws.WriteDir(), targetLang, title+".md")
 	docxPath := filepath.Join(ws.WriteDir(), targetLang, title+".docx")
 

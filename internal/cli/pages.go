@@ -37,7 +37,7 @@ func newPagesCmd() *cobra.Command {
 			applyOutputDir(ws, cfg)
 
 			if dpi > 0 {
-				cfg.DPI = dpi
+				cfg.Pages.DPI = dpi
 			}
 
 			// Preflight: check Docker if any input is PDF

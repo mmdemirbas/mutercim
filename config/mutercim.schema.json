@@ -4,40 +4,6 @@
   "additionalProperties": false,
   "description": "Configuration file for mutercim — Islamic scholarly book translation tool.",
   "properties": {
-    "book": {
-      "additionalProperties": false,
-      "description": "Book metadata used in output filenames and display headers.",
-      "properties": {
-        "source_langs": {
-          "description": "Source language codes (required). The primary (first) language is used for source-language markdown output and AI prompt configuration.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "target_langs": {
-          "default": [
-            "tr"
-          ],
-          "description": "Target language codes. Each language gets its own translate/ and write/ subdirectory. Translation runs once per target language.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "title": {
-          "description": "Book title. Sanitized and used as the output filename stem for write/ deliverables (e.g. write/tr/\u003ctitle\u003e.md). OS-prohibited characters are replaced with dashes; falls back to 'book' if empty.",
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
-    "dpi": {
-      "default": 300,
-      "description": "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.",
-      "minimum": 72,
-      "type": "integer"
-    },
     "inputs": {
       "default": [
         {
@@ -48,6 +14,13 @@
       "items": {
         "additionalProperties": false,
         "properties": {
+          "languages": {
+            "description": "Source language codes for this input (required). First is the primary language used for source markdown output and AI prompt configuration.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "pages": {
             "description": "Optional page range to process from this input (e.g. \"1-50\", \"1,5,10-20\"). If omitted, all pages are processed. Can also be set globally via the --pages CLI flag.",
             "type": "string"
@@ -58,7 +31,8 @@
           }
         },
         "required": [
-          "path"
+          "path",
+          "languages"
         ],
         "type": "object"
       },
@@ -79,14 +53,14 @@
       "description": "Base directory for all generated output (pages/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.",
       "type": "string"
     },
-    "rate_limit": {
+    "pages": {
       "additionalProperties": false,
-      "description": "Global rate limiting fallback for API calls. Per-model RPM in the models list takes precedence over this setting.",
+      "description": "Page-generation settings (PDF to images).",
       "properties": {
-        "requests_per_minute": {
-          "default": 14,
-          "description": "Maximum requests per minute across all API calls. Only used when a model doesn't specify its own rpm value.",
-          "minimum": 1,
+        "dpi": {
+          "default": 300,
+          "description": "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.",
+          "minimum": 72,
           "type": "integer"
         }
       },
@@ -148,28 +122,83 @@
             "type": "object"
           },
           "type": "array"
+        },
+        "rate_limit": {
+          "additionalProperties": false,
+          "description": "Rate limiting for read-phase API calls.",
+          "properties": {
+            "requests_per_minute": {
+              "default": 0,
+              "description": "Maximum requests per minute for read-phase API calls.",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "retry": {
+          "additionalProperties": false,
+          "description": "Retry settings for failed read-phase API calls.",
+          "properties": {
+            "backoff_seconds": {
+              "default": 2,
+              "description": "Base backoff duration in seconds. Uses exponential backoff: 2s, 4s, 8s, etc.",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "max_attempts": {
+              "default": 3,
+              "description": "Maximum number of retry attempts per API call before marking the page as failed.",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "max_fail_percent": {
+              "type": "integer"
+            }
+          },
+          "type": "object"
         }
       },
       "type": "object"
     },
-    "retry": {
+    "solve": {
       "additionalProperties": false,
-      "description": "Retry settings for failed API calls. Applies to both read and translate phases.",
+      "description": "Solve phase settings. Resolves abbreviations, injects glossary context, validates structure.",
       "properties": {
-        "backoff_seconds": {
-          "default": 2,
-          "description": "Base backoff duration in seconds. Uses exponential backoff: 2s, 4s, 8s, etc. Retry-After headers from the API are respected but capped at 30s.",
-          "minimum": 1,
-          "type": "integer"
+        "rate_limit": {
+          "additionalProperties": false,
+          "description": "Rate limiting for solve-phase operations.",
+          "properties": {
+            "requests_per_minute": {
+              "default": 0,
+              "description": "Maximum requests per minute.",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "type": "object"
         },
-        "max_attempts": {
-          "default": 3,
-          "description": "Maximum number of retry attempts per API call before marking the page as failed and moving to the next one.",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "max_fail_percent": {
-          "type": "integer"
+        "retry": {
+          "additionalProperties": false,
+          "description": "Retry settings for solve-phase operations.",
+          "properties": {
+            "backoff_seconds": {
+              "default": 2,
+              "description": "Base backoff duration in seconds.",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "max_attempts": {
+              "default": 3,
+              "description": "Maximum number of retry attempts.",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "max_fail_percent": {
+              "type": "integer"
+            }
+          },
+          "type": "object"
         }
       },
       "type": "object"
@@ -183,6 +212,16 @@
           "description": "Number of previous pages included in the translation prompt for continuity. Higher values give better cross-page consistency but use more tokens.",
           "minimum": 0,
           "type": "integer"
+        },
+        "languages": {
+          "default": [
+            "tr"
+          ],
+          "description": "Target language codes. Each language gets its own translate/ and write/ subdirectory. Translation runs once per target language.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "models": {
           "description": "Ordered failover chain of AI models for translation. Vision support is not required for translation (text-only). Non-vision models like Groq llama are valid here.",
@@ -220,6 +259,41 @@
             "type": "object"
           },
           "type": "array"
+        },
+        "rate_limit": {
+          "additionalProperties": false,
+          "description": "Rate limiting for translate-phase API calls.",
+          "properties": {
+            "requests_per_minute": {
+              "default": 0,
+              "description": "Maximum requests per minute for translate-phase API calls.",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "retry": {
+          "additionalProperties": false,
+          "description": "Retry settings for failed translate-phase API calls.",
+          "properties": {
+            "backoff_seconds": {
+              "default": 2,
+              "description": "Base backoff duration in seconds. Uses exponential backoff: 2s, 4s, 8s, etc.",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "max_attempts": {
+              "default": 3,
+              "description": "Maximum number of retry attempts per API call before marking the page as failed.",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "max_fail_percent": {
+              "type": "integer"
+            }
+          },
+          "type": "object"
         }
       },
       "type": "object"
@@ -251,11 +325,6 @@
             "type": "string"
           },
           "type": "array"
-        },
-        "latex_docker_image": {
-          "default": "mutercim/xelatex:latest",
-          "description": "Docker image used to compile LaTeX to PDF. Must have xelatex with Arabic/Turkish font support. The image is invoked as: docker run --rm -v \u003cdir\u003e:/data \u003cimage\u003e book.tex",
-          "type": "string"
         }
       },
       "type": "object"

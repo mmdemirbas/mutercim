@@ -273,3 +273,13 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Schema mismatches in individual files are logged as warnings and skipped, not fatal errors
 - Default: `["./knowledge"]` (backward compatible for directory-only usage)
 - All pipeline phases updated to pass resolved knowledge paths for mtime rebuild checks
+
+## Config restructure — phase-aligned schema
+
+- Removed `book` section (title, author, source_langs, target_langs)
+- `source_langs` moved to per-input item as `languages`
+- `target_langs` moved under `translate` as `languages`
+- Added top-level `pages` section with `dpi`
+- Output filename fixed to 'book' in write phase, no more `book.title`
+- Removed `latex_docker_image` — hardcoded like other Docker images
+- retry/rate_limit are now per-phase (read, solve, translate), not global

@@ -14,3 +14,6 @@
 - Support multiple app languages (help messages, logs etc)? (ar/tr/zh)
 
 - No report.json written in the steps other than the 'read' step.
+
+- "write" > "expand_sources" property is tightly coupled to my hadith book sample. It conflicts with
+  my general purpose translator tool vision.

@@ -55,7 +55,7 @@ func newTranslateCmd() *cobra.Command {
 
 			logger := slog.Default()
 
-			chain, err := createProviderChain(cfg.Translate.Models, cfg.Retry, logger)
+			chain, err := createProviderChain(cfg.Translate.Models, cfg.Translate.Retry, logger)
 			if err != nil {
 				return err
 			}

@@ -10,7 +10,6 @@ import (
 func TestRenderStatus_AllDone(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		BookTitle:   "el-Camiu's-Sagir",
 		InputName:   "book.pdf",
 		InputPages:  612,
 		SourceLangs: []string{"ar"},
@@ -30,7 +29,6 @@ func TestRenderStatus_AllDone(t *testing.T) {
 	out := buf.String()
 
 	for _, want := range []string{
-		"el-Camiu's-Sagir",
 		"book.pdf (612 pages)",
 		"ar",
 		"tr",
@@ -47,7 +45,6 @@ func TestRenderStatus_AllDone(t *testing.T) {
 func TestRenderStatus_Partial(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		BookTitle:  "Test Book",
 		InputName:  "vol1.pdf",
 		InputPages: 100,
 		Phases: []ProgressRow{
@@ -84,7 +81,6 @@ func TestRenderStatus_Partial(t *testing.T) {
 func TestRenderStatus_EmptyWorkspace(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		BookTitle: "Empty Book",
 		Phases: []ProgressRow{
 			{Phase: PhasePages, Total: 0},
 			{Phase: PhaseRead, Total: 0},
@@ -128,7 +124,6 @@ func TestRenderStatus_WarningTruncation(t *testing.T) {
 func TestRenderStatus_NoColor(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		BookTitle: "Test",
 		Phases: []ProgressRow{
 			{Phase: PhaseRead, Completed: 50, Total: 100, Warnings: 1, Done: false},
 		},

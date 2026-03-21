@@ -7,7 +7,7 @@ import (
 )
 
 // schemaMeta provides JSON Schema metadata for a config field.
-// Fields are keyed by dot-separated path (e.g. "book.title", "sections[].type").
+// Fields are keyed by dot-separated path (e.g. "inputs[].path", "sections[].type").
 type schemaMeta struct {
 	Description string
 	Default     any
@@ -24,64 +24,69 @@ func intPtr(v int) *int { return &v }
 // This is the single source of truth for descriptions, defaults, enums, and constraints.
 // Structure (field names, types, nesting) comes from reflection on the Go types.
 var schemaAnnotations = map[string]schemaMeta{
-	// book
-	"book":              {Description: "Book metadata used in output filenames and display headers."},
-	"book.title":        {Description: "Book title. Sanitized and used as the output filename stem for write/ deliverables (e.g. write/tr/<title>.md). OS-prohibited characters are replaced with dashes; falls back to 'book' if empty."},
-	"book.source_langs": {Description: `Source language codes (required). The primary (first) language is used for source-language markdown output and AI prompt configuration.`},
-	"book.target_langs": {Description: `Target language codes. Each language gets its own translate/ and write/ subdirectory. Translation runs once per target language.`, Default: []string{"tr"}},
-
 	// output
 	"output": {Description: "Base directory for all generated output (pages/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.", Default: "."},
 
 	// inputs
-	"inputs":         {Description: "Input files or directories. PDFs are converted to page images via pdftoppm; image directories are used as-is. Multiple inputs are processed independently through read/solve/translate, then merged in write.", Default: []map[string]string{{"path": "./input"}}},
-	"inputs[]":       {Required: []string{"path"}},
-	"inputs[].path":  {Description: "Path to input PDF or image directory (relative to workspace root). The filename stem becomes the subdirectory name under pages/, read/, solve/."},
-	"inputs[].pages": {Description: `Optional page range to process from this input (e.g. "1-50", "1,5,10-20"). If omitted, all pages are processed. Can also be set globally via the --pages CLI flag.`},
+	"inputs":             {Description: "Input files or directories. PDFs are converted to page images via pdftoppm; image directories are used as-is. Multiple inputs are processed independently through read/solve/translate, then merged in write.", Default: []map[string]string{{"path": "./input"}}},
+	"inputs[]":           {Required: []string{"path", "languages"}},
+	"inputs[].path":      {Description: "Path to input PDF or image directory (relative to workspace root). The filename stem becomes the subdirectory name under pages/, read/, solve/."},
+	"inputs[].pages":     {Description: `Optional page range to process from this input (e.g. "1-50", "1,5,10-20"). If omitted, all pages are processed. Can also be set globally via the --pages CLI flag.`},
+	"inputs[].languages": {Description: "Source language codes for this input (required). First is the primary language used for source markdown output and AI prompt configuration."},
 
-	// top-level
-	"dpi": {Description: "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.", Default: 300, Minimum: intPtr(72)},
+	// pages
+	"pages":     {Description: "Page-generation settings (PDF to images)."},
+	"pages.dpi": {Description: "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.", Default: 300, Minimum: intPtr(72)},
 
 	// read
-	"read":                   {Description: "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata)."},
-	"read.layout_tool":       {Description: "Layout detection tool for precise bounding boxes. 'doclayout-yolo' uses DocLayout-YOLO (default, best for document structure). 'surya' uses Surya OCR. Both require Docker. Empty string means AI-only mode.", Default: "doclayout-yolo", Enum: []string{"", "doclayout-yolo", "surya"}},
-	"read.models":            {Description: "Ordered failover chain of AI models for OCR. The first model is primary; if it returns 429/quota errors, the next model is tried. All models must support vision for the read phase."},
-	"read.models[]":          {},
-	"read.models[].provider": {Description: "AI provider name. Determines the API endpoint and authentication method.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
-	"read.models[].model":    {Description: "Model identifier as expected by the provider's API (e.g. 'gemini-2.5-flash-lite', 'claude-sonnet-4-20250514')."},
-	"read.models[].rpm":      {Description: "Requests per minute limit for this model. Overrides the provider default. Set to 0 to use the provider's default RPM."},
-	"read.models[].vision":   {Description: "Whether this model supports image input. Required for the read phase. Set explicitly to override auto-detection (e.g. some Groq models support vision but aren't detected automatically)."},
-	"read.models[].base_url": {Description: "Custom API base URL. Only needed for self-hosted or non-standard OpenAI-compatible endpoints. Standard providers use built-in URLs."},
-	"read.concurrency":       {Description: "Number of parallel page-reading workers. Currently only 1 is supported.", Default: 1, Minimum: intPtr(1)},
+	"read":                                {Description: "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata)."},
+	"read.layout_tool":                    {Description: "Layout detection tool for precise bounding boxes. 'doclayout-yolo' uses DocLayout-YOLO (default, best for document structure). 'surya' uses Surya OCR. Both require Docker. Empty string means AI-only mode.", Default: "doclayout-yolo", Enum: []string{"", "doclayout-yolo", "surya"}},
+	"read.models":                         {Description: "Ordered failover chain of AI models for OCR. The first model is primary; if it returns 429/quota errors, the next model is tried. All models must support vision for the read phase."},
+	"read.models[]":                       {},
+	"read.models[].provider":              {Description: "AI provider name. Determines the API endpoint and authentication method.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
+	"read.models[].model":                 {Description: "Model identifier as expected by the provider's API (e.g. 'gemini-2.5-flash-lite', 'claude-sonnet-4-20250514')."},
+	"read.models[].rpm":                   {Description: "Requests per minute limit for this model. Overrides the provider default. Set to 0 to use the provider's default RPM."},
+	"read.models[].vision":                {Description: "Whether this model supports image input. Required for the read phase. Set explicitly to override auto-detection (e.g. some Groq models support vision but aren't detected automatically)."},
+	"read.models[].base_url":              {Description: "Custom API base URL. Only needed for self-hosted or non-standard OpenAI-compatible endpoints. Standard providers use built-in URLs."},
+	"read.concurrency":                    {Description: "Number of parallel page-reading workers. Currently only 1 is supported.", Default: 1, Minimum: intPtr(1)},
+	"read.retry":                          {Description: "Retry settings for failed read-phase API calls."},
+	"read.retry.max_attempts":             {Description: "Maximum number of retry attempts per API call before marking the page as failed.", Default: 3, Minimum: intPtr(0)},
+	"read.retry.backoff_seconds":          {Description: "Base backoff duration in seconds. Uses exponential backoff: 2s, 4s, 8s, etc.", Default: 2, Minimum: intPtr(1)},
+	"read.rate_limit":                     {Description: "Rate limiting for read-phase API calls."},
+	"read.rate_limit.requests_per_minute": {Description: "Maximum requests per minute for read-phase API calls.", Default: 0, Minimum: intPtr(0)},
+
+	// solve
+	"solve":                                {Description: "Solve phase settings. Resolves abbreviations, injects glossary context, validates structure."},
+	"solve.retry":                          {Description: "Retry settings for solve-phase operations."},
+	"solve.retry.max_attempts":             {Description: "Maximum number of retry attempts.", Default: 3, Minimum: intPtr(0)},
+	"solve.retry.backoff_seconds":          {Description: "Base backoff duration in seconds.", Default: 2, Minimum: intPtr(1)},
+	"solve.rate_limit":                     {Description: "Rate limiting for solve-phase operations."},
+	"solve.rate_limit.requests_per_minute": {Description: "Maximum requests per minute.", Default: 0, Minimum: intPtr(0)},
 
 	// translate
-	"translate":                   {Description: "Translation phase settings. The translate phase sends structured page data to an AI model with knowledge-enriched prompts to produce translated text."},
-	"translate.models":            {Description: "Ordered failover chain of AI models for translation. Vision support is not required for translation (text-only). Non-vision models like Groq llama are valid here."},
-	"translate.models[]":          {},
-	"translate.models[].provider": {Description: "AI provider name.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
-	"translate.models[].model":    {Description: "Model identifier as expected by the provider's API."},
-	"translate.models[].rpm":      {Description: "Requests per minute limit for this model. Overrides the provider default."},
-	"translate.models[].vision":   {Description: "Whether this model supports vision. Not required for translation."},
-	"translate.models[].base_url": {Description: "Custom API base URL for OpenAI-compatible endpoints."},
-	"translate.context_window":    {Description: "Number of previous pages included in the translation prompt for continuity. Higher values give better cross-page consistency but use more tokens.", Default: 2, Minimum: intPtr(0)},
+	"translate":                                {Description: "Translation phase settings. The translate phase sends structured page data to an AI model with knowledge-enriched prompts to produce translated text."},
+	"translate.languages":                      {Description: "Target language codes. Each language gets its own translate/ and write/ subdirectory. Translation runs once per target language.", Default: []string{"tr"}},
+	"translate.models":                         {Description: "Ordered failover chain of AI models for translation. Vision support is not required for translation (text-only). Non-vision models like Groq llama are valid here."},
+	"translate.models[]":                       {},
+	"translate.models[].provider":              {Description: "AI provider name.", Enum: []string{"gemini", "claude", "openai", "groq", "mistral", "openrouter", "xai", "ollama"}},
+	"translate.models[].model":                 {Description: "Model identifier as expected by the provider's API."},
+	"translate.models[].rpm":                   {Description: "Requests per minute limit for this model. Overrides the provider default."},
+	"translate.models[].vision":                {Description: "Whether this model supports vision. Not required for translation."},
+	"translate.models[].base_url":              {Description: "Custom API base URL for OpenAI-compatible endpoints."},
+	"translate.context_window":                 {Description: "Number of previous pages included in the translation prompt for continuity. Higher values give better cross-page consistency but use more tokens.", Default: 2, Minimum: intPtr(0)},
+	"translate.retry":                          {Description: "Retry settings for failed translate-phase API calls."},
+	"translate.retry.max_attempts":             {Description: "Maximum number of retry attempts per API call before marking the page as failed.", Default: 3, Minimum: intPtr(0)},
+	"translate.retry.backoff_seconds":          {Description: "Base backoff duration in seconds. Uses exponential backoff: 2s, 4s, 8s, etc.", Default: 2, Minimum: intPtr(1)},
+	"translate.rate_limit":                     {Description: "Rate limiting for translate-phase API calls."},
+	"translate.rate_limit.requests_per_minute": {Description: "Maximum requests per minute for translate-phase API calls.", Default: 0, Minimum: intPtr(0)},
 
 	// write
-	"write":                    {Description: "Write phase settings. The write phase renders translated data into final output files (markdown, LaTeX, PDF, DOCX) under write/<lang>/."},
-	"write.formats":            {Description: "Output formats to generate. 'md' produces markdown, 'latex' produces .tex only, 'pdf' produces .tex and compiles to PDF via Docker, 'docx' converts markdown to Word via pandoc.", Default: []string{"md", "latex", "docx", "pdf"}, ItemEnum: []string{"md", "latex", "pdf", "docx"}},
-	"write.expand_sources":     {Description: "When true, source abbreviations in footnotes are expanded to full names in the rendered output (e.g. 'خ' becomes 'Sahîh-i Buhârî').", Default: true},
-	"write.latex_docker_image": {Description: "Docker image used to compile LaTeX to PDF. Must have xelatex with Arabic/Turkish font support. The image is invoked as: docker run --rm -v <dir>:/data <image> book.tex", Default: "mutercim/xelatex:latest"},
+	"write":                {Description: "Write phase settings. The write phase renders translated data into final output files (markdown, LaTeX, PDF, DOCX) under write/<lang>/."},
+	"write.formats":        {Description: "Output formats to generate. 'md' produces markdown, 'latex' produces .tex only, 'pdf' produces .tex and compiles to PDF via Docker, 'docx' converts markdown to Word via pandoc.", Default: []string{"md", "latex", "docx", "pdf"}, ItemEnum: []string{"md", "latex", "pdf", "docx"}},
+	"write.expand_sources": {Description: "When true, source abbreviations in footnotes are expanded to full names in the rendered output (e.g. 'خ' becomes 'Sahîh-i Buhârî').", Default: true},
 
 	// knowledge
 	"knowledge": {Description: "List of knowledge YAML files and/or directories. Directories include all .yaml/.yml files. Merged with auto-extracted memory/ entries. Relative to workspace root.", Default: []string{"./knowledge"}},
-
-	// retry
-	"retry":                 {Description: "Retry settings for failed API calls. Applies to both read and translate phases."},
-	"retry.max_attempts":    {Description: "Maximum number of retry attempts per API call before marking the page as failed and moving to the next one.", Default: 3, Minimum: intPtr(0)},
-	"retry.backoff_seconds": {Description: "Base backoff duration in seconds. Uses exponential backoff: 2s, 4s, 8s, etc. Retry-After headers from the API are respected but capped at 30s.", Default: 2, Minimum: intPtr(1)},
-
-	// rate_limit
-	"rate_limit":                     {Description: "Global rate limiting fallback for API calls. Per-model RPM in the models list takes precedence over this setting."},
-	"rate_limit.requests_per_minute": {Description: "Maximum requests per minute across all API calls. Only used when a model doesn't specify its own rpm value.", Default: 14, Minimum: intPtr(1)},
 }
 
 // GenerateSchema produces a JSON Schema for the mutercim configuration file.

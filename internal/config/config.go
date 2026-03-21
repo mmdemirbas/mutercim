@@ -9,24 +9,28 @@ import (
 	"github.com/spf13/viper"
 )
 
-// InputSpec describes a single input file with optional per-input page range.
+// InputSpec describes a single input file with optional per-input page range and source languages.
 type InputSpec struct {
-	Path  string `yaml:"path" mapstructure:"path" json:"path"`
-	Pages string `yaml:"pages,omitempty" mapstructure:"pages" json:"pages,omitempty"`
+	Path      string   `yaml:"path" mapstructure:"path" json:"path"`
+	Pages     string   `yaml:"pages,omitempty" mapstructure:"pages" json:"pages,omitempty"`
+	Languages []string `yaml:"languages" mapstructure:"languages" json:"languages"`
 }
 
 // Config represents the full workspace configuration.
 type Config struct {
-	Book      model.Book      `yaml:"book" mapstructure:"book" json:"book"`
 	Inputs    []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
 	Output    string          `yaml:"output" mapstructure:"output" json:"output"`
-	DPI       int             `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
+	Pages     PagesConfig     `yaml:"pages" mapstructure:"pages" json:"pages"`
 	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
+	Solve     SolveConfig     `yaml:"solve" mapstructure:"solve" json:"solve"`
 	Translate TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
 	Write     WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
 	Knowledge []string        `yaml:"knowledge" mapstructure:"knowledge" json:"knowledge"`
-	Retry     RetryConfig     `yaml:"retry" mapstructure:"retry" json:"retry"`
-	RateLimit RateLimitConfig `yaml:"rate_limit" mapstructure:"rate_limit" json:"rate_limit"`
+}
+
+// PagesConfig holds page-generation settings (PDF to images).
+type PagesConfig struct {
+	DPI int `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
 }
 
 // ModelSpec describes a single AI model in a failover chain.
@@ -40,22 +44,32 @@ type ModelSpec struct {
 
 // ReadConfig holds read-phase settings.
 type ReadConfig struct {
-	LayoutTool  string      `yaml:"layout_tool,omitempty" mapstructure:"layout_tool" json:"layout_tool,omitempty"` // "doclayout-yolo" (default), "surya", or "" (disabled)
-	Models      []ModelSpec `yaml:"models" mapstructure:"models" json:"models"`
-	Concurrency int         `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"` // reserved for future parallel processing
+	LayoutTool  string          `yaml:"layout_tool,omitempty" mapstructure:"layout_tool" json:"layout_tool,omitempty"` // "doclayout-yolo" (default), "surya", or "" (disabled)
+	Models      []ModelSpec     `yaml:"models" mapstructure:"models" json:"models"`
+	Concurrency int             `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"` // reserved for future parallel processing
+	Retry       RetryConfig     `yaml:"retry,omitempty" mapstructure:"retry" json:"retry,omitempty"`
+	RateLimit   RateLimitConfig `yaml:"rate_limit,omitempty" mapstructure:"rate_limit" json:"rate_limit,omitempty"`
+}
+
+// SolveConfig holds solve-phase settings.
+type SolveConfig struct {
+	Retry     RetryConfig     `yaml:"retry,omitempty" mapstructure:"retry" json:"retry,omitempty"`
+	RateLimit RateLimitConfig `yaml:"rate_limit,omitempty" mapstructure:"rate_limit" json:"rate_limit,omitempty"`
 }
 
 // TranslateConfig holds translation-phase settings.
 type TranslateConfig struct {
-	Models        []ModelSpec `yaml:"models" mapstructure:"models" json:"models"`
-	ContextWindow int         `yaml:"context_window" mapstructure:"context_window" json:"context_window"`
+	Languages     []string        `yaml:"languages" mapstructure:"languages" json:"languages"`
+	Models        []ModelSpec     `yaml:"models" mapstructure:"models" json:"models"`
+	ContextWindow int             `yaml:"context_window" mapstructure:"context_window" json:"context_window"`
+	Retry         RetryConfig     `yaml:"retry,omitempty" mapstructure:"retry" json:"retry,omitempty"`
+	RateLimit     RateLimitConfig `yaml:"rate_limit,omitempty" mapstructure:"rate_limit" json:"rate_limit,omitempty"`
 }
 
 // WriteConfig holds write-phase settings.
 type WriteConfig struct {
-	Formats          []string `yaml:"formats" mapstructure:"formats" json:"formats"`
-	ExpandSources    bool     `yaml:"expand_sources" mapstructure:"expand_sources" json:"expand_sources"`
-	LaTeXDockerImage string   `yaml:"latex_docker_image" mapstructure:"latex_docker_image" json:"latex_docker_image"`
+	Formats       []string `yaml:"formats" mapstructure:"formats" json:"formats"`
+	ExpandSources bool     `yaml:"expand_sources" mapstructure:"expand_sources" json:"expand_sources"`
 }
 
 // RetryConfig holds retry settings.
@@ -72,26 +86,29 @@ type RateLimitConfig struct {
 
 // SetDefaults configures default values in viper.
 func SetDefaults(v *viper.Viper) {
-	v.SetDefault("book.target_langs", []string{"tr"})
 	v.SetDefault("output", ".")
-	v.SetDefault("dpi", 300)
+	v.SetDefault("pages.dpi", 300)
 
 	v.SetDefault("read.layout_tool", "doclayout-yolo")
 	v.SetDefault("read.concurrency", 1)
+	v.SetDefault("read.retry.max_attempts", 3)
+	v.SetDefault("read.retry.backoff_seconds", 2)
+	v.SetDefault("read.retry.max_fail_percent", 10)
 
+	v.SetDefault("solve.retry.max_attempts", 3)
+	v.SetDefault("solve.retry.backoff_seconds", 2)
+	v.SetDefault("solve.retry.max_fail_percent", 10)
+
+	v.SetDefault("translate.languages", []string{"tr"})
 	v.SetDefault("translate.context_window", 2)
+	v.SetDefault("translate.retry.max_attempts", 3)
+	v.SetDefault("translate.retry.backoff_seconds", 2)
+	v.SetDefault("translate.retry.max_fail_percent", 10)
 
 	v.SetDefault("write.formats", []string{"md", "pdf"})
 	v.SetDefault("write.expand_sources", true)
-	v.SetDefault("write.latex_docker_image", "mutercim/xelatex:latest")
 
 	v.SetDefault("knowledge", []string{"./knowledge"})
-
-	v.SetDefault("retry.max_attempts", 3)
-	v.SetDefault("retry.backoff_seconds", 2)
-	v.SetDefault("retry.max_fail_percent", 10)
-
-	v.SetDefault("rate_limit.requests_per_minute", 14)
 }
 
 // Load reads the config file at the given path and returns a Config.
@@ -133,8 +150,8 @@ func Load(configPath string) (*Config, error) {
 
 // applyDefaults fills in zero-valued fields with their defaults.
 func applyDefaults(cfg *Config) {
-	if len(cfg.Book.TargetLangs) == 0 {
-		cfg.Book.TargetLangs = []string{"tr"}
+	if len(cfg.Translate.Languages) == 0 {
+		cfg.Translate.Languages = []string{"tr"}
 	}
 	if len(cfg.Inputs) == 0 {
 		cfg.Inputs = []InputSpec{{Path: "./input"}}
@@ -142,8 +159,8 @@ func applyDefaults(cfg *Config) {
 	if cfg.Output == "" {
 		cfg.Output = "."
 	}
-	if cfg.DPI == 0 {
-		cfg.DPI = 300
+	if cfg.Pages.DPI == 0 {
+		cfg.Pages.DPI = 300
 	}
 	if len(cfg.Read.Models) == 0 {
 		cfg.Read.Models = []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}
@@ -151,32 +168,33 @@ func applyDefaults(cfg *Config) {
 	if cfg.Read.Concurrency == 0 {
 		cfg.Read.Concurrency = 1
 	}
+	applyRetryDefaults(&cfg.Read.Retry)
+	applyRetryDefaults(&cfg.Solve.Retry)
 	if len(cfg.Translate.Models) == 0 {
 		cfg.Translate.Models = []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}
 	}
 	if cfg.Translate.ContextWindow == 0 {
 		cfg.Translate.ContextWindow = 2
 	}
+	applyRetryDefaults(&cfg.Translate.Retry)
 	if len(cfg.Write.Formats) == 0 {
 		cfg.Write.Formats = []string{"md", "latex", "docx", "pdf"}
-	}
-	if cfg.Write.LaTeXDockerImage == "" {
-		cfg.Write.LaTeXDockerImage = "mutercim/xelatex:latest"
 	}
 	if len(cfg.Knowledge) == 0 {
 		cfg.Knowledge = []string{"./knowledge"}
 	}
-	if cfg.Retry.MaxAttempts == 0 {
-		cfg.Retry.MaxAttempts = 3
+}
+
+// applyRetryDefaults fills in zero-valued retry fields with their defaults.
+func applyRetryDefaults(r *RetryConfig) {
+	if r.MaxAttempts == 0 {
+		r.MaxAttempts = 3
 	}
-	if cfg.Retry.BackoffSeconds == 0 {
-		cfg.Retry.BackoffSeconds = 2
+	if r.BackoffSeconds == 0 {
+		r.BackoffSeconds = 2
 	}
-	if cfg.Retry.MaxFailPercent == 0 {
-		cfg.Retry.MaxFailPercent = 10
-	}
-	if cfg.RateLimit.RequestsPerMinute == 0 {
-		cfg.RateLimit.RequestsPerMinute = 14
+	if r.MaxFailPercent == 0 {
+		r.MaxFailPercent = 10
 	}
 }
 
@@ -187,6 +205,57 @@ func (c *Config) InputPaths() []string {
 		paths[i] = inp.Path
 	}
 	return paths
+}
+
+// PrimarySourceLang returns the primary source language from the first input.
+// Falls back to "ar" if no inputs or no languages configured.
+func (c *Config) PrimarySourceLang() string {
+	for _, inp := range c.Inputs {
+		if len(inp.Languages) > 0 {
+			return inp.Languages[0]
+		}
+	}
+	return "ar"
+}
+
+// SourceLanguages returns unique source languages across all inputs, preserving order.
+func (c *Config) SourceLanguages() []string {
+	seen := make(map[string]bool)
+	var result []string
+	for _, inp := range c.Inputs {
+		for _, lang := range inp.Languages {
+			if !seen[lang] {
+				seen[lang] = true
+				result = append(result, lang)
+			}
+		}
+	}
+	return result
+}
+
+// SourceLanguagesForStem returns source languages for the input matching the given stem name.
+// Falls back to the first input's languages or empty if not found.
+func (c *Config) SourceLanguagesForStem(stem string) []string {
+	for _, inp := range c.Inputs {
+		if fileStem(inp.Path) == stem {
+			return inp.Languages
+		}
+	}
+	// Fallback: return first input's languages
+	if len(c.Inputs) > 0 {
+		return c.Inputs[0].Languages
+	}
+	return nil
+}
+
+// fileStem returns the filename without extension.
+func fileStem(path string) string {
+	base := filepath.Base(path)
+	ext := filepath.Ext(base)
+	if ext != "" {
+		return base[:len(base)-len(ext)]
+	}
+	return base
 }
 
 // ResolveOutputDir resolves the output directory against the workspace root.
@@ -218,8 +287,16 @@ func (c *Config) ResolvePath(base, rel string) string {
 
 // Validate checks the config for errors.
 func (c *Config) Validate() error {
-	if len(c.Book.SourceLangs) == 0 {
-		return fmt.Errorf("book.source_langs is required")
+	// Check that at least one input has languages
+	hasLanguages := false
+	for _, inp := range c.Inputs {
+		if len(inp.Languages) > 0 {
+			hasLanguages = true
+			break
+		}
+	}
+	if !hasLanguages {
+		return fmt.Errorf("inputs[].languages is required: at least one input must have source languages")
 	}
 
 	// Check input paths exist and validate per-input pages

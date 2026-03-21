@@ -36,7 +36,7 @@ func hasPhaseOutput(p phase, ws *workspace.Workspace, cfg *config.Config) bool {
 	case phaseSolve:
 		return dirHasEntries(ws.SolveDir())
 	case phaseTranslate:
-		for _, lang := range cfg.Book.TargetLangs {
+		for _, lang := range cfg.Translate.Languages {
 			if dirHasEntries(filepath.Join(ws.TranslateDir(), lang)) {
 				return true
 			}
@@ -86,7 +86,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 	}
 
 	if startPhase <= phaseRead && phaseRead < targetPhase {
-		readChain, err := createProviderChain(cfg.Read.Models, cfg.Retry, logger)
+		readChain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, logger)
 		if err != nil {
 			return fmt.Errorf("auto create read providers: %w", err)
 		}
@@ -111,10 +111,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 			return fmt.Errorf("auto load knowledge: %w", err)
 		}
 
-		sourceLang := ""
-		if len(cfg.Book.SourceLangs) > 0 {
-			sourceLang = cfg.Book.SourceLangs[0]
-		}
+		sourceLang := cfg.PrimarySourceLang()
 
 		logger.Info("=== AUTO: SOLVE ===")
 		result, err := pipeline.Solve(ctx, pipeline.SolveOptions{
@@ -135,7 +132,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 			return fmt.Errorf("auto load knowledge: %w", err)
 		}
 
-		translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Retry, logger)
+		translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Translate.Retry, logger)
 		if err != nil {
 			return fmt.Errorf("auto create translate providers: %w", err)
 		}

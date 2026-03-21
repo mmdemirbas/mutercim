@@ -2,8 +2,6 @@ package config
 
 import (
 	"testing"
-
-	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 func TestResolvePath(t *testing.T) {
@@ -27,8 +25,7 @@ func TestResolvePath(t *testing.T) {
 
 func TestValidatePerInputPages_Valid(t *testing.T) {
 	cfg := &Config{
-		Book:   model.Book{SourceLangs: []string{"ar"}},
-		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "1-5,10"}},
+		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "1-5,10", Languages: []string{"ar"}}},
 	}
 	if err := cfg.Validate(); err != nil {
 		t.Errorf("valid per-input pages should not error: %v", err)
@@ -37,8 +34,7 @@ func TestValidatePerInputPages_Valid(t *testing.T) {
 
 func TestValidatePerInputPages_Invalid(t *testing.T) {
 	cfg := &Config{
-		Book:   model.Book{SourceLangs: []string{"ar"}},
-		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "abc"}},
+		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "abc", Languages: []string{"ar"}}},
 	}
 	if err := cfg.Validate(); err == nil {
 		t.Error("expected error for invalid per-input pages")
@@ -107,7 +103,6 @@ func TestIsPDFFunction(t *testing.T) {
 }
 
 func TestValidate_PerInputPages(t *testing.T) {
-	book := model.Book{SourceLangs: []string{"ar"}}
 	tests := []struct {
 		name    string
 		cfg     Config
@@ -116,10 +111,9 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "valid per-input pages",
 			cfg: Config{
-				Book: book,
 				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: "1-50"},
-					{Path: "./vol2.pdf", Pages: "10,20-30"},
+					{Path: "./vol1.pdf", Pages: "1-50", Languages: []string{"ar"}},
+					{Path: "./vol2.pdf", Pages: "10,20-30", Languages: []string{"ar"}},
 				},
 			},
 			wantErr: false,
@@ -127,9 +121,8 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "invalid per-input pages",
 			cfg: Config{
-				Book: book,
 				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: "abc"},
+					{Path: "./vol1.pdf", Pages: "abc", Languages: []string{"ar"}},
 				},
 			},
 			wantErr: true,
@@ -137,9 +130,8 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "empty per-input pages is valid",
 			cfg: Config{
-				Book: book,
 				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: ""},
+					{Path: "./vol1.pdf", Pages: "", Languages: []string{"ar"}},
 				},
 			},
 			wantErr: false,
@@ -147,10 +139,9 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "mix of valid and invalid per-input pages",
 			cfg: Config{
-				Book: book,
 				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: "1-10"},
-					{Path: "./vol2.pdf", Pages: "not-a-range"},
+					{Path: "./vol1.pdf", Pages: "1-10", Languages: []string{"ar"}},
+					{Path: "./vol2.pdf", Pages: "not-a-range", Languages: []string{"ar"}},
 				},
 			},
 			wantErr: true,
@@ -158,9 +149,8 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "valid per-input pages only",
 			cfg: Config{
-				Book: book,
 				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: "1-50"},
+					{Path: "./vol1.pdf", Pages: "1-50", Languages: []string{"ar"}},
 				},
 			},
 			wantErr: false,
@@ -181,22 +171,19 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 	cfg := &Config{}
 	applyDefaults(cfg)
 
-	// Book defaults — source_langs has no default (required field)
-	if len(cfg.Book.SourceLangs) != 0 {
-		t.Errorf("Book.SourceLangs = %v, want [] (no default)", cfg.Book.SourceLangs)
-	}
-	if len(cfg.Book.TargetLangs) != 1 || cfg.Book.TargetLangs[0] != "tr" {
-		t.Errorf("Book.TargetLangs = %v, want [tr]", cfg.Book.TargetLangs)
-	}
-
 	// Inputs default
 	if len(cfg.Inputs) != 1 || cfg.Inputs[0].Path != "./input" {
 		t.Errorf("Inputs = %v, want [{Path: ./input}]", cfg.Inputs)
 	}
 
-	// DPI
-	if cfg.DPI != 300 {
-		t.Errorf("DPI = %d, want 300", cfg.DPI)
+	// Translate languages default
+	if len(cfg.Translate.Languages) != 1 || cfg.Translate.Languages[0] != "tr" {
+		t.Errorf("Translate.Languages = %v, want [tr]", cfg.Translate.Languages)
+	}
+
+	// Pages.DPI
+	if cfg.Pages.DPI != 300 {
+		t.Errorf("Pages.DPI = %d, want 300", cfg.Pages.DPI)
 	}
 
 	// Read config — legacy provider/model migrated to models list
@@ -213,6 +200,19 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 		t.Errorf("Read.Models[0].Model = %q, want %q", cfg.Read.Models[0].Model, "gemini-2.0-flash")
 	}
 
+	// Read retry
+	if cfg.Read.Retry.MaxAttempts != 3 {
+		t.Errorf("Read.Retry.MaxAttempts = %d, want 3", cfg.Read.Retry.MaxAttempts)
+	}
+	if cfg.Read.Retry.BackoffSeconds != 2 {
+		t.Errorf("Read.Retry.BackoffSeconds = %d, want 2", cfg.Read.Retry.BackoffSeconds)
+	}
+
+	// Solve retry
+	if cfg.Solve.Retry.MaxAttempts != 3 {
+		t.Errorf("Solve.Retry.MaxAttempts = %d, want 3", cfg.Solve.Retry.MaxAttempts)
+	}
+
 	// Translate config
 	if len(cfg.Translate.Models) != 1 {
 		t.Fatalf("Translate.Models len = %d, want 1", len(cfg.Translate.Models))
@@ -224,49 +224,35 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 		t.Errorf("Translate.ContextWindow = %d, want 2", cfg.Translate.ContextWindow)
 	}
 
+	// Translate retry
+	if cfg.Translate.Retry.MaxAttempts != 3 {
+		t.Errorf("Translate.Retry.MaxAttempts = %d, want 3", cfg.Translate.Retry.MaxAttempts)
+	}
+
 	// Write config
 	if len(cfg.Write.Formats) != 4 || cfg.Write.Formats[0] != "md" || cfg.Write.Formats[1] != "latex" || cfg.Write.Formats[2] != "docx" || cfg.Write.Formats[3] != "pdf" {
 		t.Errorf("Write.Formats = %v, want [md latex docx pdf]", cfg.Write.Formats)
-	}
-	if cfg.Write.LaTeXDockerImage != "mutercim/xelatex:latest" {
-		t.Errorf("Write.LaTeXDockerImage = %q, want %q", cfg.Write.LaTeXDockerImage, "mutercim/xelatex:latest")
 	}
 
 	// Knowledge
 	if len(cfg.Knowledge) != 1 || cfg.Knowledge[0] != "./knowledge" {
 		t.Errorf("Knowledge = %v, want [./knowledge]", cfg.Knowledge)
 	}
-
-	// Retry
-	if cfg.Retry.MaxAttempts != 3 {
-		t.Errorf("Retry.MaxAttempts = %d, want 3", cfg.Retry.MaxAttempts)
-	}
-	if cfg.Retry.BackoffSeconds != 2 {
-		t.Errorf("Retry.BackoffSeconds = %d, want 2", cfg.Retry.BackoffSeconds)
-	}
-
-	// RateLimit
-	if cfg.RateLimit.RequestsPerMinute != 14 {
-		t.Errorf("RateLimit.RequestsPerMinute = %d, want 14", cfg.RateLimit.RequestsPerMinute)
-	}
 }
 
 func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	cfg := &Config{
-		DPI:       600,
-		Inputs:    []InputSpec{{Path: "./custom.pdf"}},
-		Read:      ReadConfig{Models: []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}}, Concurrency: 4},
-		Translate: TranslateConfig{Models: []ModelSpec{{Provider: "openai", Model: "gpt-4"}}, ContextWindow: 5},
-		Write:     WriteConfig{Formats: []string{"docx"}, LaTeXDockerImage: "custom:latest"},
+		Pages:     PagesConfig{DPI: 600},
+		Inputs:    []InputSpec{{Path: "./custom.pdf", Languages: []string{"fa"}}},
+		Read:      ReadConfig{Models: []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}}, Concurrency: 4, Retry: RetryConfig{MaxAttempts: 5, BackoffSeconds: 10, MaxFailPercent: 10}},
+		Translate: TranslateConfig{Languages: []string{"en"}, Models: []ModelSpec{{Provider: "openai", Model: "gpt-4"}}, ContextWindow: 5, Retry: RetryConfig{MaxAttempts: 5, BackoffSeconds: 10, MaxFailPercent: 10}},
+		Write:     WriteConfig{Formats: []string{"docx"}},
 		Knowledge: []string{"/custom/knowledge"},
-		Retry:     RetryConfig{MaxAttempts: 5, BackoffSeconds: 10},
-		RateLimit: RateLimitConfig{RequestsPerMinute: 100},
-		Book:      model.Book{SourceLangs: []string{"fa"}, TargetLangs: []string{"en"}},
 	}
 	applyDefaults(cfg)
 
-	if cfg.DPI != 600 {
-		t.Errorf("DPI was overwritten: got %d", cfg.DPI)
+	if cfg.Pages.DPI != 600 {
+		t.Errorf("Pages.DPI was overwritten: got %d", cfg.Pages.DPI)
 	}
 	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "claude" {
 		t.Errorf("Read.Models was overwritten: got %+v", cfg.Read.Models)
@@ -286,14 +272,14 @@ func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	if len(cfg.Knowledge) != 1 || cfg.Knowledge[0] != "/custom/knowledge" {
 		t.Errorf("Knowledge was overwritten: got %v", cfg.Knowledge)
 	}
-	if cfg.Retry.MaxAttempts != 5 {
-		t.Errorf("Retry.MaxAttempts was overwritten: got %d", cfg.Retry.MaxAttempts)
+	if cfg.Read.Retry.MaxAttempts != 5 {
+		t.Errorf("Read.Retry.MaxAttempts was overwritten: got %d", cfg.Read.Retry.MaxAttempts)
 	}
-	if cfg.RateLimit.RequestsPerMinute != 100 {
-		t.Errorf("RateLimit.RequestsPerMinute was overwritten: got %d", cfg.RateLimit.RequestsPerMinute)
+	if cfg.Translate.Languages[0] != "en" {
+		t.Errorf("Translate.Languages was overwritten: got %v", cfg.Translate.Languages)
 	}
-	if cfg.Book.SourceLangs[0] != "fa" {
-		t.Errorf("Book.SourceLangs was overwritten: got %v", cfg.Book.SourceLangs)
+	if cfg.Inputs[0].Languages[0] != "fa" {
+		t.Errorf("Inputs[0].Languages was overwritten: got %v", cfg.Inputs[0].Languages)
 	}
 }
 
@@ -301,11 +287,15 @@ func TestApplyDefaults_LangDefaults(t *testing.T) {
 	cfg := &Config{}
 	applyDefaults(cfg)
 
-	if len(cfg.Book.SourceLangs) != 0 {
-		t.Errorf("SourceLangs = %v, want [] (no default)", cfg.Book.SourceLangs)
+	// Inputs get default but no languages (languages is required, no default)
+	if len(cfg.Inputs) != 1 {
+		t.Fatalf("Inputs len = %d, want 1", len(cfg.Inputs))
 	}
-	if len(cfg.Book.TargetLangs) != 1 || cfg.Book.TargetLangs[0] != "tr" {
-		t.Errorf("TargetLangs = %v, want [tr]", cfg.Book.TargetLangs)
+	if len(cfg.Inputs[0].Languages) != 0 {
+		t.Errorf("Inputs[0].Languages = %v, want [] (no default)", cfg.Inputs[0].Languages)
+	}
+	if len(cfg.Translate.Languages) != 1 || cfg.Translate.Languages[0] != "tr" {
+		t.Errorf("Translate.Languages = %v, want [tr]", cfg.Translate.Languages)
 	}
 }
 

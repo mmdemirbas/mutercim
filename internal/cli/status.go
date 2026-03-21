@@ -65,7 +65,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build phase rows
-	rows := buildPhaseRows(ws, inputs, totalImages, cfg.Book.TargetLangs)
+	rows := buildPhaseRows(ws, inputs, totalImages, cfg.Translate.Languages)
 
 	// Collect warnings (errors are in the log now)
 	var warnings []string
@@ -96,12 +96,11 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	data := display.StatusData{
-		BookTitle:   cfg.Book.Title,
 		InputName:   inputName,
 		InputPages:  totalImages,
 		PageRange:   "",
-		SourceLangs: cfg.Book.SourceLangs,
-		TargetLangs: cfg.Book.TargetLangs,
+		SourceLangs: cfg.SourceLanguages(),
+		TargetLangs: cfg.Translate.Languages,
 		LayoutTool:  layoutTool,
 		ReadModels:  readModels,
 		TransModels: transModels,

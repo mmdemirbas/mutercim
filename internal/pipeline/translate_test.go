@@ -36,11 +36,9 @@ func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.Sol
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Book: model.Book{
-			SourceLangs: []string{"ar"},
-			TargetLangs: []string{"tr"},
-		},
+		Inputs: []config.InputSpec{{Path: "./input", Languages: []string{"ar"}}},
 		Translate: config.TranslateConfig{
+			Languages:     []string{"tr"},
 			Models:        []config.ModelSpec{{Provider: "mock", Model: "test-model"}},
 			ContextWindow: 2,
 		},
@@ -133,11 +131,9 @@ func TestTranslatePipelineNoSolvedPages(t *testing.T) {
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Book: model.Book{
-			SourceLangs: []string{"ar"},
-			TargetLangs: []string{"tr"},
-		},
+		Inputs: []config.InputSpec{{Path: "./input", Languages: []string{"ar"}}},
 		Translate: config.TranslateConfig{
+			Languages:     []string{"tr"},
 			ContextWindow: 2,
 		},
 	}
@@ -164,7 +160,7 @@ func TestTranslatePipelineMultiLang(t *testing.T) {
 	}
 
 	ws, cfg := setupTranslateWorkspace(t, stem, pages)
-	cfg.Book.TargetLangs = []string{"tr", "en"}
+	cfg.Translate.Languages = []string{"tr", "en"}
 
 	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws,

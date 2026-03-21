@@ -63,7 +63,7 @@ func newReadCmd() *cobra.Command {
 
 			logger := slog.Default()
 
-			chain, err := createProviderChain(cfg.Read.Models, cfg.Retry, logger)
+			chain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, logger)
 			if err != nil {
 				return err
 			}

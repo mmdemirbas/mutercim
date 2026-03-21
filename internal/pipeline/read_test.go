@@ -50,13 +50,12 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Inputs: []config.InputSpec{{Path: "./input/" + stem + ".pdf"}},
-		DPI:    300,
+		Pages:  config.PagesConfig{DPI: 300},
 		Read: config.ReadConfig{
 			Models:      []config.ModelSpec{{Provider: "mock", Model: "test-model"}},
 			Concurrency: 1,
+			Retry:       config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
 		},
-		Retry:     config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
-		RateLimit: config.RateLimitConfig{RequestsPerMinute: 100},
 	}
 
 	return ws, cfg
@@ -261,13 +260,12 @@ func TestReadPipelineMultiInput(t *testing.T) {
 			{Path: "./input/stem1.pdf"},
 			{Path: "./input/stem2.pdf"},
 		},
-		DPI: 300,
+		Pages: config.PagesConfig{DPI: 300},
 		Read: config.ReadConfig{
 			Models:      []config.ModelSpec{{Provider: "mock", Model: "test-model"}},
 			Concurrency: 1,
+			Retry:       config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
 		},
-		Retry:     config.RetryConfig{MaxAttempts: 1, BackoffSeconds: 1},
-		RateLimit: config.RateLimitConfig{RequestsPerMinute: 100},
 	}
 
 	response := `{

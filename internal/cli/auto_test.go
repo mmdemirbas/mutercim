@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
-	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
@@ -14,7 +13,7 @@ func TestHasPhaseOutput_empty_workspace(t *testing.T) {
 	dir := t.TempDir()
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Book: model.Book{TargetLangs: []string{"tr"}},
+		Translate: config.TranslateConfig{Languages: []string{"tr"}},
 	}
 
 	for _, p := range []phase{phasePages, phaseRead, phaseSolve, phaseTranslate} {
@@ -28,7 +27,7 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 	dir := t.TempDir()
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Book: model.Book{TargetLangs: []string{"tr"}},
+		Translate: config.TranslateConfig{Languages: []string{"tr"}},
 	}
 
 	// Create pages output
@@ -73,7 +72,7 @@ func TestHasPhaseOutput_translate_multiple_langs(t *testing.T) {
 	dir := t.TempDir()
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Book: model.Book{TargetLangs: []string{"tr", "en"}},
+		Translate: config.TranslateConfig{Languages: []string{"tr", "en"}},
 	}
 
 	// No output for any language

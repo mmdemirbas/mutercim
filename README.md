@@ -83,13 +83,12 @@ ls write/en/
 Minimal `mutercim.yaml`:
 
 ```yaml
-book:
-  title: "My Book"
-  source_langs: [ ar ]
-  target_langs: [ en ]
-
 inputs:
   - path: ./input/book.pdf
+    languages: [ ar ]
+
+translate:
+  languages: [ en ]
 ```
 
 Everything else uses sensible defaults (Gemini Flash for reading and translation,
@@ -154,67 +153,55 @@ mutercim write latex # only .tex (no PDF compilation)
 Full annotated `mutercim.yaml`:
 
 ```yaml
-# Book metadata
-book:
-  title: "My Book"
-  source_langs: [ ar ]           # ISO 639-1 codes
-  target_langs: [ tr, en ]       # translate into multiple languages
-
 # Input files — PDF or directories of images
-# Each can have an optional per-input page range
+# Each declares its own source languages and optional page range
 inputs:
   - path: ./input/book.pdf
-    pages: "1-100"             # process only pages 1-100 of this PDF
-  - path: ./input/volume2.pdf  # no page restriction
+    languages: [ ar ]            # ISO 639-1 source language codes
+    pages: "1-100"               # process only pages 1-100 of this PDF
+  - path: ./input/volume2.pdf    # no page restriction
+    languages: [ ar ]
 
-# PDF-to-image conversion DPI (default: 300)
-dpi: 300
+# PDF-to-image conversion
+pages:
+  dpi: 300                       # DPI (default: 300, min: 72)
 
 # Read phase — AI vision OCR
 read:
-  # Layout detection tool: "doclayout-yolo" (default), "surya", or "" (AI-only)
-  layout_tool: "doclayout-yolo"
-  # Ordered model failover chain — tries first, falls over on 429
-  models:
+  layout_tool: "doclayout-yolo"  # "doclayout-yolo" (default), "surya", or "" (AI-only)
+  models:                        # ordered model failover chain
     - { provider: gemini, model: gemini-2.5-flash-lite }
     - { provider: gemini, model: gemini-2.5-flash }
     - { provider: groq, model: llama-3.2-90b-vision-preview }
     - { provider: ollama, model: qwen2.5vl:7b }
-  concurrency: 1               # parallel workers (reserved for future use)
+  concurrency: 1
+  retry:
+    max_attempts: 3
+    backoff_seconds: 2
 
 # Translate phase
 translate:
+  languages: [ tr, en ]          # target languages — each gets its own output
   models:
     - { provider: groq, model: llama-3.3-70b-versatile }
     - { provider: gemini, model: gemini-2.5-flash-lite }
     - { provider: mistral, model: mistral-small-latest }
     - { provider: openrouter, model: meta-llama/llama-3.3-70b-instruct:free }
     - { provider: ollama, model: qwen3:14b }
-  context_window: 2            # number of previous pages as context (default: 2)
+  context_window: 2
+  retry:
+    max_attempts: 3
+    backoff_seconds: 2
 
 # Write phase — output rendering
 write:
-  formats: [ md, pdf ]           # output formats (default: [md, pdf])
-    # options: md, latex, pdf, docx
-    # "pdf" implies LaTeX generation + Docker compilation
-  # "latex" generates only .tex
-  expand_sources: true         # expand source abbreviations in output
-  latex_docker_image: mutercim/xelatex:latest
+  formats: [ md, pdf ]           # options: md, latex, pdf, docx
+  expand_sources: true
 
 # Knowledge: list of YAML files and/or directories (default: [./knowledge])
-# Directories include all .yaml/.yml files.
 knowledge:
   - ./knowledge
   # - ./extra-terms.yaml
-
-# Retry settings for API calls
-retry:
-  max_attempts: 3              # retries per API call (default: 3)
-  backoff_seconds: 2           # base exponential backoff (default: 2)
-
-# Global rate limit fallback (per-model RPM in ModelSpec takes precedence)
-rate_limit:
-  requests_per_minute: 14
 ```
 
 ### ModelSpec fields
@@ -262,10 +249,10 @@ my-book/                       # workspace root
 │           └── ...
 └── write/                     # [generated] final output files per language
     └── tr/
-        ├── el-Câmius-Sağîr.md
-        ├── el-Câmius-Sağîr.tex
-        ├── el-Câmius-Sağîr.pdf
-        └── el-Câmius-Sağîr.docx
+        ├── book.md
+        ├── book.tex
+        ├── book.pdf
+        └── book.docx
 ```
 
 Directories marked `[user]` are provided by the user and never deleted by `clean`.

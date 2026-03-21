@@ -101,17 +101,18 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 	}
 
 	ranges := contiguousRanges(pages)
-	logger.Info("converting PDF to images", "input", inputPath, "dpi", opts.Config.DPI, "ranges", len(ranges))
+	dpi := opts.Config.Pages.DPI
+	logger.Info("converting PDF to images", "input", inputPath, "dpi", dpi, "ranges", len(ranges))
 	if opts.Display != nil {
 		opts.Display.StartPhase(display.PhasePages, stem, 0, "")
 		opts.Display.SetStatus(display.StatusLine{
-			Text:      fmt.Sprintf("converting %s to images (dpi %d)", filepath.Base(inputPath), opts.Config.DPI),
+			Text:      fmt.Sprintf("converting %s to images (dpi %d)", filepath.Base(inputPath), dpi),
 			StartedAt: time.Now(),
 		})
 	}
 	dockerDir := docker.FindDockerDir("poppler")
 	for _, r := range ranges {
-		if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, opts.Config.DPI, r[0], r[1], dockerDir); err != nil {
+		if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, dpi, r[0], r[1], dockerDir); err != nil {
 			if opts.Display != nil {
 				opts.Display.StartPhase(display.PhasePages, stem, 1, "")
 				opts.Display.Update(display.PageResult{

@@ -4,14 +4,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 func TestLoadDefaults(t *testing.T) {
-	// Load with minimal config file (source_langs is required)
+	// Load with minimal config file (inputs[].languages is required)
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("book:\n  source_langs: [ar]\n"), 0644)
+	os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0644)
 	origDir, _ := os.Getwd()
 	os.Chdir(dir)
 	defer os.Chdir(origDir)
@@ -21,8 +19,8 @@ func TestLoadDefaults(t *testing.T) {
 		t.Fatalf("Load() error = %v", err)
 	}
 
-	if cfg.DPI != 300 {
-		t.Errorf("DPI = %d, want 300", cfg.DPI)
+	if cfg.Pages.DPI != 300 {
+		t.Errorf("Pages.DPI = %d, want 300", cfg.Pages.DPI)
 	}
 	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "gemini" {
 		t.Errorf("Read.Models = %+v, want [{gemini gemini-2.0-flash}]", cfg.Read.Models)
@@ -30,14 +28,11 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Translate.ContextWindow != 2 {
 		t.Errorf("Translate.ContextWindow = %d, want 2", cfg.Translate.ContextWindow)
 	}
-	if cfg.Retry.MaxAttempts != 3 {
-		t.Errorf("Retry.MaxAttempts = %d, want 3", cfg.Retry.MaxAttempts)
+	if cfg.Read.Retry.MaxAttempts != 3 {
+		t.Errorf("Read.Retry.MaxAttempts = %d, want 3", cfg.Read.Retry.MaxAttempts)
 	}
-	if cfg.RateLimit.RequestsPerMinute != 14 {
-		t.Errorf("RateLimit.RequestsPerMinute = %d, want 14", cfg.RateLimit.RequestsPerMinute)
-	}
-	if cfg.Book.PrimarySourceLang() != "ar" {
-		t.Errorf("PrimarySourceLang() = %q, want %q", cfg.Book.PrimarySourceLang(), "ar")
+	if cfg.PrimarySourceLang() != "ar" {
+		t.Errorf("PrimarySourceLang() = %q, want %q", cfg.PrimarySourceLang(), "ar")
 	}
 	if len(cfg.Translate.Models) != 1 {
 		t.Fatalf("Translate.Models len = %d, want 1", len(cfg.Translate.Models))
@@ -48,17 +43,17 @@ func TestLoadFromFile(t *testing.T) {
 	dir := t.TempDir()
 
 	yaml := `
-book:
-  title: "Test Book"
-  source_langs: [ar]
-  target_langs: [tr]
-dpi: 600
+inputs:
+  - path: ./input
+    languages: [ar]
+pages:
+  dpi: 600
 read:
   models:
     - provider: claude
       model: claude-sonnet-4-20250514
-rate_limit:
-  requests_per_minute: 50
+translate:
+  languages: [tr]
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
 	os.WriteFile(configPath, []byte(yaml), 0644)
@@ -68,11 +63,8 @@ rate_limit:
 		t.Fatalf("Load() error = %v", err)
 	}
 
-	if cfg.Book.Title != "Test Book" {
-		t.Errorf("Book.Title = %q, want %q", cfg.Book.Title, "Test Book")
-	}
-	if cfg.DPI != 600 {
-		t.Errorf("DPI = %d, want 600", cfg.DPI)
+	if cfg.Pages.DPI != 600 {
+		t.Errorf("Pages.DPI = %d, want 600", cfg.Pages.DPI)
 	}
 	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "claude" || cfg.Read.Models[0].Model != "claude-sonnet-4-20250514" {
 		t.Errorf("Read.Models = %+v, want [{Provider:claude Model:claude-sonnet-4-20250514}]", cfg.Read.Models)
@@ -80,9 +72,6 @@ rate_limit:
 	// Default should still apply for unset fields
 	if cfg.Read.Concurrency != 1 {
 		t.Errorf("Read.Concurrency = %d, want 1 (default)", cfg.Read.Concurrency)
-	}
-	if cfg.RateLimit.RequestsPerMinute != 50 {
-		t.Errorf("RateLimit.RequestsPerMinute = %d, want 50", cfg.RateLimit.RequestsPerMinute)
 	}
 }
 
@@ -93,13 +82,15 @@ func TestValidate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "empty config fails (source_langs required)",
+			name:    "empty config fails (languages required)",
 			cfg:     Config{},
 			wantErr: true,
 		},
 		{
-			name:    "config with source_langs is valid",
-			cfg:     Config{Book: model.Book{SourceLangs: []string{"ar"}}},
+			name: "config with input languages is valid",
+			cfg: Config{
+				Inputs: []InputSpec{{Path: "./input", Languages: []string{"ar"}}},
+			},
 			wantErr: false,
 		},
 	}
@@ -134,11 +125,11 @@ func TestIsPDF(t *testing.T) {
 func TestInputsList(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
-book:
-  source_langs: [ar]
 inputs:
   - path: ./input/vol1.pdf
+    languages: [ar]
   - path: ./input/vol2.pdf
+    languages: [ar]
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
 	os.WriteFile(configPath, []byte(yaml), 0644)
@@ -161,14 +152,15 @@ inputs:
 func TestInputsWithPerInputPages(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
-book:
-  source_langs: [ar]
 inputs:
   - path: ./input/vol1.pdf
     pages: "1-50"
+    languages: [ar]
   - path: ./input/vol2.pdf
     pages: "10-20"
+    languages: [ar]
   - path: ./input/vol3.pdf
+    languages: [ar]
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
 	os.WriteFile(configPath, []byte(yaml), 0644)
@@ -194,8 +186,9 @@ inputs:
 func TestModelsFailoverChainConfig(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
-book:
-  source_langs: [ar]
+inputs:
+  - path: ./input
+    languages: [ar]
 read:
   models:
     - provider: gemini
@@ -247,9 +240,11 @@ translate:
 func TestModelsDefaultWhenOmitted(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
-book:
-  source_langs: [ar]
-dpi: 300
+inputs:
+  - path: ./input
+    languages: [ar]
+pages:
+  dpi: 300
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
 	os.WriteFile(configPath, []byte(yaml), 0644)

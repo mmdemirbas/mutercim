@@ -10,7 +10,6 @@ import (
 // InitOptions configures workspace initialization.
 type InitOptions struct {
 	Dir         string
-	Title       string
 	SourceLangs string // comma-separated, e.g. "ar" or "ar,fa"
 	TargetLangs string // comma-separated, e.g. "tr" or "tr,en"
 }
@@ -56,7 +55,7 @@ func Init(opts InitOptions) (*Workspace, error) {
 	}
 
 	// Write config file
-	config := generateConfig(opts, sourceLangs, targetLangs)
+	config := generateConfig(sourceLangs, targetLangs)
 	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
 		return nil, fmt.Errorf("write config: %w", err)
 	}
@@ -70,58 +69,35 @@ func Init(opts InitOptions) (*Workspace, error) {
 	return &Workspace{Root: root}, nil
 }
 
-func generateConfig(opts InitOptions, sourceLangs, targetLangs []string) string {
-	title := opts.Title
-	if title == "" {
-		title = "Untitled Book"
-	}
-	return fmt.Sprintf(`book:
-  title: %q
-  source_langs: [%s]
-  target_langs: [%s]
+func generateConfig(sourceLangs, targetLangs []string) string {
+	return fmt.Sprintf(`# Input files or directories (relative to workspace root)
+inputs:
+  - path: ./input
+    languages: [%s]
 
-# Input files or directories (relative to workspace root)
-# Simple:       inputs: [./input/book.pdf]
-# Per-input pages:
-#   inputs:
-#     - path: ./input/vol1.pdf
-#       pages: "1-50"
-#     - path: ./input/vol2.pdf
-#       pages: "10-20"
-inputs: [./input]
+pages:
+  dpi: 300
 
-# Page range to process: "1-50", "1,5,10-20", "all"
-# pages: all
-
-dpi: 300
-
-# Model configuration
 read:
-  provider: gemini
-  model: gemini-2.0-flash
+  layout_tool: doclayout-yolo
+  models:
+    - provider: gemini
+      model: gemini-2.0-flash
   concurrency: 1
 
 translate:
-  provider: gemini
-  model: gemini-2.0-flash
+  languages: [%s]
+  models:
+    - provider: gemini
+      model: gemini-2.0-flash
   context_window: 2
 
 write:
   formats: [md, pdf]
   expand_sources: true
-  latex_docker_image: mutercim/xelatex:latest
 
-# Knowledge: files and/or directories (relative to workspace root)
 knowledge: [./knowledge]
-
-# Processing behavior
-retry:
-  max_attempts: 3
-  backoff_seconds: 2
-
-rate_limit:
-  requests_per_minute: 14
-`, title, strings.Join(sourceLangs, ", "), strings.Join(targetLangs, ", "))
+`, strings.Join(sourceLangs, ", "), strings.Join(targetLangs, ", "))
 }
 
 const glossaryScaffold = `# Glossary entries for translation knowledge.

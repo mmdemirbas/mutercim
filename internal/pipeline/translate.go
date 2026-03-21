@@ -42,7 +42,7 @@ func Translate(ctx context.Context, opts TranslateOptions) (PhaseResult, error) 
 	ws := opts.Workspace
 	cfg := opts.Config
 
-	if len(cfg.Book.TargetLangs) == 0 {
+	if len(cfg.Translate.Languages) == 0 {
 		return PhaseResult{}, fmt.Errorf("no target languages configured")
 	}
 
@@ -65,14 +65,14 @@ func Translate(ctx context.Context, opts TranslateOptions) (PhaseResult, error) 
 
 	// Translate for each target language
 	var total PhaseResult
-	for _, targetLang := range cfg.Book.TargetLangs {
+	for _, targetLang := range cfg.Translate.Languages {
 		logger.Info("translating to language", "target", targetLang)
 
 		translator := translation.NewTranslator(
 			opts.Provider,
 			opts.Knowledge,
 			cfg.Write.ExpandSources,
-			cfg.Book.SourceLangs,
+			cfg.SourceLanguages(),
 			targetLang,
 			logger,
 		)
@@ -174,7 +174,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	failed := 0
 	skipped := 0
 
-	maxFailPct := opts.Config.Retry.MaxFailPercent
+	maxFailPct := opts.Config.Translate.Retry.MaxFailPercent
 	for _, pf := range pages {
 		if ctx.Err() != nil {
 			break

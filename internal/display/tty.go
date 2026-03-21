@@ -261,10 +261,6 @@ func (d *TTYDisplay) render() {
 // renderHeaderTo writes the header to a buffer and returns the line count.
 func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int {
 	lines := 0
-	if h.BookTitle != "" {
-		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Book")), colors.Bold(h.BookTitle))
-		lines++
-	}
 	if h.InputName != "" {
 		info := h.InputName
 		if h.PageRange != "" && h.InputPages > 0 {

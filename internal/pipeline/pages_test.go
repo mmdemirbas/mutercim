@@ -21,7 +21,7 @@ func TestPagesSkipsImageDirectory(t *testing.T) {
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Inputs: []config.InputSpec{{Path: imagesDir}},
-		DPI:    300,
+		Pages:  config.PagesConfig{DPI: 300},
 	}
 
 	err := Pages(context.Background(), PagesOptions{
@@ -98,7 +98,7 @@ func TestPagesPerInputPages(t *testing.T) {
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Inputs: []config.InputSpec{{Path: imagesDir, Pages: "1-5"}},
-		DPI:    300,
+		Pages:  config.PagesConfig{DPI: 300},
 	}
 
 	err := Pages(context.Background(), PagesOptions{

@@ -25,7 +25,7 @@ func TestLoad_EmptyFile(t *testing.T) {
 
 	_, err := Load(path)
 	if err == nil {
-		t.Fatal("expected error for empty file (source_langs required)")
+		t.Fatal("expected error for empty file (languages required)")
 	}
 }
 
@@ -39,31 +39,31 @@ func TestLoad_NonexistentFile(t *testing.T) {
 func TestLoad_MinimalValidConfig(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte("book:\n  title: \"Test\"\n  source_langs: [ar]\ninputs:\n  - path: ./input\n"), 0644)
+	os.WriteFile(path, []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0644)
 
 	cfg, err := Load(path)
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
-	if cfg.Book.Title != "Test" {
-		t.Errorf("title = %q, want %q", cfg.Book.Title, "Test")
+	if cfg.PrimarySourceLang() != "ar" {
+		t.Errorf("PrimarySourceLang() = %q, want %q", cfg.PrimarySourceLang(), "ar")
 	}
 }
 
 func TestLoad_DefaultsApplied(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte("book:\n  title: X\n  source_langs: [ar]\n"), 0644)
+	os.WriteFile(path, []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0644)
 
 	cfg, err := Load(path)
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)
 	}
-	if cfg.Retry.MaxAttempts != 3 {
-		t.Errorf("Retry.MaxAttempts = %d, want 3", cfg.Retry.MaxAttempts)
+	if cfg.Read.Retry.MaxAttempts != 3 {
+		t.Errorf("Read.Retry.MaxAttempts = %d, want 3", cfg.Read.Retry.MaxAttempts)
 	}
-	if cfg.DPI != 300 {
-		t.Errorf("DPI = %d, want 300", cfg.DPI)
+	if cfg.Pages.DPI != 300 {
+		t.Errorf("Pages.DPI = %d, want 300", cfg.Pages.DPI)
 	}
 }
 
@@ -71,11 +71,9 @@ func TestLoad_ValidateCalledWithInvalidPages(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
 
-	yaml := `book:
-  title: "Test"
-  source_langs: [ar]
-inputs:
+	yaml := `inputs:
   - path: ./input
+    languages: [ar]
     pages: "not-a-range"
 `
 	os.WriteFile(path, []byte(yaml), 0644)
@@ -93,11 +91,9 @@ func TestLoad_ValidateCalledWithValidPages(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
 
-	yaml := `book:
-  title: "Test"
-  source_langs: [ar]
-inputs:
+	yaml := `inputs:
   - path: ./input
+    languages: [ar]
     pages: "1-50"
 `
 	os.WriteFile(path, []byte(yaml), 0644)
@@ -111,16 +107,16 @@ inputs:
 	}
 }
 
-func TestLoad_MissingSourceLangs(t *testing.T) {
+func TestLoad_MissingLanguages(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte("book:\n  title: X\n"), 0644)
+	os.WriteFile(path, []byte("inputs:\n  - path: ./input\n"), 0644)
 
 	_, err := Load(path)
 	if err == nil {
-		t.Fatal("expected error for missing source_langs")
+		t.Fatal("expected error for missing languages")
 	}
-	if !strings.Contains(err.Error(), "source_langs") {
-		t.Errorf("error should mention source_langs: %v", err)
+	if !strings.Contains(err.Error(), "languages") {
+		t.Errorf("error should mention languages: %v", err)
 	}
 }

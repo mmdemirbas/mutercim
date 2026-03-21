@@ -1,47 +1,12 @@
 # yaml-language-server: $schema=../config/mutercim.schema.json
-#
-# mutercim — full configuration reference
-#
-# All keys shown below with their default values and allowed options.
-# Copy this file to your workspace root as "mutercim.yaml" and customize.
 
-# ─── Book metadata ───────────────────────────────────────────────────────────
-
-book:
-  title: "Anfas1-demo"               # Book title — used as output filename: write/tr/<title>.md, .tex, .pdf, .docx
-                                     #   OS-prohibited chars replaced with -, falls back to "book" if empty
-  source_langs: [ ar ]               # Source language codes — primary (first) used for source markdown and AI prompts
-  target_langs: [ ar, en, tr ]       # Target language codes — each gets its own translate/ and write/ subdirectory
-
-# ─── Inputs ──────────────────────────────────────────────────────────────────
-#
-# Input files or directories to process.
-# PDFs are converted to page images via pdftoppm; image directories used as-is.
-# Filename stem (e.g. "vol1" from "vol1.pdf") becomes subdirectory name under pages/, read/, solve/.
-# Multiple inputs are processed independently, then merged in the write phase.
-#
-#   inputs:
-#     - path: ./input/vol1.pdf
-#       pages: "1-50"
-#     - path: ./input/vol2.pdf
-#       pages: "10-20,30-40"
-#     - path: ./input/vol3.pdf       # all pages (default when pages omitted)
-
-inputs:
-  - path: ./Anfas1.pdf               # Path to input PDF or image directory (relative to workspace root)
-    pages: "156"                     # Page range for this input: "1-10,20-30" or "all" (default)
-
-# Knowledge: list of YAML files and/or directories.
-# Directories include all .yaml/.yml files. Merged with auto-extracted memory/ entries.
-knowledge:
-  #- ./knowledge                     # directory: loads all .yaml/.yml files inside
-  - ./glossary.yaml                  # file: loaded directly
-
+inputs: [ { path: ./Anfas1.pdf, pages: "156", languages: [ ar ] } ]
+knowledge: [ ./glossary.yaml ]
 output: ./output
 
-# ─── PDF conversion ──────────────────────────────────────────────────────────
-
-dpi: 300                             # DPI for PDF-to-image conversion (min: 72) — higher = better OCR, larger files
+# ─── Pages phase (PDF → images) ─────────────────────────────────────────────
+pages:
+  dpi: 300 # DPI for PDF-to-image conversion (min: 72) — higher = better OCR, larger files
 
 # ─── Read phase (OCR/vision) ─────────────────────────────────────────────────
 #
@@ -66,11 +31,11 @@ dpi: 300                             # DPI for PDF-to-image conversion (min: 72)
 
 read:
   layout_tool: "doclayout-yolo"      # Layout detection tool (default: doclayout-yolo)
-                                     #   "doclayout-yolo" — DocLayout-YOLO: detects document structure (headers, columns,
-                                     #     footnotes, tables). Best for multi-column layouts. Requires Docker + image.
-                                     #   "surya" — Surya OCR: detects text lines with preliminary OCR. Requires Docker + image.
-                                     #   "" — AI-only: vision model handles both layout detection and text extraction
-  models:                            # Ordered failover chain — first is primary
+  #   "doclayout-yolo" — DocLayout-YOLO: detects document structure (headers, columns,
+  #     footnotes, tables). Best for multi-column layouts. Requires Docker + image.
+  #   "surya" — Surya OCR: detects text lines with preliminary OCR. Requires Docker + image.
+  #   "" — AI-only: vision model handles both layout detection and text extraction
+  models: # Ordered failover chain — first is primary
     # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
     - { provider: gemini, model: gemini-2.5-flash-lite }
     # 2. Gemini Flash: higher quality, lower quota (250 RPD, 10 RPM)
@@ -82,6 +47,9 @@ read:
     # 5. Local fallback: always available, slow
     - { provider: ollama, model: qwen2.5vl:7b }
   concurrency: 1                     # Parallel read workers (min: 1) — currently only 1 supported
+  retry:
+    max_attempts: 0                  # Max retries per API call before marking page as failed (min: 0)
+    backoff_seconds: 2               # Base backoff in seconds, exponential: 2s, 4s, 8s... (min: 1)
 
 # ─── Translation phase ───────────────────────────────────────────────────────
 #
@@ -90,7 +58,8 @@ read:
 # Glossary knowledge is injected into the system prompt.
 
 translate:
-  models:                            # Ordered failover chain — vision not required
+  languages: [ ar, en, tr ]           # Target languages — each gets its own translate/ and write/ subdirectory
+  models: # Ordered failover chain — vision not required
     # 1. Groq: fastest inference, good Arabic (1,000 RPD, 30 RPM)
     - { provider: groq, model: llama-3.3-70b-versatile }
     # 2. Gemini Flash-Lite: good quality (1,000 RPD, 15 RPM)
@@ -110,26 +79,8 @@ translate:
 # ─── Write phase ─────────────────────────────────────────────────────────────
 #
 # Renders translated data into final output files under write/<lang>/.
-# Files are named after book.title (sanitized).
+# Output files are named "book" (fixed).
 
 write:
-  formats: [md, latex, docx, pdf]    # Output formats: md | latex (.tex only) | pdf (.tex + compile) | docx (via pandoc)
+  formats: [ md, latex, docx, pdf ]    # Output formats: md | latex (.tex only) | pdf (.tex + compile) | docx (via pandoc)
   expand_sources: true               # Expand source abbreviations in output (e.g. خ → Sahîh-i Buhârî)
-  latex_docker_image: mutercim/xelatex:latest  # Docker image for LaTeX→PDF compilation (needs xelatex + Arabic fonts)
-
-# ─── Retry settings ──────────────────────────────────────────────────────────
-#
-# Applies to both read and translate API calls.
-# Respects Retry-After headers (capped at 30s).
-
-retry:
-  max_attempts: 0                    # Max retries per API call before marking page as failed (min: 0)
-  backoff_seconds: 2                 # Base backoff in seconds, exponential: 2s, 4s, 8s... (min: 1)
-
-# ─── Rate limiting (global fallback) ─────────────────────────────────────────
-#
-# Per-model RPM in the models list takes precedence.
-# Only used when a model doesn't specify its own rpm value.
-
-rate_limit:
-  requests_per_minute: 14            # Max API requests per minute (min: 1)

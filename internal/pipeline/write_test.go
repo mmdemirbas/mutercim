@@ -59,7 +59,10 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config) {
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
-		Book: model.Book{Title: "TestBook", SourceLangs: []string{"ar"}, TargetLangs: []string{"tr"}},
+		Inputs: []config.InputSpec{{Path: "./input", Languages: []string{"ar"}}},
+		Translate: config.TranslateConfig{
+			Languages: []string{"tr"},
+		},
 		Write: config.WriteConfig{
 			Formats:       []string{"md"},
 			ExpandSources: true,
@@ -81,7 +84,7 @@ func TestWriteMarkdown(t *testing.T) {
 	}
 
 	// Check target language markdown was written
-	trPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.md")
+	trPath := filepath.Join(ws.WriteDir(), "tr", "book.md")
 	data, err := os.ReadFile(trPath)
 	if err != nil {
 		t.Fatalf("read target markdown: %v", err)
@@ -91,7 +94,7 @@ func TestWriteMarkdown(t *testing.T) {
 	}
 
 	// Check source language markdown was written
-	arPath := filepath.Join(ws.WriteDir(), "ar", "TestBook.md")
+	arPath := filepath.Join(ws.WriteDir(), "ar", "book.md")
 	data, err = os.ReadFile(arPath)
 	if err != nil {
 		t.Fatalf("read source markdown: %v", err)
@@ -114,7 +117,7 @@ func TestWriteLatex(t *testing.T) {
 	}
 
 	// Check .tex was written to lang root with title-based name
-	texPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.tex")
+	texPath := filepath.Join(ws.WriteDir(), "tr", "book.tex")
 	data, err := os.ReadFile(texPath)
 	if err != nil {
 		t.Fatalf("read latex: %v", err)
@@ -146,7 +149,7 @@ func TestWritePartialFailure_DocxWithoutPandoc(t *testing.T) {
 		t.Fatalf("Write() should not error on partial success, got: %v", err)
 	}
 
-	mdPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.md")
+	mdPath := filepath.Join(ws.WriteDir(), "tr", "book.md")
 	if _, err := os.Stat(mdPath); err != nil {
 		t.Error("md should have been written despite docx failure")
 	}
@@ -178,7 +181,7 @@ func TestWriteLatexWithoutDocker(t *testing.T) {
 		t.Fatalf("Write() should not error on partial success, got: %v", err)
 	}
 
-	texPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.tex")
+	texPath := filepath.Join(ws.WriteDir(), "tr", "book.tex")
 	if _, err := os.Stat(texPath); err != nil {
 		t.Error(".tex should have been written regardless of docker availability")
 	}

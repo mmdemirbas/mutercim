@@ -8,7 +8,6 @@ import (
 
 // StatusData holds all data needed to render the status dashboard.
 type StatusData struct {
-	BookTitle   string
 	InputName   string
 	InputPages  int // total pages from images dir
 	PageRange   string
@@ -30,7 +29,6 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 
 	// Header — uses same shared renderer as live dashboard
 	RenderHeader(w, HeaderData{
-		BookTitle:   data.BookTitle,
 		InputName:   data.InputName,
 		InputPages:  data.InputPages,
 		PageRange:   data.PageRange,

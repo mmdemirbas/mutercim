@@ -61,10 +61,7 @@ func newSolveCmd() *cobra.Command {
 				}
 			}
 
-			sourceLang := ""
-			if len(cfg.Book.SourceLangs) > 0 {
-				sourceLang = cfg.Book.SourceLangs[0]
-			}
+			sourceLang := cfg.PrimarySourceLang()
 
 			_, err = pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
 				Workspace:      ws,

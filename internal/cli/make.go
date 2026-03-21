@@ -73,11 +73,10 @@ func newAllCmd() *cobra.Command {
 					}
 				}
 				disp.SetHeader(display.HeaderData{
-					BookTitle:   cfg.Book.Title,
 					InputName:   inputName,
 					PageRange:   pageSpec,
-					SourceLangs: cfg.Book.SourceLangs,
-					TargetLangs: cfg.Book.TargetLangs,
+					SourceLangs: cfg.SourceLanguages(),
+					TargetLangs: cfg.Translate.Languages,
 				})
 			}
 			var pagesToProcess []int
@@ -107,7 +106,7 @@ func newAllCmd() *cobra.Command {
 
 			// Phase 1: Read
 			logger.Info("=== Phase 1: READ ===")
-			readChain, err := createProviderChain(cfg.Read.Models, cfg.Retry, logger)
+			readChain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, logger)
 			if err != nil {
 				return fmt.Errorf("create read providers: %w", err)
 			}
@@ -138,10 +137,7 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("load knowledge: %w", err)
 			}
 
-			sourceLang := ""
-			if len(cfg.Book.SourceLangs) > 0 {
-				sourceLang = cfg.Book.SourceLangs[0]
-			}
+			sourceLang := cfg.PrimarySourceLang()
 
 			solveResult, err := pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
 				Workspace:      ws,
@@ -163,7 +159,7 @@ func newAllCmd() *cobra.Command {
 
 			// Phase 3: Translate
 			logger.Info("=== Phase 3: TRANSLATE ===")
-			translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Retry, logger)
+			translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Translate.Retry, logger)
 			if err != nil {
 				return fmt.Errorf("create translate providers: %w", err)
 			}

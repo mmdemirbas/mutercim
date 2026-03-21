@@ -12,7 +12,6 @@ import (
 
 var (
 	initNonInteractive bool
-	initTitle          string
 	initSourceLangs    string
 	initTargetLangs    string
 )
@@ -26,7 +25,6 @@ func newInitCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&initNonInteractive, "non-interactive", false, "scaffold workspace with defaults, no prompts")
-	cmd.Flags().StringVar(&initTitle, "title", "", "book title (non-interactive mode)")
 	cmd.Flags().StringVar(&initSourceLangs, "source-langs", "ar", "source languages, comma-separated (e.g. ar,fa)")
 	cmd.Flags().StringVar(&initTargetLangs, "target-langs", "tr", "target languages, comma-separated (e.g. tr,en)")
 
@@ -35,21 +33,16 @@ func newInitCmd() *cobra.Command {
 
 func runInit(cmd *cobra.Command, args []string) error {
 	opts := workspace.InitOptions{
-		Title:       initTitle,
 		SourceLangs: initSourceLangs,
 		TargetLangs: initTargetLangs,
 	}
 
-	if !initNonInteractive && initTitle == "" {
+	if !initNonInteractive {
 		// Interactive mode: prompt for inputs
 		reader := bufio.NewReader(os.Stdin)
 
-		fmt.Print("Book title: ")
-		line, _ := reader.ReadString('\n')
-		opts.Title = strings.TrimSpace(line)
-
 		fmt.Printf("Source languages (comma-separated) [%s]: ", initSourceLangs)
-		line, _ = reader.ReadString('\n')
+		line, _ := reader.ReadString('\n')
 		if sl := strings.TrimSpace(line); sl != "" {
 			opts.SourceLangs = sl
 		}

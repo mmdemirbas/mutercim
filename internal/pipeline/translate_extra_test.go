@@ -41,7 +41,7 @@ func TestTranslatePipeline_ContextCancelled(t *testing.T) {
 func TestTranslatePipeline_NoTargetLangs(t *testing.T) {
 	stem := "testbook"
 	ws, cfg := setupTranslateWorkspace(t, stem, map[int]*model.SolvedRegionPage{1: makeSolvedRegionPage(1)})
-	cfg.Book.TargetLangs = nil
+	cfg.Translate.Languages = nil
 
 	_, err := Translate(context.Background(), TranslateOptions{
 		Workspace: ws, Config: cfg,
@@ -123,10 +123,9 @@ func TestWritePipeline_DocxFailsContinuesOtherFormats(t *testing.T) {
 
 	// Config requesting md + docx (docx will fail because pandoc may not be installed or md not yet written when docx runs first)
 	cfg := &config.Config{
-		Book: model.Book{
-			Title:       "Test",
-			SourceLangs: []string{"ar"},
-			TargetLangs: []string{"tr"},
+		Inputs: []config.InputSpec{{Path: "./input", Languages: []string{"ar"}}},
+		Translate: config.TranslateConfig{
+			Languages: []string{"tr"},
 		},
 		Write: config.WriteConfig{
 			Formats: []string{"md", "docx"},
@@ -146,7 +145,7 @@ func TestWritePipeline_DocxFailsContinuesOtherFormats(t *testing.T) {
 	}
 
 	// Verify markdown was written
-	mdPath := filepath.Join(ws.WriteDir(), "tr", "Test.md")
+	mdPath := filepath.Join(ws.WriteDir(), "tr", "book.md")
 	if _, statErr := os.Stat(mdPath); statErr != nil {
 		t.Errorf("expected markdown output at %s: %v", mdPath, statErr)
 	}
@@ -168,10 +167,9 @@ func TestWritePipeline_AllFormatsFailReturnsError(t *testing.T) {
 	os.WriteFile(filepath.Join(translatedDir, "001.json"), data, 0644)
 
 	cfg := &config.Config{
-		Book: model.Book{
-			Title:       "Test",
-			SourceLangs: []string{"ar"},
-			TargetLangs: []string{"tr"},
+		Inputs: []config.InputSpec{{Path: "./input", Languages: []string{"ar"}}},
+		Translate: config.TranslateConfig{
+			Languages: []string{"tr"},
 		},
 		Write: config.WriteConfig{
 			// Only request formats that will fail: pdf (no docker), docx (no pandoc likely)

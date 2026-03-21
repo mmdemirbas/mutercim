@@ -11,7 +11,6 @@ func TestInit(t *testing.T) {
 
 	ws, err := Init(InitOptions{
 		Dir:         dir,
-		Title:       "Test Book",
 		SourceLangs: "ar",
 		TargetLangs: "tr",
 	})
@@ -46,8 +45,8 @@ func TestInit(t *testing.T) {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
 	content := string(data)
-	if !contains(content, "Test Book") {
-		t.Error("config missing title")
+	if !contains(content, "languages: [ar]") {
+		t.Error("config missing source language")
 	}
 }
 
@@ -79,11 +78,11 @@ func TestInitDefaults(t *testing.T) {
 	}
 	content := string(data)
 
-	if !contains(content, "source_langs: [ar]") {
-		t.Error("config missing default source_langs")
+	if !contains(content, "languages: [ar]") {
+		t.Error("config missing default source language")
 	}
-	if !contains(content, "target_langs: [tr]") {
-		t.Error("config missing default target_langs")
+	if !contains(content, "languages: [tr]") {
+		t.Error("config missing default target language")
 	}
 }
 

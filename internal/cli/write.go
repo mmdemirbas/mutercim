@@ -14,8 +14,7 @@ import (
 
 func newWriteCmd() *cobra.Command {
 	var (
-		formats          string
-		latexDockerImage string
+		formats string
 	)
 
 	cmd := &cobra.Command{
@@ -55,9 +54,6 @@ func newWriteCmd() *cobra.Command {
 				}
 				cfg.Write.Formats = fmts
 			}
-			if latexDockerImage != "" {
-				cfg.Write.LaTeXDockerImage = latexDockerImage
-			}
 			// Determine page range
 			pageSpec := pages
 			var pagesToProcess []int
@@ -90,7 +86,6 @@ func newWriteCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&formats, "format", "", "output formats, comma-separated: md,latex,pdf,docx (overridden by positional args)")
-	cmd.Flags().StringVar(&latexDockerImage, "latex-docker-image", "", "Docker image for LaTeX compilation (default: from config)")
 
 	return cmd
 }
