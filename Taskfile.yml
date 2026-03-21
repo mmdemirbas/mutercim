@@ -35,8 +35,7 @@ tasks:
     desc: Install mutercim and set up shell completion
     cmds:
       - go install ./cmd/mutercim
-      - mkdir -p ~/.zfunc
-      - mutercim completion zsh > ~/.zfunc/_mutercim
+      - mutercim completion install
 
   uninstall:
     desc: Remove mutercim binary and shell completion

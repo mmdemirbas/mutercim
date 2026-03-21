@@ -36,7 +36,7 @@ Items are ordered by priority within each tier. Check off as completed.
 - [ ] Parallel processing for pages and read phases
 - [ ] Side-by-side bilingual LaTeX output (ar+tr on same page)
 - [ ] System-wide config at `~/.config/mutercim/` for API keys and default models
-- [ ] Shell completions — `mutercim completion bash/zsh/fish`
+- [x] Shell completions — `mutercim completion install` auto-detects shell and installs; bash/zsh/fish
 - [ ] `mutercim init --from-url` — download PDF directly
 
 ## Out of scope

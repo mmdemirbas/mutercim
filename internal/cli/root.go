@@ -30,8 +30,9 @@ func NewRootCmd() *cobra.Command {
 		Short: "Translate Islamic scholarly books between languages",
 		Long: `mutercim (مترجم) — a CLI tool that translates Islamic scholarly books
 between languages, preserving layout, structure, and domain-specific terminology.`,
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		SilenceUsage:      true,
+		SilenceErrors:     true,
+		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// Load .env and .envrc from current directory
 			loadEnvFile(".env")
@@ -108,6 +109,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 		ordered(2, newStatusCmd()),
 		ordered(3, newConfigCmd()),
 		ordered(4, newCleanCmd()),
+		ordered(5, newCompletionCmd(rootCmd)),
 	)
 
 	// Custom help template with colors
