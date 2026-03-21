@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
@@ -103,6 +104,13 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 		lastPage = pages[len(pages)-1]
 	}
 	logger.Info("converting PDF to images", "input", inputPath, "dpi", opts.Config.DPI, "first", firstPage, "last", lastPage)
+	if opts.Display != nil {
+		opts.Display.StartPhase(display.PhasePages, stem, 0, "")
+		opts.Display.SetStatus(display.StatusLine{
+			Text:      fmt.Sprintf("converting %s to images (dpi %d)", filepath.Base(inputPath), opts.Config.DPI),
+			StartedAt: time.Now(),
+		})
+	}
 	if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, opts.Config.DPI, firstPage, lastPage); err != nil {
 		if opts.Display != nil {
 			opts.Display.StartPhase(display.PhasePages, stem, 1, "")
@@ -113,6 +121,10 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 			opts.Display.FinishPhase(display.PhasePages, stem, "")
 		}
 		return fmt.Errorf("convert PDF %s: %w", inputPath, err)
+	}
+
+	if opts.Display != nil {
+		opts.Display.SetStatus(display.StatusLine{}) // clear conversion status
 	}
 
 	// Count resulting images

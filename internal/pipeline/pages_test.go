@@ -16,7 +16,7 @@ func TestPagesSkipsImageDirectory(t *testing.T) {
 	// Input is a directory (not a PDF) — should be a no-op
 	imagesDir := filepath.Join(dir, "input", "scanned")
 	os.MkdirAll(imagesDir, 0755)
-	os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake"), 0644)
+	os.WriteFile(filepath.Join(imagesDir, "001.png"), []byte("fake"), 0644)
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
@@ -63,7 +63,7 @@ func TestPagesPerInputPages(t *testing.T) {
 
 	imagesDir := filepath.Join(dir, "input", "scans")
 	os.MkdirAll(imagesDir, 0755)
-	os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake"), 0644)
+	os.WriteFile(filepath.Join(imagesDir, "001.png"), []byte("fake"), 0644)
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{

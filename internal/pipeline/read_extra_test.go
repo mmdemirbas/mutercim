@@ -39,7 +39,7 @@ func (c *countingProvider) Translate(_ context.Context, _, _ string) (string, er
 }
 
 func TestReadPipeline_ContextCancelledAfterFirstPage(t *testing.T) {
-	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png", "page-03.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "001.png", "002.png", "003.png")
 
 	response := `{"regions": [{"id": "r1", "bbox": [0,0,100,100], "text": "text", "type": "entry"}], "reading_order": ["r1"], "warnings": []}`
 
@@ -66,7 +66,7 @@ func TestReadPipeline_ContextCancelledAfterFirstPage(t *testing.T) {
 }
 
 func TestReadPipeline_ContextCancelledPreLoop(t *testing.T) {
-	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "001.png", "002.png")
 
 	response := `{"regions": [], "reading_order": [], "warnings": []}`
 
@@ -87,7 +87,7 @@ func TestReadPipeline_ContextCancelledPreLoop(t *testing.T) {
 }
 
 func TestReadPipeline_ForceReprocesses(t *testing.T) {
-	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "001.png")
 
 	response := `{"regions": [{"id": "r1", "bbox": [0,0,100,100], "text": "new", "type": "entry"}], "reading_order": ["r1"], "warnings": []}`
 
@@ -148,7 +148,7 @@ func TestBuildInputPageMap_Empty(t *testing.T) {
 }
 
 func TestReadPipeline_PageNotInImageSet(t *testing.T) {
-	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "001.png")
 
 	result, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,

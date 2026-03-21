@@ -185,40 +185,57 @@ func (d *TTYDisplay) Finish() {
 
 	d.stopStatusTicker()
 	d.status = StatusLine{}
-	d.clearLines()
-	RenderHeader(d.out, d.header, d.colors)
+
+	var buf strings.Builder
+	if d.currentLines > 0 {
+		fmt.Fprintf(&buf, "\033[%dA", d.currentLines)
+		buf.WriteString("\033[J")
+	}
+
+	renderHeaderTo(&buf, d.header, d.colors)
 	for _, key := range d.phaseOrder {
 		ps := d.phases[key]
 		row := d.buildFinishRow(key, ps)
-		fmt.Fprintln(d.out, RenderProgressLine(row, d.colors))
+		fmt.Fprintln(&buf, RenderProgressLine(row, d.colors))
 		if weLine := RenderWarnErrorLine(ps.warnings, ps.failed, d.colors); weLine != "" {
-			fmt.Fprintln(d.out, weLine)
+			fmt.Fprintln(&buf, weLine)
 		}
 	}
+
+	io.WriteString(d.out, buf.String())
 	d.currentLines = 0
 }
 
 func (d *TTYDisplay) render() {
-	d.clearLines()
+	// Build the entire frame into a buffer, then write it as a single
+	// operation. This prevents partial writes from corrupting the display
+	// when the terminal processes escape sequences between small writes.
+	var buf strings.Builder
 
-	lines := RenderHeader(d.out, d.header, d.colors)
+	// Clear previous output
+	if d.currentLines > 0 {
+		fmt.Fprintf(&buf, "\033[%dA", d.currentLines)
+		buf.WriteString("\033[J")
+	}
+
+	lines := renderHeaderTo(&buf, d.header, d.colors)
 	statusRendered := false
 	for _, key := range d.phaseOrder {
 		ps := d.phases[key]
 		row := d.buildLiveRow(key, ps)
-		fmt.Fprintln(d.out, RenderProgressLine(row, d.colors))
+		fmt.Fprintln(&buf, RenderProgressLine(row, d.colors))
 		lines++
 
 		// Status line under the active (non-finished) phase
 		if !statusRendered && !ps.finished && d.status.Text != "" {
 			elapsed := d.now().Sub(d.status.StartedAt)
-			fmt.Fprintln(d.out, FormatStatusLine(d.status.Text, elapsed, d.status.Countdown, d.colors))
+			fmt.Fprintln(&buf, FormatStatusLine(d.status.Text, elapsed, d.status.Countdown, d.colors))
 			lines++
 			statusRendered = true
 		}
 
 		if weLine := RenderWarnErrorLine(ps.warnings, ps.failed, d.colors); weLine != "" {
-			fmt.Fprintln(d.out, weLine)
+			fmt.Fprintln(&buf, weLine)
 			lines++
 		}
 	}
@@ -226,27 +243,50 @@ func (d *TTYDisplay) render() {
 	// Log tail
 	entries := d.logBuffer.Entries()
 	if len(entries) > 0 {
-		fmt.Fprintln(d.out)
-		fmt.Fprintln(d.out, "  \u2500\u2500\u2500 recent \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
+		fmt.Fprintln(&buf)
+		fmt.Fprintln(&buf, "  \u2500\u2500\u2500 recent \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
 		lines += 2
 		for _, e := range entries {
-			fmt.Fprintf(d.out, "  %s\n", FormatLogEntry(e, 80, d.colors))
+			fmt.Fprintf(&buf, "  %s\n", FormatLogEntry(e, 80, d.colors))
 			lines++
 		}
 	}
 
 	d.currentLines = lines
+
+	// Single atomic write to the terminal
+	io.WriteString(d.out, buf.String())
 }
 
-func (d *TTYDisplay) clearLines() {
-	if d.currentLines > 0 {
-		// Move cursor up by exactly the number of previously rendered lines
-		fmt.Fprintf(d.out, "\033[%dA", d.currentLines)
-		// Erase from cursor to end of screen — handles cases where the new
-		// render has fewer lines than the previous one (avoids stale leftovers)
-		fmt.Fprint(d.out, "\033[J")
+// renderHeaderTo writes the header to a buffer and returns the line count.
+func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int {
+	lines := 0
+	if h.BookTitle != "" {
+		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Book")), colors.Bold(h.BookTitle))
+		lines++
 	}
-	d.currentLines = 0
+	if h.InputName != "" {
+		info := h.InputName
+		if h.PageRange != "" && h.InputPages > 0 {
+			info += colors.dim(fmt.Sprintf(" (pages %s of %d)", h.PageRange, h.InputPages))
+		} else if h.InputPages > 0 {
+			info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
+		}
+		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Input")), info)
+		lines++
+	}
+	if len(h.SourceLangs) > 0 && len(h.TargetLangs) > 0 {
+		fmt.Fprintf(buf, "%s: %s %s %s\n", colors.Cyan(fmt.Sprintf("%6s", "Langs")),
+			strings.Join(h.SourceLangs, ", "),
+			colors.dim("\u2192"),
+			strings.Join(h.TargetLangs, ", "))
+		lines++
+	}
+	if lines > 0 {
+		fmt.Fprintln(buf)
+		lines++
+	}
+	return lines
 }
 
 // buildLiveRow creates a ProgressRow for live rendering (shows rate/ETA for active phases).

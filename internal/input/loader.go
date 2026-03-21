@@ -16,7 +16,7 @@ type PageImage struct {
 }
 
 // ListImages scans a directory for page image files and returns them sorted by page number.
-// Supports naming patterns from pdftoppm (page-001.png) and manual naming (page_001.png, 001.png).
+// Supports naming patterns: bare numbers (001.png), and legacy pdftoppm (page-001.png, page_001.png).
 func ListImages(dir string) ([]PageImage, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {

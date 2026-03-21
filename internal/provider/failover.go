@@ -28,13 +28,15 @@ type FailoverChain struct {
 type chainEntry struct {
 	provider       Provider
 	client         *apiclient.Client // for cleanup
+	modelLabel     string            // e.g. "groq/llama-3.3-70b-versatile"
 	exhaustedUntil time.Time
 }
 
 // NewFailoverChain creates a failover chain from the given providers.
 // Each provider should have its own apiclient.Client with its own rate limiter.
 // recoveryWindow is the duration before an exhausted provider becomes eligible again.
-func NewFailoverChain(providers []Provider, clients []*apiclient.Client, recoveryWindow time.Duration, logger *slog.Logger) *FailoverChain {
+// modelLabels is optional — if provided, maps 1:1 to providers for display purposes.
+func NewFailoverChain(providers []Provider, clients []*apiclient.Client, recoveryWindow time.Duration, logger *slog.Logger, modelLabels ...string) *FailoverChain {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -44,7 +46,11 @@ func NewFailoverChain(providers []Provider, clients []*apiclient.Client, recover
 		if i < len(clients) {
 			c = clients[i]
 		}
-		entries[i] = chainEntry{provider: p, client: c}
+		label := p.Name()
+		if i < len(modelLabels) && modelLabels[i] != "" {
+			label = modelLabels[i]
+		}
+		entries[i] = chainEntry{provider: p, client: c, modelLabel: label}
 	}
 	return &FailoverChain{
 		entries:        entries,
@@ -118,6 +124,24 @@ func (f *FailoverChain) ActiveProvider(needsVision bool) string {
 			continue
 		}
 		return e.provider.Name()
+	}
+	return ""
+}
+
+// ActiveModel returns the display label (e.g. "groq/llama-3.3-70b") of the
+// first non-exhausted, eligible provider. Falls back to provider name.
+func (f *FailoverChain) ActiveModel(needsVision bool) string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	now := f.now()
+	for _, e := range f.entries {
+		if needsVision && !e.provider.SupportsVision() {
+			continue
+		}
+		if now.Before(e.exhaustedUntil) {
+			continue
+		}
+		return e.modelLabel
 	}
 	return ""
 }

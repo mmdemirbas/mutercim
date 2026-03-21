@@ -213,6 +213,8 @@ func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig,
 		}
 	}
 
+	var labels []string
+
 	for _, spec := range models {
 		apiKey, err := resolveAPIKey(spec.Provider)
 		if err != nil {
@@ -239,9 +241,10 @@ func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig,
 			return nil, err
 		}
 		providers = append(providers, p)
+		labels = append(labels, spec.Provider+"/"+spec.Model)
 	}
 
-	return provider.NewFailoverChain(providers, clients, 60*time.Second, logger), nil
+	return provider.NewFailoverChain(providers, clients, 60*time.Second, logger, labels...), nil
 }
 
 // buildSingleProvider creates one provider from a ModelSpec.

@@ -63,7 +63,7 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 }
 
 func TestReadPipeline(t *testing.T) {
-	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "001.png")
 
 	// Provider returns region-based response (new format)
 	response := `{
@@ -112,11 +112,11 @@ func TestReadPipeline(t *testing.T) {
 }
 
 func TestReadPipelineSkipsCompleted(t *testing.T) {
-	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "001.png")
 
 	// Set all inputs to the past so output appears newer
 	past := time.Now().Add(-10 * time.Second)
-	imgPath := filepath.Join(ws.PagesDir(), "testinput", "page-01.png")
+	imgPath := filepath.Join(ws.PagesDir(), "testinput", "001.png")
 	os.Chtimes(imgPath, past, past)
 	os.MkdirAll(ws.KnowledgeDir(), 0755)
 	os.Chtimes(ws.KnowledgeDir(), past, past)
@@ -187,7 +187,7 @@ func TestReadPipelineMissingImagesDir(t *testing.T) {
 }
 
 func TestReadPipelinePerInputPages(t *testing.T) {
-	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "001.png", "002.png")
 	// Per-input pages: only process page 1
 	cfg.Inputs = []config.InputSpec{{Path: "./input/testinput.pdf", Pages: "1"}}
 
@@ -214,7 +214,7 @@ func TestReadPipelinePerInputPages(t *testing.T) {
 }
 
 func TestReadPipelineCLIPagesOverridePerInput(t *testing.T) {
-	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "001.png", "002.png")
 	cfg.Inputs = []config.InputSpec{{Path: "./input/testinput.pdf", Pages: "1"}}
 
 	response := `{"regions": [], "reading_order": [], "warnings": []}`
@@ -250,7 +250,7 @@ func TestReadPipelineMultiInput(t *testing.T) {
 		if err := os.MkdirAll(imagesDir, 0755); err != nil {
 			t.Fatalf("mkdir images for %s: %v", stem, err)
 		}
-		if err := os.WriteFile(filepath.Join(imagesDir, "page-01.png"), []byte("fake-image"), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(imagesDir, "001.png"), []byte("fake-image"), 0644); err != nil {
 			t.Fatalf("write image for %s: %v", stem, err)
 		}
 	}
@@ -320,7 +320,7 @@ func (m *failingProvider) Translate(ctx context.Context, systemPrompt, userPromp
 }
 
 func TestReadPipeline_AllPagesFail_ReturnsZeroCompleted(t *testing.T) {
-	ws, cfg := setupReadWorkspace(t, "testinput", "page-01.png", "page-02.png")
+	ws, cfg := setupReadWorkspace(t, "testinput", "001.png", "002.png")
 
 	// Provider that always fails
 	result, err := Read(context.Background(), ReadOptions{

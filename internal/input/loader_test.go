@@ -10,7 +10,7 @@ func TestListImages(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create test image files with various naming patterns
-	files := []string{"page-01.png", "page-02.png", "page-10.png", "readme.txt"}
+	files := []string{"001.png", "002.png", "010.png", "readme.txt"}
 	for _, f := range files {
 		if err := os.WriteFile(filepath.Join(dir, f), []byte("fake"), 0644); err != nil {
 			t.Fatalf("create file %s: %v", f, err)
@@ -59,7 +59,7 @@ func TestListImagesNonexistent(t *testing.T) {
 func TestListImagesJPEG(t *testing.T) {
 	dir := t.TempDir()
 
-	files := []string{"page-01.jpg", "page-02.jpeg", "page-03.png"}
+	files := []string{"001.jpg", "002.jpeg", "003.png"}
 	for _, f := range files {
 		if err := os.WriteFile(filepath.Join(dir, f), []byte("fake"), 0644); err != nil {
 			t.Fatalf("create file %s: %v", f, err)

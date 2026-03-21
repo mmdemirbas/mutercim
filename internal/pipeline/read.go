@@ -143,11 +143,18 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	}
 
 	// Set up status callbacks for retry/failover display
-	readModel := ""
-	if len(cfg.Read.Models) > 0 {
-		readModel = cfg.Read.Models[0].Provider + "/" + cfg.Read.Models[0].Model
-	}
 	var statusPageNum int
+	activeModel := func() string {
+		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
+			if m := chain.ActiveModel(true); m != "" {
+				return m
+			}
+		}
+		if len(cfg.Read.Models) > 0 {
+			return cfg.Read.Models[0].Provider + "/" + cfg.Read.Models[0].Model
+		}
+		return opts.Provider.Name()
+	}
 	if opts.Display != nil {
 		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
 			chain.OnFailover = func(from, to string) {
@@ -205,13 +212,14 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 
 		// Read page via AI (region-based)
 		statusPageNum = pageNum
+		currentModel := activeModel()
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{
-				Text:      fmt.Sprintf("reading page %d via %s", pageNum, readModel),
+				Text:      fmt.Sprintf("reading page %d via %s", pageNum, currentModel),
 				StartedAt: time.Now(),
 			})
 		}
-		regionPage, err := rdr.ReadRegionPage(ctx, imageData, imgPath, pageNum, readModel, opts.LayoutTool)
+		regionPage, err := rdr.ReadRegionPage(ctx, imageData, imgPath, pageNum, currentModel, opts.LayoutTool)
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{}) // clear status
 		}

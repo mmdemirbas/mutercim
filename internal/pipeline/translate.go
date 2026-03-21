@@ -140,22 +140,29 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	}
 
 	// Set up status callbacks for retry/failover display
-	translateModel := ""
-	if len(cfg.Translate.Models) > 0 {
-		translateModel = cfg.Translate.Models[0].Provider + "/" + cfg.Translate.Models[0].Model
-	}
 	var statusPageNum int
+	activeModel := func() string {
+		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
+			if m := chain.ActiveModel(false); m != "" {
+				return m
+			}
+		}
+		if len(cfg.Translate.Models) > 0 {
+			return cfg.Translate.Models[0].Provider + "/" + cfg.Translate.Models[0].Model
+		}
+		return opts.Provider.Name()
+	}
 	if opts.Display != nil {
 		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
 			chain.OnFailover = func(from, to string) {
 				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("translating page %d via %s — failover from %s", statusPageNum, to, from),
+					Text:      fmt.Sprintf("translating page %d via %s \u2014 failover from %s", statusPageNum, to, from),
 					StartedAt: time.Now(),
 				})
 			}
 			chain.SetRetryCallback(func(attempt, maxRetries, statusCode int, backoff time.Duration) {
 				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("translating page %d — retry %d/%d (%d)", statusPageNum, attempt, maxRetries, statusCode),
+					Text:      fmt.Sprintf("translating page %d \u2014 retry %d/%d (%d)", statusPageNum, attempt, maxRetries, statusCode),
 					StartedAt: time.Now(),
 					Countdown: backoff,
 				})
@@ -203,13 +210,14 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 
 		// Translate
 		statusPageNum = pf.pageNum
+		currentModel := activeModel()
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{
-				Text:      fmt.Sprintf("translating page %d via %s", pf.pageNum, translateModel),
+				Text:      fmt.Sprintf("translating page %d via %s", pf.pageNum, currentModel),
 				StartedAt: time.Now(),
 			})
 		}
-		translated, err := translator.TranslatePage(ctx, solved, contextSummaries, translateModel)
+		translated, err := translator.TranslatePage(ctx, solved, contextSummaries, currentModel)
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{}) // clear status
 		}

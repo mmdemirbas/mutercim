@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
@@ -124,6 +125,13 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 	// Render each requested format independently — partial success is OK
 	var succeeded, failed []string
 	for _, format := range cfg.Write.Formats {
+		if opts.Display != nil {
+			opts.Display.SetStatus(display.StatusLine{
+				Text:      fmt.Sprintf("writing %s [%s]", format, targetLang),
+				StartedAt: time.Now(),
+			})
+		}
+
 		var err error
 		switch format {
 		case "md":
@@ -134,6 +142,12 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 			if checkErr := renderer.CheckDocker(); checkErr != nil {
 				err = checkErr
 			} else {
+				if opts.Display != nil {
+					opts.Display.SetStatus(display.StatusLine{
+						Text:      fmt.Sprintf("compiling PDF via Docker [%s]", targetLang),
+						StartedAt: time.Now(),
+					})
+				}
 				err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, true, logger)
 			}
 		case "docx":
@@ -153,6 +167,10 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 		} else {
 			succeeded = append(succeeded, format)
 		}
+	}
+
+	if opts.Display != nil {
+		opts.Display.SetStatus(display.StatusLine{}) // clear write status
 	}
 
 	if opts.Display != nil {
