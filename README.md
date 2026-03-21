@@ -422,4 +422,4 @@ go test ./...
 
 ## License
 
-TODO: choose license
+[MIT](LICENSE)
