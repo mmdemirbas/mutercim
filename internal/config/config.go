@@ -208,6 +208,10 @@ func (c *Config) ResolvePath(base, rel string) string {
 
 // Validate checks the config for errors.
 func (c *Config) Validate() error {
+	if len(c.Book.SourceLangs) == 0 {
+		return fmt.Errorf("book.source_langs is required")
+	}
+
 	// Check input paths exist and validate per-input pages
 	for i, inp := range c.Inputs {
 		if _, err := os.Stat(inp.Path); err != nil && !os.IsNotExist(err) {

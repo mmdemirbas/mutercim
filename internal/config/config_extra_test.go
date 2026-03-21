@@ -27,6 +27,7 @@ func TestResolvePath(t *testing.T) {
 
 func TestValidatePerInputPages_Valid(t *testing.T) {
 	cfg := &Config{
+		Book:   model.Book{SourceLangs: []string{"ar"}},
 		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "1-5,10"}},
 	}
 	if err := cfg.Validate(); err != nil {
@@ -36,6 +37,7 @@ func TestValidatePerInputPages_Valid(t *testing.T) {
 
 func TestValidatePerInputPages_Invalid(t *testing.T) {
 	cfg := &Config{
+		Book:   model.Book{SourceLangs: []string{"ar"}},
 		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "abc"}},
 	}
 	if err := cfg.Validate(); err == nil {
@@ -105,6 +107,7 @@ func TestIsPDFFunction(t *testing.T) {
 }
 
 func TestValidate_PerInputPages(t *testing.T) {
+	book := model.Book{SourceLangs: []string{"ar"}}
 	tests := []struct {
 		name    string
 		cfg     Config
@@ -113,6 +116,7 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "valid per-input pages",
 			cfg: Config{
+				Book: book,
 				Inputs: []InputSpec{
 					{Path: "./vol1.pdf", Pages: "1-50"},
 					{Path: "./vol2.pdf", Pages: "10,20-30"},
@@ -123,6 +127,7 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "invalid per-input pages",
 			cfg: Config{
+				Book: book,
 				Inputs: []InputSpec{
 					{Path: "./vol1.pdf", Pages: "abc"},
 				},
@@ -132,6 +137,7 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "empty per-input pages is valid",
 			cfg: Config{
+				Book: book,
 				Inputs: []InputSpec{
 					{Path: "./vol1.pdf", Pages: ""},
 				},
@@ -141,6 +147,7 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "mix of valid and invalid per-input pages",
 			cfg: Config{
+				Book: book,
 				Inputs: []InputSpec{
 					{Path: "./vol1.pdf", Pages: "1-10"},
 					{Path: "./vol2.pdf", Pages: "not-a-range"},
@@ -151,6 +158,7 @@ func TestValidate_PerInputPages(t *testing.T) {
 		{
 			name: "valid per-input pages only",
 			cfg: Config{
+				Book: book,
 				Inputs: []InputSpec{
 					{Path: "./vol1.pdf", Pages: "1-50"},
 				},
@@ -173,9 +181,9 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 	cfg := &Config{}
 	applyDefaults(cfg)
 
-	// Book defaults
-	if len(cfg.Book.SourceLangs) != 1 || cfg.Book.SourceLangs[0] != "ar" {
-		t.Errorf("Book.SourceLangs = %v, want [ar]", cfg.Book.SourceLangs)
+	// Book defaults — source_langs has no default (required field)
+	if len(cfg.Book.SourceLangs) != 0 {
+		t.Errorf("Book.SourceLangs = %v, want [] (no default)", cfg.Book.SourceLangs)
 	}
 	if len(cfg.Book.TargetLangs) != 1 || cfg.Book.TargetLangs[0] != "tr" {
 		t.Errorf("Book.TargetLangs = %v, want [tr]", cfg.Book.TargetLangs)
@@ -293,8 +301,8 @@ func TestApplyDefaults_LangDefaults(t *testing.T) {
 	cfg := &Config{}
 	applyDefaults(cfg)
 
-	if len(cfg.Book.SourceLangs) != 1 || cfg.Book.SourceLangs[0] != "ar" {
-		t.Errorf("SourceLangs = %v, want [ar]", cfg.Book.SourceLangs)
+	if len(cfg.Book.SourceLangs) != 0 {
+		t.Errorf("SourceLangs = %v, want [] (no default)", cfg.Book.SourceLangs)
 	}
 	if len(cfg.Book.TargetLangs) != 1 || cfg.Book.TargetLangs[0] != "tr" {
 		t.Errorf("TargetLangs = %v, want [tr]", cfg.Book.TargetLangs)

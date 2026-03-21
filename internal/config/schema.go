@@ -27,7 +27,7 @@ var schemaAnnotations = map[string]schemaMeta{
 	// book
 	"book":              {Description: "Book metadata used in output filenames and display headers."},
 	"book.title":        {Description: "Book title. Sanitized and used as the output filename stem for write/ deliverables (e.g. write/tr/<title>.md). OS-prohibited characters are replaced with dashes; falls back to 'book' if empty."},
-	"book.source_langs": {Description: `Source language codes. The primary (first) language is used for source-language markdown output and AI prompt configuration.`, Default: []string{"ar"}},
+	"book.source_langs": {Description: `Source language codes (required). The primary (first) language is used for source-language markdown output and AI prompt configuration.`},
 	"book.target_langs": {Description: `Target language codes. Each language gets its own translate/ and write/ subdirectory. Translation runs once per target language.`, Default: []string{"tr"}},
 
 	// inputs

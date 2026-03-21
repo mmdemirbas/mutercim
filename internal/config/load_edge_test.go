@@ -23,12 +23,9 @@ func TestLoad_EmptyFile(t *testing.T) {
 	path := filepath.Join(dir, "mutercim.yaml")
 	os.WriteFile(path, []byte(""), 0644)
 
-	cfg, err := Load(path)
-	if err != nil {
-		t.Fatalf("Load() error: %v", err)
-	}
-	if cfg.Book.PrimarySourceLang() != "ar" {
-		t.Errorf("expected default source lang 'ar', got %q", cfg.Book.PrimarySourceLang())
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for empty file (source_langs required)")
 	}
 }
 
@@ -42,7 +39,7 @@ func TestLoad_NonexistentFile(t *testing.T) {
 func TestLoad_MinimalValidConfig(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte("book:\n  title: \"Test\"\ninputs:\n  - path: ./input\n"), 0644)
+	os.WriteFile(path, []byte("book:\n  title: \"Test\"\n  source_langs: [ar]\ninputs:\n  - path: ./input\n"), 0644)
 
 	cfg, err := Load(path)
 	if err != nil {
@@ -56,7 +53,7 @@ func TestLoad_MinimalValidConfig(t *testing.T) {
 func TestLoad_DefaultsApplied(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte("book:\n  title: X\n"), 0644)
+	os.WriteFile(path, []byte("book:\n  title: X\n  source_langs: [ar]\n"), 0644)
 
 	cfg, err := Load(path)
 	if err != nil {
@@ -76,6 +73,7 @@ func TestLoad_ValidateCalledWithInvalidPages(t *testing.T) {
 
 	yaml := `book:
   title: "Test"
+  source_langs: [ar]
 inputs:
   - path: ./input
     pages: "not-a-range"
@@ -97,6 +95,7 @@ func TestLoad_ValidateCalledWithValidPages(t *testing.T) {
 
 	yaml := `book:
   title: "Test"
+  source_langs: [ar]
 inputs:
   - path: ./input
     pages: "1-50"
@@ -109,5 +108,19 @@ inputs:
 	}
 	if cfg.Inputs[0].Pages != "1-50" {
 		t.Errorf("pages = %q", cfg.Inputs[0].Pages)
+	}
+}
+
+func TestLoad_MissingSourceLangs(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "mutercim.yaml")
+	os.WriteFile(path, []byte("book:\n  title: X\n"), 0644)
+
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("expected error for missing source_langs")
+	}
+	if !strings.Contains(err.Error(), "source_langs") {
+		t.Errorf("error should mention source_langs: %v", err)
 	}
 }

@@ -9,10 +9,7 @@
       "description": "Book metadata used in output filenames and display headers.",
       "properties": {
         "source_langs": {
-          "default": [
-            "ar"
-          ],
-          "description": "Source language codes. The primary (first) language is used for source-language markdown output and AI prompt configuration.",
+          "description": "Source language codes (required). The primary (first) language is used for source-language markdown output and AI prompt configuration.",
           "items": {
             "type": "string"
           },

@@ -4,11 +4,14 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 func TestLoadDefaults(t *testing.T) {
-	// Load with no config file — should get defaults
+	// Load with minimal config file (source_langs is required)
 	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("book:\n  source_langs: [ar]\n"), 0644)
 	origDir, _ := os.Getwd()
 	os.Chdir(dir)
 	defer os.Chdir(origDir)
@@ -21,15 +24,8 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DPI != 300 {
 		t.Errorf("DPI = %d, want 300", cfg.DPI)
 	}
-	// Legacy provider/model fields are empty — defaults go into Models list
-	if len(cfg.Read.Models) == 0 {
-		t.Fatal("Read.Models should have default entries")
-	}
-	if cfg.Read.Models[0].Provider != "gemini" {
-		t.Errorf("Read.Models[0].Provider = %q, want %q", cfg.Read.Models[0].Provider, "gemini")
-	}
-	if cfg.Read.Models[0].Model != "gemini-2.0-flash" {
-		t.Errorf("Read.Models[0].Model = %q, want %q", cfg.Read.Models[0].Model, "gemini-2.0-flash")
+	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "gemini" {
+		t.Errorf("Read.Models = %+v, want [{gemini gemini-2.0-flash}]", cfg.Read.Models)
 	}
 	if cfg.Translate.ContextWindow != 2 {
 		t.Errorf("Translate.ContextWindow = %d, want 2", cfg.Translate.ContextWindow)
@@ -42,13 +38,6 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.Book.PrimarySourceLang() != "ar" {
 		t.Errorf("PrimarySourceLang() = %q, want %q", cfg.Book.PrimarySourceLang(), "ar")
-	}
-	// Verify models migration from legacy provider/model
-	if len(cfg.Read.Models) != 1 {
-		t.Fatalf("Read.Models len = %d, want 1", len(cfg.Read.Models))
-	}
-	if cfg.Read.Models[0].Provider != "gemini" || cfg.Read.Models[0].Model != "gemini-2.0-flash" {
-		t.Errorf("Read.Models[0] = %+v, want gemini/gemini-2.0-flash", cfg.Read.Models[0])
 	}
 	if len(cfg.Translate.Models) != 1 {
 		t.Fatalf("Translate.Models len = %d, want 1", len(cfg.Translate.Models))
@@ -104,8 +93,13 @@ func TestValidate(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "empty config is valid",
+			name:    "empty config fails (source_langs required)",
 			cfg:     Config{},
+			wantErr: true,
+		},
+		{
+			name:    "config with source_langs is valid",
+			cfg:     Config{Book: model.Book{SourceLangs: []string{"ar"}}},
 			wantErr: false,
 		},
 	}
@@ -140,6 +134,8 @@ func TestIsPDF(t *testing.T) {
 func TestInputsList(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
+book:
+  source_langs: [ar]
 inputs:
   - path: ./input/vol1.pdf
   - path: ./input/vol2.pdf
@@ -165,6 +161,8 @@ inputs:
 func TestInputsWithPerInputPages(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
+book:
+  source_langs: [ar]
 inputs:
   - path: ./input/vol1.pdf
     pages: "1-50"
@@ -196,6 +194,8 @@ inputs:
 func TestModelsFailoverChainConfig(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
+book:
+  source_langs: [ar]
 read:
   models:
     - provider: gemini
@@ -247,6 +247,8 @@ translate:
 func TestModelsDefaultWhenOmitted(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
+book:
+  source_langs: [ar]
 dpi: 300
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
