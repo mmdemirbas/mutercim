@@ -101,8 +101,8 @@ Create DEVIATIONS.md if it doesn't exist.
 - Never silently swallow errors. Either return them, log them, or both.
 - Pipeline phases (read, solve, translate, write) must not abort on single-page failures. Log
   the error, save partial/raw data, record the failure in progress.json, continue to next page.
-- System dependency checks (pdftoppm, docker, pandoc) happen at command startup via preflight, not
-  lazily on first use.
+- Docker availability is checked at command startup via preflight, not lazily on first use.
+  Docker images are auto-built on first use via `docker.EnsureImage()`.
 
 ## What NOT To Do
 

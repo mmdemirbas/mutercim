@@ -3,10 +3,10 @@ package renderer
 import (
 	"context"
 	"fmt"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
@@ -153,18 +153,22 @@ func latexEscape(s string) string {
 }
 
 // CompilePDF compiles a LaTeX file to PDF using Docker.
-func CompilePDF(ctx context.Context, latexDir, dockerImage string) error {
+// dockerfileDir is the path to docker/xelatex/ for auto-building the image.
+func CompilePDF(ctx context.Context, latexDir, dockerImage, dockerfileDir string) error {
+	if err := docker.EnsureImage(ctx, dockerImage, dockerfileDir); err != nil {
+		return fmt.Errorf("ensure xelatex image: %w", err)
+	}
+
 	absDir, err := filepath.Abs(latexDir)
 	if err != nil {
 		return fmt.Errorf("resolve latex dir: %w", err)
 	}
-	latexDir = absDir
-	cmd := exec.CommandContext(ctx, "docker", "run", "--rm",
-		"-v", latexDir+":/data",
+
+	output, err := docker.Run(ctx, "run", "--rm",
+		"-v", absDir+":/data",
 		dockerImage,
 		"book.tex",
 	)
-	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("PDF compilation failed (docker image: %s):\n  %w\n  %s", dockerImage, err, truncateOutput(string(output), 500))
 	}
@@ -177,12 +181,4 @@ func truncateOutput(s string, maxLen int) string {
 		return s
 	}
 	return string(runes[len(runes)-maxLen:]) + "\n  ... (truncated, see book.log for full output)"
-}
-
-// CheckDocker returns an error if docker is not available.
-func CheckDocker() error {
-	if _, err := exec.LookPath("docker"); err != nil {
-		return fmt.Errorf("docker not found in PATH (required for pdf output format)")
-	}
-	return nil
 }

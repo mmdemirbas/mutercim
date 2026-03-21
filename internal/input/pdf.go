@@ -4,29 +4,54 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
+
+	"github.com/mmdemirbas/mutercim/internal/docker"
 )
 
-// ConvertPDFToImages converts a PDF file to PNG images using pdftoppm.
+// DefaultPopplerImage is the Docker image used for PDF-to-image conversion.
+const DefaultPopplerImage = "mutercim/poppler:latest"
+
+// ConvertPDFToImages converts a PDF file to PNG images using pdftoppm in Docker.
 // Output files are named NNN.png in outputDir (zero-padded to match page count).
-func ConvertPDFToImages(ctx context.Context, pdfPath, outputDir string, dpi, firstPage, lastPage int) error {
-	args := []string{"-png", "-r", strconv.Itoa(dpi)}
+// dockerfileDir is the path to docker/poppler/ for auto-building the image.
+func ConvertPDFToImages(ctx context.Context, pdfPath, outputDir string, dpi, firstPage, lastPage int, dockerfileDir string) error {
+	if err := docker.EnsureImage(ctx, DefaultPopplerImage, dockerfileDir); err != nil {
+		return fmt.Errorf("ensure poppler image: %w", err)
+	}
+
+	absPDF, err := filepath.Abs(pdfPath)
+	if err != nil {
+		return fmt.Errorf("resolve pdf path: %w", err)
+	}
+	absOut, err := filepath.Abs(outputDir)
+	if err != nil {
+		return fmt.Errorf("resolve output dir: %w", err)
+	}
+
+	pdfDir := filepath.Dir(absPDF)
+	pdfBase := filepath.Base(absPDF)
+
+	args := []string{
+		"run", "--rm",
+		"-v", pdfDir + ":/input:ro",
+		"-v", absOut + ":/output",
+		DefaultPopplerImage,
+		"pdftoppm",
+		"-png", "-r", strconv.Itoa(dpi),
+	}
 	if firstPage > 0 {
 		args = append(args, "-f", strconv.Itoa(firstPage))
 	}
 	if lastPage > 0 {
 		args = append(args, "-l", strconv.Itoa(lastPage))
 	}
-	// pdftoppm requires a prefix; we use a temporary one then rename
-	prefix := filepath.Join(outputDir, "page")
-	args = append(args, pdfPath, prefix)
+	args = append(args, "/input/"+pdfBase, "/output/page")
 
-	cmd := exec.CommandContext(ctx, "pdftoppm", args...)
-	output, err := cmd.CombinedOutput()
+	output, err := docker.Run(ctx, args...)
 	if err != nil {
-		return fmt.Errorf("pdftoppm: %w: %s", err, output)
+		return fmt.Errorf("pdftoppm (docker): %w: %s", err, output)
 	}
 
 	// Rename page-NNN.png → NNN.png to match the convention used by all subsequent phases
@@ -53,14 +78,6 @@ func renamePdftoppmOutput(dir string) error {
 				return fmt.Errorf("rename %s → %s: %w", name, newName, err)
 			}
 		}
-	}
-	return nil
-}
-
-// CheckPdftoppm returns an error if pdftoppm is not available.
-func CheckPdftoppm() error {
-	if _, err := exec.LookPath("pdftoppm"); err != nil {
-		return fmt.Errorf("pdftoppm not found in PATH (install: brew install poppler / apt install poppler-utils)")
 	}
 	return nil
 }

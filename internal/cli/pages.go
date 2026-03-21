@@ -6,7 +6,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
-	"github.com/mmdemirbas/mutercim/internal/input"
+	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
@@ -39,11 +39,11 @@ func newPagesCmd() *cobra.Command {
 				cfg.DPI = dpi
 			}
 
-			// Preflight: check pdftoppm if any input is PDF
+			// Preflight: check Docker if any input is PDF
 			for _, inp := range cfg.Inputs {
 				resolved := cfg.ResolvePath(ws.Root, inp.Path)
 				if config.IsPDF(resolved) {
-					if err := input.CheckPdftoppm(); err != nil {
+					if err := docker.CheckAvailable(cmd.Context()); err != nil {
 						return err
 					}
 					break

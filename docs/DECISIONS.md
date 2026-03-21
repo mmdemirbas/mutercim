@@ -250,3 +250,12 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Fixed `make.go` (all command): layout tool was not being passed to read phase
 - User prompt updated to include `type=` field alongside `bbox=` for layout-detected regions
 - `"abandon"` type from DocLayout-YOLO is silently skipped (artifacts/noise)
+
+## Docker-Only External Dependencies
+- All external tools (pdftoppm, pandoc, DocLayout-YOLO, XeLaTeX, Surya) run in Docker containers
+- Docker is the single external runtime dependency. No host packages required besides Go and Docker
+- Images are auto-built on first use from Dockerfiles in `docker/` via `internal/docker.EnsureImage()`
+- New Docker images: `mutercim/poppler` (poppler-utils for pdftoppm), `mutercim/pandoc` (pandoc for DOCX)
+- Removed: `CheckPdftoppm()`, `CheckPandoc()`, `CheckDocker()` — replaced by `docker.CheckAvailable()`
+- `docker.CheckAvailable()` verifies Docker is installed and daemon is running (single check at startup)
+- `docker.FindDockerDir(tool)` discovers `docker/<tool>/` relative to cwd or executable for auto-build

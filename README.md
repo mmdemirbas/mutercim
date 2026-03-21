@@ -39,12 +39,9 @@ TODO: add before/after screenshots
 
 ## Prerequisites
 
-- **Go 1.23+** (the project uses Go 1.26, but 1.23+ should work)
-- **pdftoppm** (from poppler-utils) — for PDF-to-image conversion
-    - macOS: `brew install poppler`
-    - Debian/Ubuntu: `apt install poppler-utils`
-- **Docker** — for layout detection (DocLayout-YOLO) and PDF rendering (XeLaTeX)
-- **pandoc** (optional) — only needed for DOCX output
+- **Go 1.23+** (the project uses Go 1.26, but 1.23+ should work) — for building from source
+- **Docker** — all external tools (pdftoppm, pandoc, DocLayout-YOLO, XeLaTeX) run in containers.
+  Container images are built automatically on first use from the `docker/` directory.
 - **At least one AI provider API key** — see [Provider authentication](#provider-authentication)
 
 ## Quick start
@@ -371,12 +368,11 @@ read:
   layout_tool: "doclayout-yolo"  # or "surya" or ""
 ```
 
-Docker images need to be built once:
+Docker images are built automatically on first use when running from the repo directory.
+To pre-build all images:
 
 ```bash
-task docker-doclayout # or: docker build -t mutercim/doclayout-yolo docker/doclayout-yolo/
-task docker-surya # or: docker build -t mutercim/surya docker/surya/
-task docker-xelatex # or: docker build -t mutercim/xelatex docker/xelatex/
+task docker-all
 ```
 
 ## Smart rebuilds

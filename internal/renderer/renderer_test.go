@@ -1,7 +1,6 @@
 package renderer
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -51,28 +50,6 @@ func TestLatexEscapeSpecialChars(t *testing.T) {
 		got := latexEscape(tt.input)
 		if got != tt.want {
 			t.Errorf("latexEscape(%q) = %q, want %q", tt.input, got, tt.want)
-		}
-	}
-}
-
-func TestCheckPandoc_ErrorMessage(t *testing.T) {
-	// CheckPandoc may or may not find pandoc depending on the machine.
-	// We just verify that if it returns an error, the message is informative.
-	err := CheckPandoc()
-	if err != nil {
-		if !strings.Contains(err.Error(), "pandoc not found") {
-			t.Errorf("CheckPandoc() error = %q, expected to contain 'pandoc not found'", err.Error())
-		}
-	}
-}
-
-func TestCheckDocker_ErrorMessage(t *testing.T) {
-	// CheckDocker may or may not find docker depending on the machine.
-	// We just verify that if it returns an error, the message is informative.
-	err := CheckDocker()
-	if err != nil {
-		if !strings.Contains(err.Error(), "docker not found") {
-			t.Errorf("CheckDocker() error = %q, expected to contain 'docker not found'", err.Error())
 		}
 	}
 }

@@ -9,7 +9,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
-	"github.com/mmdemirbas/mutercim/internal/input"
+	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
@@ -73,14 +73,8 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 	logger.Info("auto-running prerequisite phases", "from", phaseName(startPhase), "to", phaseName(targetPhase-1))
 
 	if startPhase <= phasePages && phasePages < targetPhase {
-		for _, inp := range cfg.Inputs {
-			resolved := cfg.ResolvePath(ws.Root, inp.Path)
-			if config.IsPDF(resolved) {
-				if err := input.CheckPdftoppm(); err != nil {
-					return err
-				}
-				break
-			}
+		if err := docker.CheckAvailable(ctx); err != nil {
+			return err
 		}
 
 		logger.Info("=== AUTO: PAGES ===")

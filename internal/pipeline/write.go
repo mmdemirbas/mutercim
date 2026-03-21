@@ -13,6 +13,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
+	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/rebuild"
 	"github.com/mmdemirbas/mutercim/internal/renderer"
@@ -161,23 +162,15 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 		case "latex":
 			err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, false, logger)
 		case "pdf":
-			if checkErr := renderer.CheckDocker(); checkErr != nil {
-				err = checkErr
-			} else {
-				if opts.Display != nil {
-					opts.Display.SetStatus(display.StatusLine{
-						Text:      fmt.Sprintf("compiling PDF via Docker [%s]", targetLang),
-						StartedAt: time.Now(),
-					})
-				}
-				err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, true, logger)
+			if opts.Display != nil {
+				opts.Display.SetStatus(display.StatusLine{
+					Text:      fmt.Sprintf("compiling PDF via Docker [%s]", targetLang),
+					StartedAt: time.Now(),
+				})
 			}
+			err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, true, logger)
 		case "docx":
-			if checkErr := renderer.CheckPandoc(); checkErr != nil {
-				err = checkErr
-			} else {
-				err = compileDocx(ctx, ws, cfg, stem, targetLang, logger)
-			}
+			err = compileDocx(ctx, ws, cfg, stem, targetLang, logger)
 		default:
 			logger.Warn("unknown format", "format", format)
 			continue
@@ -273,7 +266,7 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 
 	if compilePDF {
 		logger.Info("compiling PDF via Docker", "image", cfg.Write.LaTeXDockerImage)
-		if err := renderer.CompilePDF(ctx, buildDir, cfg.Write.LaTeXDockerImage); err != nil {
+		if err := renderer.CompilePDF(ctx, buildDir, cfg.Write.LaTeXDockerImage, docker.FindDockerDir("xelatex")); err != nil {
 			return fmt.Errorf("compile PDF: %w", err)
 		}
 
@@ -302,7 +295,7 @@ func compileDocx(ctx context.Context, ws *workspace.Workspace, cfg *config.Confi
 		return fmt.Errorf("markdown file not found at %s (compile md format first): %w", mdPath, err)
 	}
 
-	if err := renderer.ConvertMarkdownToDocx(ctx, mdPath, docxPath); err != nil {
+	if err := renderer.ConvertMarkdownToDocx(ctx, mdPath, docxPath, docker.FindDockerDir("pandoc")); err != nil {
 		return fmt.Errorf("convert to docx: %w", err)
 	}
 	logger.Info("wrote docx", "path", docxPath)

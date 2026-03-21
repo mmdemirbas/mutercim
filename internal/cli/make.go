@@ -9,7 +9,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
-	"github.com/mmdemirbas/mutercim/internal/input"
+	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/layout"
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -48,15 +48,9 @@ func newAllCmd() *cobra.Command {
 				cfg.Write.Formats = fmts
 			}
 
-			// Preflight: check all dependencies upfront
-			for _, inp := range cfg.Inputs {
-				resolved := cfg.ResolvePath(ws.Root, inp.Path)
-				if config.IsPDF(resolved) {
-					if err := input.CheckPdftoppm(); err != nil {
-						return err
-					}
-					break
-				}
+			// Preflight: check Docker upfront (all external tools run in containers)
+			if err := docker.CheckAvailable(cmd.Context()); err != nil {
+				return err
 			}
 			logger := slog.Default()
 			disp := display.FromContext(cmd.Context())

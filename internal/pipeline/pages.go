@@ -11,6 +11,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
+	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/input"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/rebuild"
@@ -108,8 +109,9 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 			StartedAt: time.Now(),
 		})
 	}
+	dockerDir := docker.FindDockerDir("poppler")
 	for _, r := range ranges {
-		if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, opts.Config.DPI, r[0], r[1]); err != nil {
+		if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, opts.Config.DPI, r[0], r[1], dockerDir); err != nil {
 			if opts.Display != nil {
 				opts.Display.StartPhase(display.PhasePages, stem, 1, "")
 				opts.Display.Update(display.PageResult{

@@ -66,7 +66,17 @@ tasks:
 
   docker-all:
     desc: Build all Docker images
-    deps: [ docker-doclayout, docker-surya, docker-xelatex ]
+    deps: [ docker-poppler, docker-pandoc, docker-doclayout, docker-surya, docker-xelatex ]
+
+  docker-poppler:
+    desc: Build the Poppler (pdftoppm) Docker image
+    cmds:
+      - docker build -t mutercim/poppler docker/poppler/
+
+  docker-pandoc:
+    desc: Build the Pandoc Docker image
+    cmds:
+      - docker build -t mutercim/pandoc docker/pandoc/
 
   docker-doclayout:
     desc: Build the DocLayout-YOLO Docker image
