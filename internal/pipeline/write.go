@@ -77,13 +77,35 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 	cfg := opts.Config
 	translatedDir := filepath.Join(ws.TranslateDir(), targetLang, stem)
 
-	// Skip if output is up-to-date (check write dir against translate dir + config + knowledge)
+	// Skip if ALL expected outputs are up-to-date
 	title := workspace.SanitizeTitle(cfg.Book.Title)
 	langWriteDir := filepath.Join(ws.WriteDir(), targetLang)
-	mdOutput := filepath.Join(langWriteDir, title+".md")
-	if !opts.Force && !rebuild.NeedsRebuild(mdOutput, translatedDir, ws.ConfigPath(), ws.KnowledgeDir()) {
-		logger.Debug("skipping write (up-to-date)", "input", stem, "lang", targetLang)
-		return nil
+	if !opts.Force {
+		allUpToDate := true
+		for _, format := range cfg.Write.Formats {
+			var ext string
+			switch format {
+			case "md":
+				ext = ".md"
+			case "latex":
+				ext = ".tex"
+			case "pdf":
+				ext = ".pdf"
+			case "docx":
+				ext = ".docx"
+			default:
+				continue
+			}
+			outputPath := filepath.Join(langWriteDir, title+ext)
+			if rebuild.NeedsRebuild(outputPath, translatedDir, ws.ConfigPath(), ws.KnowledgeDir()) {
+				allUpToDate = false
+				break
+			}
+		}
+		if allUpToDate {
+			logger.Debug("skipping write (up-to-date)", "input", stem, "lang", targetLang)
+			return nil
+		}
 	}
 
 	// Load translated pages
@@ -228,7 +250,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedRegionPage, compilePDF bool, logger *slog.Logger) error {
 	title := workspace.SanitizeTitle(cfg.Book.Title)
 	langDir := filepath.Join(ws.WriteDir(), targetLang)
-	buildDir := filepath.Join(langDir, "latex-build")
+	buildDir := filepath.Join(langDir, "latex-build", stem)
 	if err := os.MkdirAll(buildDir, 0755); err != nil {
 		return fmt.Errorf("create latex build dir: %w", err)
 	}

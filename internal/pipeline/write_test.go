@@ -123,8 +123,8 @@ func TestWriteLatex(t *testing.T) {
 		t.Fatal("empty latex")
 	}
 
-	// Check .tex was also written to latex-build for compilation
-	buildTexPath := filepath.Join(ws.WriteDir(), "tr", "latex-build", "book.tex")
+	// Check .tex was also written to latex-build/<stem> for compilation
+	buildTexPath := filepath.Join(ws.WriteDir(), "tr", "latex-build", "TestBook", "book.tex")
 	buildData, err := os.ReadFile(buildTexPath)
 	if err != nil {
 		t.Fatalf("read latex build: %v", err)

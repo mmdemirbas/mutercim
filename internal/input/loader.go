@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 // PageImage represents a single page image file.
@@ -31,7 +32,7 @@ func ListImages(dir string) ([]PageImage, error) {
 		if e.IsDir() {
 			continue
 		}
-		ext := filepath.Ext(e.Name())
+		ext := strings.ToLower(filepath.Ext(e.Name()))
 		if ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
 			continue
 		}

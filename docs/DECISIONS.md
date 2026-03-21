@@ -212,3 +212,26 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - .env parser: handles inline comments (`KEY=value # comment`) for unquoted values
 - Surya Docker: mounts parent directory instead of single file (fixes macOS Docker + AppArmor)
 - API key redaction: error response bodies are scrubbed for `sk-*` and `AIza*` patterns before storage
+
+## Gemini Review Fixes (Triage Batch)
+- Pages >999: `listPageFiles` uses `%d.json` (no width limit); `pageFilename()` dynamically pads based on total page count
+- LaTeX build collision: `buildDir` includes `stem` subdirectory to isolate multi-input builds
+- Timer leak: retry loop uses `time.NewTimer` + explicit `Stop()` instead of `time.After`
+- Failed page loads: `failed++` incremented before `continue` in solve/translate load errors
+- Context window: `recentTranslated` trimmed to `contextWindow` size after each append (prevents OOM)
+- URL redaction: fail-closed — returns `"<malformed-url-redacted>"` on parse error
+- Rebuild caching: `NewestMtime` skips non-existent paths instead of forcing rebuild
+- Tmp cleanup: `defer os.Remove(tmpPath)` in `atomicWriteFile` prevents orphan files
+- TOCTOU race: `WalkDir` callback ignores `os.ErrNotExist` for files deleted mid-walk
+- Write skip: checks ALL requested formats (not just .md) before skipping write phase
+- Docker abs path: `CompilePDF` converts `latexDir` to absolute path before Docker mount
+- Clean.go: uses `filepath.Join` instead of hardcoded `/` for cross-platform path building
+- Knowledge merge: field-by-field merge preserves notes from earlier layers when override has no note
+- Init input: uses `bufio.Reader` instead of `fmt.Scanln` to capture titles with spaces
+- Polyglossia: `\textarabic{...}` replaced with `\begin{Arabic}...\end{Arabic}` to handle paragraph breaks
+- Image extensions: case-insensitive check (`strings.ToLower`) accepts `.PNG`, `.JPG`
+- Failover clock: `now` captured per-provider inside loop, not once before loop
+- Page extraction: `contiguousRanges` groups pages into ranges; pdftoppm called per range (no wasted I/O)
+- Log clean: truncates active log file instead of deleting (safe on Windows)
+- Tashkeel: `stripTashkeel` removes Arabic diacriticals before glossary matching (vowelized text matches unvowelized terms)
+- Page images: pdftoppm output renamed from `page-NNN.png` to `NNN.png` (consistent with all subsequent phases)

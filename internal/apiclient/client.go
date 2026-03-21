@@ -110,11 +110,14 @@ func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 				"backoff_seconds", backoff.Seconds(),
 				"url", RedactURL(req.URL),
 			)
+			timer := time.NewTimer(backoff)
 			select {
-			case <-time.After(backoff):
+			case <-timer.C:
 			case <-ctx.Done():
+				timer.Stop()
 				return nil, ctx.Err()
 			}
+			timer.Stop()
 		}
 
 		if err := c.rateLimiter.Wait(ctx); err != nil {
@@ -214,7 +217,7 @@ func (c *Client) calculateBackoff(attempt int, lastErr error) time.Duration {
 func RedactURL(rawURL string) string {
 	u, err := url.Parse(rawURL)
 	if err != nil {
-		return rawURL
+		return "<malformed-url-redacted>"
 	}
 	q := u.Query()
 	for key := range q {

@@ -142,7 +142,12 @@ func mergeEntry(k *Knowledge, entry Entry) {
 	key := mergeKey(entry)
 	for i, existing := range k.Entries {
 		if mergeKey(existing) == key {
-			k.Entries[i] = entry
+			for lang, forms := range entry.Forms {
+				k.Entries[i].Forms[lang] = forms
+			}
+			if entry.Note != "" {
+				k.Entries[i].Note = entry.Note
+			}
 			return
 		}
 	}

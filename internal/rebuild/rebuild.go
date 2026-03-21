@@ -39,6 +39,9 @@ func NewestMtime(paths ...string) (time.Time, error) {
 	for _, p := range paths {
 		info, err := os.Stat(p)
 		if err != nil {
+			if os.IsNotExist(err) {
+				continue // skip non-existent paths
+			}
 			return time.Time{}, err
 		}
 
@@ -57,10 +60,16 @@ func NewestMtime(paths ...string) (time.Time, error) {
 		// Walk all files within
 		err = filepath.WalkDir(p, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
+				if os.IsNotExist(err) {
+					return nil
+				}
 				return err
 			}
 			fi, err := d.Info()
 			if err != nil {
+				if os.IsNotExist(err) {
+					return nil
+				}
 				return err
 			}
 			if fi.ModTime().After(newest) {

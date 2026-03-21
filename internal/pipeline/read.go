@@ -189,7 +189,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 
 		// Skip if output is up-to-date (mtime check)
-		outputPath := filepath.Join(readDir, fmt.Sprintf("%03d.json", pageNum))
+		outputPath := filepath.Join(readDir, pageFilename(pageNum, len(pagesToProcess)))
 		if !opts.Force && !rebuild.NeedsRebuild(outputPath, imgPath, ws.ConfigPath(), ws.KnowledgeDir()) {
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pageNum)
 			skipped++
@@ -236,7 +236,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 
 		// Save region page atomically (new v2.0 format)
-		if err := saveRegionPage(readDir, pageNum, regionPage); err != nil {
+		if err := saveRegionPage(readDir, pageNum, len(pagesToProcess), regionPage); err != nil {
 			logger.Error("failed to save read page", "input", stem, "page", pageNum, "error", err)
 			failed++
 			if opts.Display != nil {
@@ -269,13 +269,13 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 
-func saveRegionPage(dir string, pageNum int, page *model.RegionPage) error {
+func saveRegionPage(dir string, pageNum, totalPages int, page *model.RegionPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	finalPath := filepath.Join(dir, fmt.Sprintf("%03d.json", pageNum))
+	finalPath := filepath.Join(dir, pageFilename(pageNum, totalPages))
 	if err := atomicWriteFile(finalPath, data); err != nil {
 		return fmt.Errorf("write page %d: %w", pageNum, err)
 	}

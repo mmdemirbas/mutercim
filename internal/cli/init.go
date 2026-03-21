@@ -1,7 +1,10 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
@@ -39,20 +42,21 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	if !initNonInteractive && initTitle == "" {
 		// Interactive mode: prompt for inputs
+		reader := bufio.NewReader(os.Stdin)
+
 		fmt.Print("Book title: ")
-		fmt.Scanln(&opts.Title)
+		line, _ := reader.ReadString('\n')
+		opts.Title = strings.TrimSpace(line)
 
 		fmt.Printf("Source languages (comma-separated) [%s]: ", initSourceLangs)
-		var sl string
-		fmt.Scanln(&sl)
-		if sl != "" {
+		line, _ = reader.ReadString('\n')
+		if sl := strings.TrimSpace(line); sl != "" {
 			opts.SourceLangs = sl
 		}
 
 		fmt.Printf("Target languages (comma-separated) [%s]: ", initTargetLangs)
-		var tl string
-		fmt.Scanln(&tl)
-		if tl != "" {
+		line, _ = reader.ReadString('\n')
+		if tl := strings.TrimSpace(line); tl != "" {
 			opts.TargetLangs = tl
 		}
 	}

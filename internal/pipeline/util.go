@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -38,7 +39,7 @@ func listPageFiles(dir string) ([]pageFile, error) {
 			continue
 		}
 		var num int
-		if _, err := fmt.Sscanf(e.Name(), "%03d.json", &num); err != nil {
+		if _, err := fmt.Sscanf(e.Name(), "%d.json", &num); err != nil {
 			continue
 		}
 		pages = append(pages, pageFile{pageNum: num, path: filepath.Join(dir, e.Name())})
@@ -98,4 +99,36 @@ func fileStem(path string) string {
 func dirHasEntries(dir string) bool {
 	entries, err := os.ReadDir(dir)
 	return err == nil && len(entries) > 0
+}
+
+// pageFilename returns a zero-padded JSON filename for the given page number.
+// The padding width is determined by the total number of pages:
+//   - totalPages < 1000  -> 3 digits (e.g. 001.json)
+//   - totalPages < 10000 -> 4 digits (e.g. 0001.json)
+//   - else               -> 5 digits (e.g. 00001.json)
+func pageFilename(pageNum, totalPages int) string {
+	width := 3
+	if totalPages >= 10000 {
+		width = 5
+	} else if totalPages >= 1000 {
+		width = 4
+	}
+	return fmt.Sprintf("%0*d.json", width, pageNum)
+}
+
+// maxPageNum returns the maximum page number seen across a list of page numbers.
+// Returns 0 if the slice is empty.
+func maxPageNum(pages []int) int {
+	m := 0
+	for _, p := range pages {
+		if p > m {
+			m = p
+		}
+	}
+	return m
+}
+
+// estimateTotalPages returns the max of two ints, used for deciding padding width.
+func estimateTotalPages(a, b int) int {
+	return int(math.Max(float64(a), float64(b)))
 }

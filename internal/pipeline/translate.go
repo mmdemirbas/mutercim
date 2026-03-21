@@ -179,7 +179,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			break
 		}
 		// Skip if output is up-to-date (mtime check)
-		outputPath := filepath.Join(translatedDir, fmt.Sprintf("%03d.json", pf.pageNum))
+		outputPath := filepath.Join(translatedDir, pageFilename(pf.pageNum, len(pages)))
 		if !opts.Force && !rebuild.NeedsRebuild(outputPath, pf.path, ws.ConfigPath(), ws.KnowledgeDir(), ws.MemoryDir()) {
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
 			skipped++
@@ -188,6 +188,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 
 		solved, ok := solvedPages[pf.pageNum]
 		if !ok {
+			failed++
 			continue
 		}
 
@@ -235,7 +236,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		}
 
 		// Save translated JSON atomically
-		if err := saveTranslatedRegionPage(translatedDir, pf.pageNum, translated); err != nil {
+		if err := saveTranslatedRegionPage(translatedDir, pf.pageNum, len(pages), translated); err != nil {
 			logger.Error("failed to save translated page", "input", stem, "page", pf.pageNum, "error", err)
 			failed++
 			if opts.Display != nil {
@@ -249,6 +250,9 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		}
 
 		recentTranslated = append(recentTranslated, translated)
+		if len(recentTranslated) > contextWindow {
+			recentTranslated = recentTranslated[len(recentTranslated)-contextWindow:]
+		}
 		completed++
 		logger.Info("page translated", "input", stem, "page", pf.pageNum, "completed", completed)
 		if opts.Display != nil {
@@ -280,13 +284,13 @@ func loadSolvedRegionPage(path string) (*model.SolvedRegionPage, error) {
 	return &page, nil
 }
 
-func saveTranslatedRegionPage(dir string, pageNum int, page *model.TranslatedRegionPage) error {
+func saveTranslatedRegionPage(dir string, pageNum, totalPages int, page *model.TranslatedRegionPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	finalPath := filepath.Join(dir, fmt.Sprintf("%03d.json", pageNum))
+	finalPath := filepath.Join(dir, pageFilename(pageNum, totalPages))
 	if err := atomicWriteFile(finalPath, data); err != nil {
 		return fmt.Errorf("write page %d: %w", pageNum, err)
 	}

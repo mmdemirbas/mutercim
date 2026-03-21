@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/display"
@@ -93,7 +94,7 @@ func dirSize(path string) int64 {
 			continue
 		}
 		if e.IsDir() {
-			total += dirSize(fmt.Sprintf("%s/%s", path, e.Name()))
+			total += dirSize(filepath.Join(path, e.Name()))
 		} else {
 			total += info.Size()
 		}
@@ -176,8 +177,15 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 				fmt.Printf("  %s\t%s\n", colors.Red(t.phase+"/"), colors.Dim(formatSize(t.size)))
 			}
 
-			// Delete directories
+			// Delete directories (truncate log instead of removing)
 			for _, t := range targets {
+				if t.phase == "log" {
+					f, err := os.OpenFile(ws.LogPath(), os.O_TRUNC|os.O_WRONLY, 0644)
+					if err == nil {
+						f.Close()
+					}
+					continue // don't RemoveAll
+				}
 				if err := os.RemoveAll(t.dir); err != nil {
 					return fmt.Errorf("remove %s: %w", t.dir, err)
 				}

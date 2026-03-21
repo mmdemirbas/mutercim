@@ -119,6 +119,53 @@ func TestFileStem(t *testing.T) {
 	}
 }
 
+func TestListPageFiles_LargePageNumbers(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create page files with >999 page numbers (mixed padding widths)
+	for _, name := range []string{"0001.json", "0500.json", "1000.json", "1500.json", "9999.json"} {
+		os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0644)
+	}
+
+	pages, err := listPageFiles(dir)
+	if err != nil {
+		t.Fatalf("listPageFiles() error: %v", err)
+	}
+
+	if len(pages) != 5 {
+		t.Fatalf("expected 5 pages, got %d", len(pages))
+	}
+
+	expected := []int{1, 500, 1000, 1500, 9999}
+	for i, pf := range pages {
+		if pf.pageNum != expected[i] {
+			t.Errorf("page %d: expected %d, got %d", i, expected[i], pf.pageNum)
+		}
+	}
+}
+
+func TestPageFilename(t *testing.T) {
+	tests := []struct {
+		pageNum    int
+		totalPages int
+		want       string
+	}{
+		{1, 100, "001.json"},
+		{42, 999, "042.json"},
+		{1, 1000, "0001.json"},
+		{999, 1000, "0999.json"},
+		{1000, 1000, "1000.json"},
+		{1, 10000, "00001.json"},
+		{12345, 99999, "12345.json"},
+	}
+	for _, tt := range tests {
+		got := pageFilename(tt.pageNum, tt.totalPages)
+		if got != tt.want {
+			t.Errorf("pageFilename(%d, %d) = %q, want %q", tt.pageNum, tt.totalPages, got, tt.want)
+		}
+	}
+}
+
 func TestSaveRegionPageAtomicWrite(t *testing.T) {
 	dir := t.TempDir()
 
@@ -132,7 +179,7 @@ func TestSaveRegionPageAtomicWrite(t *testing.T) {
 		ReadingOrder: []string{"r1"},
 	}
 
-	if err := saveRegionPage(dir, 42, page); err != nil {
+	if err := saveRegionPage(dir, 42, 100, page); err != nil {
 		t.Fatalf("error: %v", err)
 	}
 

@@ -147,10 +147,6 @@ func (f *FailoverChain) ActiveModel(needsVision bool) string {
 }
 
 func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn func(Provider) (string, error)) (string, error) {
-	f.mu.Lock()
-	now := f.now()
-	f.mu.Unlock()
-
 	var errs []error
 	for i := range f.entries {
 		e := &f.entries[i]
@@ -162,6 +158,7 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 		}
 
 		f.mu.Lock()
+		now := f.now()
 		exhausted := now.Before(e.exhaustedUntil)
 		f.mu.Unlock()
 		if exhausted {
@@ -186,7 +183,8 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 					continue
 				}
 				f.mu.Lock()
-				nexhausted := now.Before(ne.exhaustedUntil)
+				nowCheck := f.now()
+				nexhausted := nowCheck.Before(ne.exhaustedUntil)
 				f.mu.Unlock()
 				if !nexhausted {
 					nextName = ne.provider.Name()

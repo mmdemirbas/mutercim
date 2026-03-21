@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
@@ -98,12 +99,8 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 		return fmt.Errorf("create images dir: %w", err)
 	}
 
-	firstPage, lastPage := 0, 0
-	if len(pages) > 0 {
-		firstPage = pages[0]
-		lastPage = pages[len(pages)-1]
-	}
-	logger.Info("converting PDF to images", "input", inputPath, "dpi", opts.Config.DPI, "first", firstPage, "last", lastPage)
+	ranges := contiguousRanges(pages)
+	logger.Info("converting PDF to images", "input", inputPath, "dpi", opts.Config.DPI, "ranges", len(ranges))
 	if opts.Display != nil {
 		opts.Display.StartPhase(display.PhasePages, stem, 0, "")
 		opts.Display.SetStatus(display.StatusLine{
@@ -111,16 +108,18 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 			StartedAt: time.Now(),
 		})
 	}
-	if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, opts.Config.DPI, firstPage, lastPage); err != nil {
-		if opts.Display != nil {
-			opts.Display.StartPhase(display.PhasePages, stem, 1, "")
-			opts.Display.Update(display.PageResult{
-				Phase: display.PhasePages, Input: stem,
-				Total: 1, Failed: 1, Err: err,
-			})
-			opts.Display.FinishPhase(display.PhasePages, stem, "")
+	for _, r := range ranges {
+		if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, opts.Config.DPI, r[0], r[1]); err != nil {
+			if opts.Display != nil {
+				opts.Display.StartPhase(display.PhasePages, stem, 1, "")
+				opts.Display.Update(display.PageResult{
+					Phase: display.PhasePages, Input: stem,
+					Total: 1, Failed: 1, Err: err,
+				})
+				opts.Display.FinishPhase(display.PhasePages, stem, "")
+			}
+			return fmt.Errorf("convert PDF %s: %w", inputPath, err)
 		}
-		return fmt.Errorf("convert PDF %s: %w", inputPath, err)
 	}
 
 	if opts.Display != nil {
@@ -144,4 +143,33 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 	}
 
 	return nil
+}
+
+// contiguousRanges groups a sorted list of page numbers into contiguous [first, last] pairs.
+// E.g., [1, 2, 3, 10, 11, 500] -> [[1,3], [10,11], [500,500]].
+// If pages is nil or empty, returns a single range [0,0] meaning "all pages".
+func contiguousRanges(pages []int) [][2]int {
+	if len(pages) == 0 {
+		return [][2]int{{0, 0}}
+	}
+
+	sorted := make([]int, len(pages))
+	copy(sorted, pages)
+	sort.Ints(sorted)
+
+	var ranges [][2]int
+	start := sorted[0]
+	end := sorted[0]
+
+	for i := 1; i < len(sorted); i++ {
+		if sorted[i] == end+1 {
+			end = sorted[i]
+		} else {
+			ranges = append(ranges, [2]int{start, end})
+			start = sorted[i]
+			end = sorted[i]
+		}
+	}
+	ranges = append(ranges, [2]int{start, end})
+	return ranges
 }

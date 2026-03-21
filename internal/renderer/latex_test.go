@@ -362,7 +362,7 @@ func TestLatexRenderPage_ArabicTextWrapped(t *testing.T) {
 
 	result := r.RenderPage(page)
 
-	if !strings.Contains(result, `\textarabic{`) {
+	if !strings.Contains(result, `\begin{Arabic}`) {
 		t.Errorf("expected \\textarabic wrapper for Arabic content, got:\n%s", result)
 	}
 	if !strings.Contains(result, "Müjdelenin") {
@@ -386,7 +386,7 @@ func TestLatexRenderPage_ArabicTextWrappedHeader(t *testing.T) {
 	if !strings.Contains(result, `\section*{Elif Harfi}`) {
 		t.Error("expected translated section header")
 	}
-	if !strings.Contains(result, `\textarabic{`) {
+	if !strings.Contains(result, `\begin{Arabic}`) {
 		t.Error("expected \\textarabic wrapper for Arabic original header")
 	}
 }
@@ -410,7 +410,7 @@ func TestLatexRenderPage_ArabicPrimary(t *testing.T) {
 		t.Error("expected original Arabic header in Arabic-primary output")
 	}
 	// Should NOT wrap in \textarabic (already Arabic-primary)
-	if strings.Contains(result, `\textarabic{`) {
+	if strings.Contains(result, `\begin{Arabic}`) {
 		t.Error("Arabic-primary output should not use \\textarabic wrapper")
 	}
 }
@@ -439,7 +439,7 @@ func TestLatexRenderPage_MixedContent(t *testing.T) {
 		t.Error("expected Turkish section header")
 	}
 	// Arabic original header wrapped
-	if !strings.Contains(result, `\textarabic{`) {
+	if !strings.Contains(result, `\begin{Arabic}`) {
 		t.Error("expected \\textarabic for Arabic header")
 	}
 	// Both Turkish translations
@@ -450,8 +450,8 @@ func TestLatexRenderPage_MixedContent(t *testing.T) {
 		t.Error("expected second translation")
 	}
 	// Arabic originals wrapped (header + 2 entries = at least 3)
-	if strings.Count(result, `\textarabic{`) < 3 {
-		t.Errorf("expected at least 3 \\textarabic wrappers (header + entries), got %d", strings.Count(result, `\textarabic{`))
+	if strings.Count(result, `\begin{Arabic}`) < 3 {
+		t.Errorf("expected at least 3 \\textarabic wrappers (header + entries), got %d", strings.Count(result, `\begin{Arabic}`))
 	}
 	// Separator
 	if !strings.Contains(result, `\hrule\vspace{0.5em}`) {
@@ -504,7 +504,7 @@ func TestLatexRenderPage_HeaderWithoutOriginalText(t *testing.T) {
 		t.Error("expected section header")
 	}
 	// Should not have textarabic when original text is empty
-	if strings.Contains(result, `\textarabic{`) {
+	if strings.Contains(result, `\begin{Arabic}`) {
 		t.Error("expected no \\textarabic when original text is empty")
 	}
 }
@@ -525,7 +525,7 @@ func TestLatexRenderPage_EntryWithoutOriginalText(t *testing.T) {
 	if !strings.Contains(result, "Only translation") {
 		t.Error("expected translation text")
 	}
-	if strings.Contains(result, `\textarabic{`) {
+	if strings.Contains(result, `\begin{Arabic}`) {
 		t.Error("expected no \\textarabic when original text is empty")
 	}
 }

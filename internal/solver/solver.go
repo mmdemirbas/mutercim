@@ -2,6 +2,7 @@ package solver
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -98,8 +99,20 @@ func itoa(n int) string {
 	return string(digits)
 }
 
+// stripTashkeel removes Arabic diacritical marks (tashkeel/harakat) from a string.
+// This includes Fathatan (U+064B) through Sukun (U+0652) and Superscript Alef (U+0670).
+func stripTashkeel(s string) string {
+	return strings.Map(func(r rune) rune {
+		if (r >= '\u064B' && r <= '\u0652') || r == '\u0670' {
+			return -1
+		}
+		return r
+	}, s)
+}
+
 // buildGlossaryContext finds relevant glossary terms that appear in the page's text.
 // Returns canonical source-language forms for matched entries.
+// Uses tashkeel-stripped matching so vowelized text matches unvowelized glossary entries.
 func (s *Solver) buildGlossaryContext(page *model.RegionPage) []string {
 	var matched []string
 
@@ -107,13 +120,14 @@ func (s *Solver) buildGlossaryContext(page *model.RegionPage) []string {
 		if region.Text == "" {
 			continue
 		}
+		strippedText := stripTashkeel(region.Text)
 		for _, entry := range s.knowledge.Entries {
 			forms, ok := entry.Forms[s.sourceLang]
 			if !ok {
 				continue
 			}
 			for _, form := range forms {
-				if containsText(region.Text, form) {
+				if containsText(strippedText, stripTashkeel(form)) {
 					matched = append(matched, forms[0]) // canonical source form
 					break
 				}

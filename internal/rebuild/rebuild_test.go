@@ -118,9 +118,9 @@ func TestNeedsRebuild_missing_input(t *testing.T) {
 	output := filepath.Join(dir, "output.txt")
 	os.WriteFile(output, []byte("data"), 0644)
 
-	// Missing input → error → rebuild (safe side)
-	if !NeedsRebuild(output, filepath.Join(dir, "nonexistent")) {
-		t.Error("expected rebuild when input is missing")
+	// Missing input is skipped (not treated as error), output is newer than zero time → no rebuild
+	if NeedsRebuild(output, filepath.Join(dir, "nonexistent")) {
+		t.Error("expected no rebuild when input is missing (non-existent paths are skipped)")
 	}
 }
 
@@ -224,9 +224,13 @@ func TestNewestMtime_multiple_paths(t *testing.T) {
 }
 
 func TestNewestMtime_nonexistent_path(t *testing.T) {
-	_, err := NewestMtime("/nonexistent/path")
-	if err == nil {
-		t.Error("expected error for nonexistent path")
+	// Non-existent paths are silently skipped, returning zero time
+	mt, err := NewestMtime("/nonexistent/path")
+	if err != nil {
+		t.Fatalf("NewestMtime error: %v (non-existent paths should be skipped)", err)
+	}
+	if !mt.IsZero() {
+		t.Errorf("expected zero time for non-existent path, got %v", mt)
 	}
 }
 
@@ -237,6 +241,41 @@ func TestNewestMtime_no_paths(t *testing.T) {
 	}
 	if !mt.IsZero() {
 		t.Errorf("expected zero time, got %v", mt)
+	}
+}
+
+func TestNeedsRebuild_nonexistent_input_dir_skipped(t *testing.T) {
+	dir := t.TempDir()
+	inputFile := filepath.Join(dir, "input.txt")
+	output := filepath.Join(dir, "output.txt")
+
+	// Create input file in the past
+	past := time.Now().Add(-10 * time.Second)
+	os.WriteFile(inputFile, []byte("data"), 0644)
+	os.Chtimes(inputFile, past, past)
+
+	// Output is newer
+	os.WriteFile(output, []byte("result"), 0644)
+
+	// A non-existent directory as one of the inputs should NOT force rebuild
+	nonexistent := filepath.Join(dir, "memory-dir-not-created-yet")
+	if NeedsRebuild(output, inputFile, nonexistent) {
+		t.Error("expected no rebuild when non-existent dir is an input and output is newer than existing inputs")
+	}
+}
+
+func TestNewestMtime_nonexistent_path_skipped(t *testing.T) {
+	dir := t.TempDir()
+	f := filepath.Join(dir, "file.txt")
+	os.WriteFile(f, []byte("data"), 0644)
+
+	mt, err := NewestMtime(f, filepath.Join(dir, "nonexistent"))
+	if err != nil {
+		t.Fatalf("NewestMtime error: %v", err)
+	}
+	info, _ := os.Stat(f)
+	if !mt.Equal(info.ModTime()) {
+		t.Errorf("mtime = %v, want %v", mt, info.ModTime())
 	}
 }
 

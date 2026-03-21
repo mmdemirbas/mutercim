@@ -324,6 +324,55 @@ func TestLookupByForm(t *testing.T) {
 	}
 }
 
+func TestMergeEntry_PreservesNote(t *testing.T) {
+	// Base entry has a note; override without note should preserve it
+	base := Entry{
+		Forms: map[string][]string{"ar": {"فقه"}, "tr": {"fıkıh"}},
+		Note:  "Islamic jurisprudence",
+	}
+	override := Entry{
+		Forms: map[string][]string{"ar": {"فقه"}, "tr": {"fıkıh (updated)"}},
+		// Note is empty
+	}
+
+	k := &Knowledge{}
+	mergeEntry(k, base)
+	mergeEntry(k, override)
+
+	if len(k.Entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(k.Entries))
+	}
+	if k.Entries[0].Note != "Islamic jurisprudence" {
+		t.Errorf("note = %q, want %q (should be preserved)", k.Entries[0].Note, "Islamic jurisprudence")
+	}
+	if k.Entries[0].Forms["tr"][0] != "fıkıh (updated)" {
+		t.Errorf("tr form = %v, want updated", k.Entries[0].Forms["tr"])
+	}
+}
+
+func TestMergeEntry_OverridesNote(t *testing.T) {
+	// Override with a new note should replace the old one
+	base := Entry{
+		Forms: map[string][]string{"ar": {"فقه"}, "tr": {"fıkıh"}},
+		Note:  "old note",
+	}
+	override := Entry{
+		Forms: map[string][]string{"ar": {"فقه"}, "tr": {"fıkıh"}},
+		Note:  "new note",
+	}
+
+	k := &Knowledge{}
+	mergeEntry(k, base)
+	mergeEntry(k, override)
+
+	if len(k.Entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(k.Entries))
+	}
+	if k.Entries[0].Note != "new note" {
+		t.Errorf("note = %q, want %q", k.Entries[0].Note, "new note")
+	}
+}
+
 func TestMergeKey(t *testing.T) {
 	// Merge key uses alphabetically first language's canonical form
 	e1 := Entry{Forms: map[string][]string{"ar": {"فقه"}, "tr": {"fıkıh"}}}

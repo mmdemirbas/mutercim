@@ -9,7 +9,7 @@ import (
 func TestListImages_UppercaseExtension(t *testing.T) {
 	dir := t.TempDir()
 
-	// .PNG (uppercase) should NOT be recognized — current code checks lowercase only
+	// .PNG (uppercase) should be recognized (case-insensitive extension check)
 	os.WriteFile(filepath.Join(dir, "001.PNG"), []byte("fake"), 0644)
 	os.WriteFile(filepath.Join(dir, "002.png"), []byte("fake"), 0644)
 
@@ -18,9 +18,9 @@ func TestListImages_UppercaseExtension(t *testing.T) {
 		t.Fatalf("ListImages() error: %v", err)
 	}
 
-	// Only the lowercase .png should be found
-	if len(images) != 1 {
-		t.Errorf("expected 1 image (only .png), got %d", len(images))
+	// Both .PNG and .png should be found
+	if len(images) != 2 {
+		t.Errorf("expected 2 images (case-insensitive), got %d", len(images))
 	}
 }
 

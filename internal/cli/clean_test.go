@@ -138,6 +138,53 @@ func TestClean_never_deletes_input_or_knowledge(t *testing.T) {
 	}
 }
 
+func TestClean_log_truncates_not_removes(t *testing.T) {
+	dir := t.TempDir()
+	ws := &workspace.Workspace{Root: dir}
+
+	// Create log directory and file with content
+	os.MkdirAll(ws.LogDir(), 0755)
+	logPath := ws.LogPath()
+	os.WriteFile(logPath, []byte("some log data\nmore lines\n"), 0644)
+
+	// Verify log file has content
+	data, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("read log: %v", err)
+	}
+	if len(data) == 0 {
+		t.Fatal("log file should have content")
+	}
+
+	// phaseDir should map "log" to the log directory
+	logDir := phaseDir(ws, "log")
+	if logDir == "" {
+		t.Fatal("phaseDir(log) returned empty")
+	}
+
+	// After truncation, the file should still exist but be empty
+	// We test the truncation logic directly
+	f, err := os.OpenFile(logPath, os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatalf("open for truncate: %v", err)
+	}
+	f.Close()
+
+	// Verify file still exists but is empty
+	data, err = os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("read truncated log: %v", err)
+	}
+	if len(data) != 0 {
+		t.Errorf("expected empty log file after truncation, got %d bytes", len(data))
+	}
+
+	// Log directory should still exist
+	if _, err := os.Stat(ws.LogDir()); os.IsNotExist(err) {
+		t.Error("log directory should still exist after truncation")
+	}
+}
+
 func TestPhaseIndex(t *testing.T) {
 	if phaseIndex("pages") != 2 {
 		t.Errorf("phaseIndex(pages) = %d, want 2", phaseIndex("pages"))

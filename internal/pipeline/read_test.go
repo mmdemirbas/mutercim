@@ -352,7 +352,7 @@ func TestSaveRegionPage(t *testing.T) {
 		ReadingOrder: []string{"r1"},
 	}
 
-	if err := saveRegionPage(dir, 5, page); err != nil {
+	if err := saveRegionPage(dir, 5, 100, page); err != nil {
 		t.Fatalf("saveRegionPage() error: %v", err)
 	}
 

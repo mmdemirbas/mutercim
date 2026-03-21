@@ -233,6 +233,57 @@ func TestValidateRegions_AllValid(t *testing.T) {
 	}
 }
 
+func TestStripTashkeel(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"empty", "", ""},
+		{"no tashkeel", "حديث", "حديث"},
+		{"fathah", "حَدِيث", "حديث"},
+		{"full vowelization", "أَبْشِرُوا", "أبشروا"},
+		{"mixed text", "قَالَ النَّبِيُّ", "قال النبي"},
+		{"superscript alef", "هٰذَا", "هذا"},
+		{"latin unaffected", "Hello World", "Hello World"},
+		{"mixed arabic and latin", "حَدِيث hadith", "حديث hadith"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripTashkeel(tt.input)
+			if got != tt.want {
+				t.Errorf("stripTashkeel(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSolvePage_GlossaryMatchesVowelizedText(t *testing.T) {
+	// Glossary has unvowelized form; page text has vowelized form
+	k := &knowledge.Knowledge{
+		Entries: []knowledge.Entry{
+			{Forms: map[string][]string{"ar": {"حديث"}, "tr": {"hadîs-i şerîf"}}},
+		},
+	}
+	slvr := NewSolver(k, "ar", nil)
+
+	page := &model.RegionPage{
+		Version:    "2.0",
+		PageNumber: 1,
+		Regions: []model.Region{
+			{ID: "r1", Text: "هذا حَدِيثٌ صحيح", Type: model.RegionTypeEntry},
+		},
+		ReadingOrder: []string{"r1"},
+	}
+
+	solved := slvr.SolvePage(page, nil, "")
+
+	// Should match despite tashkeel differences
+	if len(solved.GlossaryContext) != 1 || solved.GlossaryContext[0] != "حديث" {
+		t.Errorf("GlossaryContext = %v, want [حديث] (should match vowelized text)", solved.GlossaryContext)
+	}
+}
+
 func TestDedupStrings(t *testing.T) {
 	input := []string{"a", "b", "a", "c", "b"}
 	got := dedupStrings(input)

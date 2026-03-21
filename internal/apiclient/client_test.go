@@ -324,8 +324,8 @@ func TestRedactURL_TokenAndSecret(t *testing.T) {
 func TestRedactURL_InvalidURL(t *testing.T) {
 	raw := "not a valid url %%"
 	got := RedactURL(raw)
-	if got != raw {
-		t.Errorf("invalid URL should be returned as-is, got: %s", got)
+	if got != "<malformed-url-redacted>" {
+		t.Errorf("invalid URL should be redacted, got: %s", got)
 	}
 }
 

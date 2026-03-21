@@ -103,7 +103,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 			break
 		}
 
-		outputPath := filepath.Join(solvedDir, fmt.Sprintf("%03d.json", pf.pageNum))
+		outputPath := filepath.Join(solvedDir, pageFilename(pf.pageNum, len(pages)))
 		if !opts.Force && !rebuild.NeedsRebuild(outputPath, pf.path, ws.KnowledgeDir(), ws.MemoryDir()) {
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
 			skipped++
@@ -117,6 +117,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		current, err := loadRegionPage(pf.path)
 		if err != nil {
 			logger.Error("failed to load read page", "page", pf.pageNum, "error", err)
+			failed++
 			continue
 		}
 
@@ -128,7 +129,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 
 		solved := slvr.SolvePage(current, previous, prevSummary)
 
-		if err := saveSolvedRegionPage(solvedDir, pf.pageNum, solved); err != nil {
+		if err := saveSolvedRegionPage(solvedDir, pf.pageNum, len(pages), solved); err != nil {
 			logger.Error("failed to save solved page", "input", stem, "page", pf.pageNum, "error", err)
 			failed++
 			if opts.Display != nil {
@@ -172,13 +173,13 @@ func loadRegionPage(path string) (*model.RegionPage, error) {
 	return &page, nil
 }
 
-func saveSolvedRegionPage(dir string, pageNum int, page *model.SolvedRegionPage) error {
+func saveSolvedRegionPage(dir string, pageNum, totalPages int, page *model.SolvedRegionPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	finalPath := filepath.Join(dir, fmt.Sprintf("%03d.json", pageNum))
+	finalPath := filepath.Join(dir, pageFilename(pageNum, totalPages))
 	if err := atomicWriteFile(finalPath, data); err != nil {
 		return fmt.Errorf("write page %d: %w", pageNum, err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -48,7 +49,7 @@ func (r *LaTeXRenderer) RenderPage(page *model.TranslatedRegionPage) string {
 				// Non-Arabic: translated header + Arabic original
 				fmt.Fprintf(&b, "\\section*{%s}\n", latexEscape(region.TranslatedText))
 				if region.OriginalText != "" {
-					fmt.Fprintf(&b, "\\begin{center}\\textarabic{%s}\\end{center}\n\n", latexEscape(region.OriginalText))
+					fmt.Fprintf(&b, "\\begin{center}\n\\begin{Arabic}\n%s\n\\end{Arabic}\n\\end{center}\n\n", latexEscape(region.OriginalText))
 				} else {
 					b.WriteString("\n")
 				}
@@ -58,7 +59,7 @@ func (r *LaTeXRenderer) RenderPage(page *model.TranslatedRegionPage) string {
 			b.WriteString("\n\n")
 			// For non-Arabic output, include original Arabic
 			if !isArabicLang(r.Lang) && region.OriginalText != "" {
-				fmt.Fprintf(&b, "\\textarabic{%s}\n\n", latexEscape(region.OriginalText))
+				fmt.Fprintf(&b, "\\begin{Arabic}\n%s\n\\end{Arabic}\n\n", latexEscape(region.OriginalText))
 			}
 		case model.RegionTypeFootnote:
 			fmt.Fprintf(&b, "\\begin{small}\n%s\n\\end{small}\n\n", latexEscape(region.TranslatedText))
@@ -153,6 +154,11 @@ func latexEscape(s string) string {
 
 // CompilePDF compiles a LaTeX file to PDF using Docker.
 func CompilePDF(ctx context.Context, latexDir, dockerImage string) error {
+	absDir, err := filepath.Abs(latexDir)
+	if err != nil {
+		return fmt.Errorf("resolve latex dir: %w", err)
+	}
+	latexDir = absDir
 	cmd := exec.CommandContext(ctx, "docker", "run", "--rm",
 		"-v", latexDir+":/data",
 		dockerImage,
