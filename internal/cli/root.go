@@ -70,6 +70,8 @@ between languages, preserving layout, structure, and domain-specific terminology
 			}
 			slog.SetDefault(fileLogger)
 
+			slog.Info("─── mutercim started", "command", cmd.Name(), "args", strings.Join(os.Args[1:], " "))
+
 			// Create display (writes progress to stderr)
 			disp := display.New(os.Stderr, nil)
 			ctx := display.WithDisplay(cmd.Context(), disp)
