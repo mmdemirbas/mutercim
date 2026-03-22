@@ -86,7 +86,11 @@ read:
   #   max_det (int, default 300)
   #     Maximum number of detections per page image.
   #
-  # Surya does not currently use any params.
+  # For surya:
+  #   languages (string, auto from inputs[].languages)
+  #     Comma-separated OCR language codes for text recognition.
+  #     Automatically set from the input's source languages if not specified.
+  #     Examples: "ar", "ar,fa", "en,tr"
   #
   # Uncomment and adjust to experiment (use read.debug: true to see results):
   # layout_tool_params:

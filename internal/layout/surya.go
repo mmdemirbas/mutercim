@@ -101,18 +101,38 @@ type suryaRegion struct {
 	Text string `json:"text"`
 }
 
+// knownSuryaParams lists the parameter names this tool recognizes.
+var knownSuryaParams = map[string]bool{
+	"languages": true,
+}
+
 // DetectRegions runs the Surya Docker container on the given image and
 // returns detected regions with bounding boxes and preliminary OCR text.
-// params is accepted for interface compatibility but Surya does not use it.
-func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, _ map[string]any) ([]model.Region, error) {
+//
+// params supports these keys (all optional):
+//   - languages (string): comma-separated OCR language codes, default "ar"
+func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) ([]model.Region, error) {
+	// Warn on unknown params
+	for k := range params {
+		if !knownSuryaParams[k] {
+			slog.Warn("unknown layout_tool_param ignored", "param", k, "tool", "surya")
+		}
+	}
+
 	dir := filepath.Dir(imagePath)
 	base := filepath.Base(imagePath)
 	args := []string{
 		"run", "--rm",
 		"-v", dir + ":/input:ro",
 		s.DockerImage,
-		"/input/" + base,
 	}
+
+	// Append tool params as CLI flags
+	if v, ok := getString(params, "languages"); ok {
+		args = append(args, "--languages", v)
+	}
+
+	args = append(args, "/input/"+base)
 
 	out, err := s.commander.Run(ctx, "docker", args...)
 	if err != nil {
@@ -135,4 +155,14 @@ func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, _ map[s
 	}
 
 	return regions, nil
+}
+
+// getString extracts a string from a map[string]any.
+func getString(m map[string]any, key string) (string, bool) {
+	v, ok := m[key]
+	if !ok {
+		return "", false
+	}
+	s, ok := v.(string)
+	return s, ok
 }

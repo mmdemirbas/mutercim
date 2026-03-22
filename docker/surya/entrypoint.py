@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
-"""Surya layout detection entrypoint.
+"""Surya layout detection and OCR entrypoint.
 
 Takes a page image path and outputs JSON with detected text regions
 and their bounding boxes.
 
-Usage: python entrypoint.py /input/page.png
+Usage:
+    python entrypoint.py /input/page.png
+    python entrypoint.py --languages ar,fa /input/page.png
+
 Output: JSON to stdout with {"regions": [{"bbox": [x,y,w,h], "text": "..."}]}
+
+Tunable parameters:
+    --languages   Comma-separated OCR language codes (default: en)
+                  Automatically set from inputs[].languages in config.
+                  Examples: ar, en, tr, fa, ar,fa
 """
 
+import argparse
 import json
 import sys
 
@@ -21,12 +30,16 @@ from surya.model.recognition.processor import load_processor as load_rec_process
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: entrypoint.py <image_path>", file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Surya layout detection and OCR")
+    parser.add_argument("input", help="Image path")
+    parser.add_argument("--languages", type=str, default="en",
+                        help="Comma-separated OCR language codes (default: en)")
+    args = parser.parse_args()
 
-    image_path = sys.argv[1]
-    image = Image.open(image_path)
+    image = Image.open(args.input)
+    langs = [l.strip() for l in args.languages.split(",") if l.strip()]
+    if not langs:
+        langs = ["en"]
 
     # Load models
     det_model = load_det_model()
@@ -35,7 +48,6 @@ def main():
     rec_processor = load_rec_processor()
 
     # Run OCR with layout detection
-    langs = ["ar"]  # Arabic primary
     results = run_ocr(
         [image],
         [langs],

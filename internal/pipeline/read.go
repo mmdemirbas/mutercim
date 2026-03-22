@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
@@ -74,6 +75,25 @@ func Read(ctx context.Context, opts ReadOptions) (PhaseResult, error) {
 	}
 
 	return total, nil
+}
+
+// makeLayoutParams builds the layout tool params map.
+// It starts from the user-configured params, then auto-populates "languages"
+// from the input's source languages if not explicitly set by the user.
+func makeLayoutParams(cfg *config.Config, stem string) map[string]any {
+	params := make(map[string]any)
+	for k, v := range cfg.Read.LayoutToolParams {
+		params[k] = v
+	}
+
+	// Auto-set languages from input config if not explicitly provided
+	if _, ok := params["languages"]; !ok {
+		if langs := cfg.SourceLanguagesForStem(stem); len(langs) > 0 {
+			params["languages"] = strings.Join(langs, ",")
+		}
+	}
+
+	return params
 }
 
 // buildInputPageMap maps input stems to their configured page lists.
@@ -144,10 +164,8 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		logger.Info("layout debug enabled, writing overlay images", "dir", rdr.DebugDir)
 	}
 
-	// Pass layout tool params to reader
-	if len(cfg.Read.LayoutToolParams) > 0 {
-		rdr.LayoutParams = cfg.Read.LayoutToolParams
-	}
+	// Pass layout tool params to reader, auto-populating languages from input config
+	rdr.LayoutParams = makeLayoutParams(cfg, stem)
 
 	// Ensure output directory exists
 	if err := os.MkdirAll(readDir, 0755); err != nil {
