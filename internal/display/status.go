@@ -10,6 +10,10 @@ type StatusData struct {
 	InputName  string
 	InputPages int // total pages from images dir
 	PageRange  string
+	LogLevel   string
+	OutputDir  string
+	Inputs     []string
+	Knowledge  []string
 	Phases     []ProgressRow
 	Warnings   []string // warning messages (page N — description)
 	Errors     []string // error messages
@@ -26,6 +30,10 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 		InputName:  data.InputName,
 		InputPages: data.InputPages,
 		PageRange:  data.PageRange,
+		LogLevel:   data.LogLevel,
+		OutputDir:  data.OutputDir,
+		Inputs:     data.Inputs,
+		Knowledge:  data.Knowledge,
 	}, colors)
 
 	// Phase rows with per-phase config details

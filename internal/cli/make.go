@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
@@ -75,6 +76,10 @@ func newAllCmd() *cobra.Command {
 				disp.SetHeader(display.HeaderData{
 					InputName:    inputName,
 					PageRange:    pageSpec,
+					LogLevel:     logLevel,
+					OutputDir:    cfg.Output,
+					Inputs:       cfg.InputPaths(),
+					Knowledge:    cfg.Knowledge,
 					PhaseConfigs: buildPhaseConfigs(cfg),
 				})
 			}
@@ -227,13 +232,27 @@ func newAllCmd() *cobra.Command {
 	}
 }
 
-// buildPhaseConfigs creates per-phase config summaries for the live dashboard header.
+// buildPhaseConfigs creates per-phase config summaries for the live dashboard and status.
 func buildPhaseConfigs(cfg *config.Config) []display.PhaseConfig {
 	var configs []display.PhaseConfig
+
+	// Cut
+	configs = append(configs, display.PhaseConfig{
+		Phase: display.PhaseCut,
+		Info:  fmt.Sprintf("dpi=%d", cfg.Cut.DPI),
+	})
 
 	// Layout
 	if cfg.Layout.Tool != "" {
 		layoutInfo := cfg.Layout.Tool
+		if len(cfg.Layout.Params) > 0 {
+			var parts []string
+			for k, v := range cfg.Layout.Params {
+				parts = append(parts, fmt.Sprintf("%s=%v", k, v))
+			}
+			sort.Strings(parts)
+			layoutInfo += " (" + strings.Join(parts, ", ") + ")"
+		}
 		configs = append(configs, display.PhaseConfig{
 			Phase: display.PhaseLayout,
 			Info:  layoutInfo,
@@ -260,6 +279,12 @@ func buildPhaseConfigs(cfg *config.Config) []display.PhaseConfig {
 		Phase:    display.PhaseTranslate,
 		Info:     transInfo,
 		SubItems: transModels,
+	})
+
+	// Write
+	configs = append(configs, display.PhaseConfig{
+		Phase: display.PhaseWrite,
+		Info:  strings.Join(cfg.Write.Formats, ", "),
 	})
 
 	return configs

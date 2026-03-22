@@ -267,6 +267,7 @@ func (d *TTYDisplay) render() {
 }
 
 // renderHeaderTo writes the header to a buffer and returns the line count.
+// Mirrors RenderHeader but writes to a strings.Builder.
 func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int {
 	lines := 0
 	if h.InputName != "" {
@@ -276,7 +277,19 @@ func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int
 		} else if h.InputPages > 0 {
 			info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
 		}
-		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Input")), info)
+		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Input")), info)
+		lines++
+	}
+	if h.OutputDir != "" && h.OutputDir != "." {
+		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir)
+		lines++
+	}
+	if len(h.Knowledge) > 0 {
+		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", "))
+		lines++
+	}
+	if h.LogLevel != "" && h.LogLevel != "info" {
+		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "LogLevel")), h.LogLevel)
 		lines++
 	}
 	if lines > 0 {

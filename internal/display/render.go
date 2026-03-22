@@ -22,6 +22,10 @@ type HeaderData struct {
 	InputName    string
 	InputPages   int           // total pages available
 	PageRange    string        // e.g. "1-50", empty means all
+	LogLevel     string        // effective log level
+	OutputDir    string        // output directory
+	Inputs       []string      // input paths
+	Knowledge    []string      // knowledge paths
 	PhaseConfigs []PhaseConfig // per-phase config summaries
 }
 
@@ -35,7 +39,19 @@ func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 		} else if h.InputPages > 0 {
 			info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
 		}
-		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Input")), info)
+		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Input")), info)
+		lines++
+	}
+	if h.OutputDir != "" && h.OutputDir != "." {
+		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir)
+		lines++
+	}
+	if len(h.Knowledge) > 0 {
+		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", "))
+		lines++
+	}
+	if h.LogLevel != "" && h.LogLevel != "info" {
+		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "LogLevel")), h.LogLevel)
 		lines++
 	}
 	if lines > 0 {

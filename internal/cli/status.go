@@ -80,10 +80,31 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		logSize = info.Size()
 	}
 
+	// Apply per-phase config info to rows (Info/SubItems only on the first row per phase)
+	phaseConfigs := buildPhaseConfigs(cfg)
+	appliedPhases := make(map[display.Phase]bool)
+	for i := range rows {
+		if appliedPhases[rows[i].Phase] {
+			continue
+		}
+		for _, pc := range phaseConfigs {
+			if pc.Phase == rows[i].Phase {
+				rows[i].Info = pc.Info
+				rows[i].SubItems = pc.SubItems
+				appliedPhases[rows[i].Phase] = true
+				break
+			}
+		}
+	}
+
 	data := display.StatusData{
 		InputName:  inputName,
 		InputPages: totalImages,
 		PageRange:  "",
+		LogLevel:   cfg.LogLevel,
+		OutputDir:  cfg.Output,
+		Inputs:     cfg.InputPaths(),
+		Knowledge:  cfg.Knowledge,
 		Phases:     rows,
 		Warnings:   warnings,
 		Errors:     nil,
@@ -127,38 +148,23 @@ func buildPhaseRows(ws *workspace.Workspace, cfg *config.Config, inputs []string
 			layoutCompleted += countJSONFiles(filepath.Join(ws.LayoutDir(), stem))
 		}
 		layoutTotal := totalImages
-		layoutInfo := cfg.Layout.Tool
-		if len(cfg.Layout.Params) > 0 {
-			var parts []string
-			for k, v := range cfg.Layout.Params {
-				parts = append(parts, fmt.Sprintf("%s=%v", k, v))
-			}
-			sort.Strings(parts)
-			layoutInfo += " (" + strings.Join(parts, ", ") + ")"
-		}
 		rows = append(rows, display.ProgressRow{
 			Phase: display.PhaseLayout, Completed: layoutCompleted,
 			Total: layoutTotal,
 			Done:  layoutTotal > 0 && layoutCompleted >= layoutTotal,
-			Info:  layoutInfo,
 		})
 	}
 
-	// Read phase with model list
+	// Read phase
 	readCompleted := 0
 	for _, stem := range inputs {
 		readCompleted += countJSONFiles(filepath.Join(ws.ReadDir(), stem))
 	}
 	readTotal := totalImages
-	var readModels []string
-	for _, m := range cfg.Read.Models {
-		readModels = append(readModels, m.Provider+"/"+m.Model)
-	}
 	rows = append(rows, display.ProgressRow{
 		Phase: display.PhaseRead, Completed: readCompleted,
-		Total:    readTotal,
-		Done:     readTotal > 0 && readCompleted >= readTotal,
-		SubItems: readModels,
+		Total: readTotal,
+		Done:  readTotal > 0 && readCompleted >= readTotal,
 	})
 
 	// Solve phase
@@ -173,29 +179,18 @@ func buildPhaseRows(ws *workspace.Workspace, cfg *config.Config, inputs []string
 		Done:  solveTotal > 0 && solveCompleted >= solveTotal,
 	})
 
-	// Translate phase with model list and target languages
-	var transModels []string
-	for _, m := range cfg.Translate.Models {
-		transModels = append(transModels, m.Provider+"/"+m.Model)
-	}
-	transInfo := "\u2192 " + strings.Join(targetLangs, ", ")
+	// Translate phase — one row per target language
 	for _, lang := range targetLangs {
 		transCompleted := 0
 		for _, stem := range inputs {
 			transCompleted += countJSONFiles(filepath.Join(ws.TranslateDir(), lang, stem))
 		}
 		transTotal := solveCompleted
-		row := display.ProgressRow{
+		rows = append(rows, display.ProgressRow{
 			Phase: display.PhaseTranslate, Completed: transCompleted,
 			Total: transTotal, Lang: lang,
 			Done: transTotal > 0 && transCompleted >= transTotal,
-		}
-		// Show info and model list only on the first translate row
-		if lang == targetLangs[0] {
-			row.Info = transInfo
-			row.SubItems = transModels
-		}
-		rows = append(rows, row)
+		})
 	}
 
 	// Write rows per target language
