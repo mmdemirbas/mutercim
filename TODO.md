@@ -21,6 +21,3 @@
 
 - 'knowledge' should be a property of the 'translate' step (I think).
 
-- Warn if the API KEY for a configured model is not provided.
-
-- status output is good now but the live dashboard doesn't give the same level of details. User is blind at that point. Fix that.

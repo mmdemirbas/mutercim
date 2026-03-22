@@ -229,8 +229,8 @@ func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig,
 	for _, spec := range models {
 		apiKey, err := resolveAPIKey(spec.Provider)
 		if err != nil {
-			cleanup()
-			return nil, err
+			logger.Warn("skipping model (API key not set)", "provider", spec.Provider, "model", spec.Model, "error", err)
+			continue
 		}
 
 		rpm := spec.RPM
@@ -253,6 +253,10 @@ func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig,
 		}
 		providers = append(providers, p)
 		labels = append(labels, spec.Provider+"/"+spec.Model)
+	}
+
+	if len(providers) == 0 {
+		return nil, fmt.Errorf("no usable providers: set API keys for at least one configured model (e.g. GEMINI_API_KEY)")
 	}
 
 	return provider.NewFailoverChain(providers, clients, 60*time.Second, logger, labels...), nil
