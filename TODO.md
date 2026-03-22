@@ -19,8 +19,6 @@
   my general purpose translator tool vision.
 * Instead, add a "source_expansion" step that can be optionally added after "translate" or "solve". It will take the translated output and expand it with source information (e.g. for hadith, add isnad and original text in arabic). This way it's decoupled from the writing/formatting logic and can be used in more contexts.  
 
-
-
 - Add log level to the configuration file.
 - Add '-f' short option to the '--force' option in cli.
 - Add '-a' short option to  the '--auto' option in cli.
@@ -30,3 +28,4 @@
 
 - 'knowledge' should be a property of the 'translate' step (I think).
 
+- status output is good now but the live dashboard doesn't give the same level of details. User is blind at that point. Fix that.

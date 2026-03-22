@@ -170,42 +170,48 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 			return result, nil
 		}
 
+		// Find next eligible provider name for the callback
+		nextName := ""
+		for j := i + 1; j < len(f.entries); j++ {
+			ne := &f.entries[j]
+			if needsVision && !ne.provider.SupportsVision() {
+				continue
+			}
+			f.mu.Lock()
+			nowCheck := f.now()
+			nexhausted := nowCheck.Before(ne.exhaustedUntil)
+			f.mu.Unlock()
+			if !nexhausted {
+				nextName = ne.provider.Name()
+				break
+			}
+		}
+
 		if isQuotaError(err) {
+			// 429: mark provider as exhausted with recovery window
 			f.mu.Lock()
 			e.exhaustedUntil = f.now().Add(f.recoveryWindow)
 			f.mu.Unlock()
 
-			// Find next eligible provider name for the callback
-			nextName := ""
-			for j := i + 1; j < len(f.entries); j++ {
-				ne := &f.entries[j]
-				if needsVision && !ne.provider.SupportsVision() {
-					continue
-				}
-				f.mu.Lock()
-				nowCheck := f.now()
-				nexhausted := nowCheck.Before(ne.exhaustedUntil)
-				f.mu.Unlock()
-				if !nexhausted {
-					nextName = ne.provider.Name()
-					break
-				}
-			}
-
-			f.logger.Warn("provider exhausted (429), failing over to next",
+			f.logger.Warn("provider exhausted (429), failing over",
 				"provider", p.Name(),
 				"next", nextName,
 				"recovery_seconds", f.recoveryWindow.Seconds(),
 			)
-			if f.OnFailover != nil && nextName != "" {
-				f.OnFailover(p.Name(), nextName)
-			}
-			errs = append(errs, fmt.Errorf("%s: %w", p.Name(), err))
-			continue
+		} else {
+			// Other errors (404, 400, network, etc.): try next provider
+			f.logger.Warn("provider failed, trying next",
+				"provider", p.Name(),
+				"next", nextName,
+				"error", err,
+			)
 		}
 
-		// Non-quota errors are not retried on next provider
-		return "", err
+		if f.OnFailover != nil && nextName != "" {
+			f.OnFailover(p.Name(), nextName)
+		}
+		errs = append(errs, fmt.Errorf("%s: %w", p.Name(), err))
+		continue
 	}
 
 	if len(errs) > 0 {

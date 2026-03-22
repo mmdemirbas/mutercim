@@ -94,7 +94,7 @@ func TestFailoverChain_AllExhausted(t *testing.T) {
 	}
 }
 
-func TestFailoverChain_NonQuotaError_NoFallover(t *testing.T) {
+func TestFailoverChain_NonQuotaError_TriesFallover(t *testing.T) {
 	chain := NewFailoverChain(
 		[]Provider{
 			&errorProvider{name: "primary", vision: true, err: badRequest400()},
@@ -103,14 +103,12 @@ func TestFailoverChain_NonQuotaError_NoFallover(t *testing.T) {
 		nil, 60*time.Second, nil,
 	)
 
-	_, err := chain.Translate(context.Background(), "sys", "user")
-	if err == nil {
-		t.Fatal("expected error for non-quota failure")
+	// 400 on primary should try secondary (which succeeds with empty response)
+	result, err := chain.Translate(context.Background(), "sys", "user")
+	if err != nil {
+		t.Fatalf("expected secondary to succeed, got error: %v", err)
 	}
-	// Should NOT fall through to secondary — 400 errors are not retried
-	if strings.Contains(err.Error(), "all providers exhausted") {
-		t.Error("400 errors should not trigger failover")
-	}
+	_ = result
 }
 
 func TestFailoverChain_RecoveryWindow(t *testing.T) {
