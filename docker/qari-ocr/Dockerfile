@@ -10,10 +10,7 @@ RUN pip install --no-cache-dir \
     Pillow
 
 # Download model weights at build time — no runtime downloads
-RUN python -c " \
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor; \
-Qwen2VLForConditionalGeneration.from_pretrained('NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct'); \
-AutoProcessor.from_pretrained('NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct')"
+RUN python -c "from transformers import Qwen2VLForConditionalGeneration, AutoProcessor; Qwen2VLForConditionalGeneration.from_pretrained('NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct'); AutoProcessor.from_pretrained('NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct')"
 
 COPY server.py /app/server.py
 WORKDIR /app
