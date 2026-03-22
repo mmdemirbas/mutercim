@@ -23,6 +23,7 @@ type Config struct {
 	LogLevel  string          `yaml:"log_level,omitempty" mapstructure:"log_level" json:"log_level,omitempty"`
 	Cut       CutConfig       `yaml:"cut" mapstructure:"cut" json:"cut"`
 	Layout    LayoutConfig    `yaml:"layout" mapstructure:"layout" json:"layout"`
+	OCR       OCRConfig       `yaml:"ocr" mapstructure:"ocr" json:"ocr"`
 	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
 	Solve     SolveConfig     `yaml:"solve" mapstructure:"solve" json:"solve"`
 	Translate TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
@@ -49,6 +50,12 @@ type LayoutConfig struct {
 	Tool   string         `yaml:"tool,omitempty" mapstructure:"tool" json:"tool,omitempty"`       // "doclayout-yolo" (default), "surya", or "" (disabled)
 	Debug  bool           `yaml:"debug,omitempty" mapstructure:"debug" json:"debug,omitempty"`    // when true, write debug overlay images
 	Params map[string]any `yaml:"params,omitempty" mapstructure:"params" json:"params,omitempty"` // tool-specific tuning parameters
+}
+
+// OCRConfig holds OCR phase settings.
+type OCRConfig struct {
+	Tool     string `yaml:"tool,omitempty" mapstructure:"tool" json:"tool,omitempty"`             // "qari" or "" (disabled, skip OCR phase)
+	Quantize string `yaml:"quantize,omitempty" mapstructure:"quantize" json:"quantize,omitempty"` // "8bit" (recommended) or "none" (full precision)
 }
 
 // ReadConfig holds read-phase settings.

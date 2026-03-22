@@ -101,14 +101,37 @@ layout:
 # layout:
 #   tool: ""
 
-# ─── Read phase (OCR/vision) ─────────────────────────────────────────────────
+# ─── OCR phase (text extraction) ────────────────────────────────────────────
 #
-# Sends page images (+ layout regions if available) to AI vision models to extract structured JSON.
-# If layout output exists, the LLM refines region types and extracts text.
-# If not, the LLM detects regions from scratch (AI-only mode).
+# Optional phase between layout and read. Extracts text from page images using
+# a specialized OCR model. When enabled, the read phase switches to text-only
+# LLMs (no vision needed), which are cheaper and have higher quotas.
+# When disabled (default), the read phase uses vision LLMs for text extraction.
+#
+# Qari-OCR: Arabic-specialized 2B model with best-in-class diacritics (tashkeel)
+# recognition (0.061 CER). Runs locally in Docker as a persistent HTTP server.
+# Model loads once (~30-60s), then serves requests. First build is ~5-10 min.
+
+# --- Option A: Disabled (default) ---
+# Read phase uses vision LLM for text extraction.
+ocr:
+  tool: ""                         # "qari" or "" (disabled)
+  quantize: 8bit                   # "8bit" (recommended) or "none" (full precision)
+
+# --- Option B: Qari-OCR ---
+# ocr:
+#   tool: qari                     # Qari-OCR (NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct)
+#   quantize: 8bit                 # 8-bit quantization (recommended for OCR accuracy)
+
+# ─── Read phase (structural analysis) ───────────────────────────────────────
+#
+# Sends page images or OCR text (+ layout regions if available) to AI models
+# to extract structured JSON with regions, types, and reading order.
+#
+# When OCR is enabled: text-only LLMs work here (no vision needed).
+# When OCR is disabled: vision-capable models required (image input).
 #
 # Models are tried in order; on 429/quota exhaustion, fails over to next.
-# All models here must support vision (image input).
 #
 # Providers:  gemini | claude | openai | groq | mistral | openrouter | xai | ollama
 # Default RPMs: gemini=10, groq=30, mistral=60, openrouter=20, openai=500, ollama=1000

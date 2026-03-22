@@ -12,16 +12,18 @@ The glossary system is general-purpose — provide your own terminology files fo
 ## Pipeline overview
 
 ```
-PDF/images ──► cut ──► layout ──► read ──► solve ──► translate ──► write
-               │          │          │        │          │             │
-               │          │          │        │          │             ▼
-               │          │          │        │          │         .md .tex .pdf .docx
-               │          │          │        │          ▼
-               │          │          │        │      translate/{lang}/{input}/NNN.json
-               │          │          │        ▼
-               │          │          │    solve/{input}/NNN.json
-               │          │          ▼
-               │          │      read/{input}/NNN.json
+PDF/images ──► cut ──► layout ──► ocr ──► read ──► solve ──► translate ──► write
+               │          │         │        │        │          │             │
+               │          │         │        │        │          │             ▼
+               │          │         │        │        │          │         .md .tex .pdf .docx
+               │          │         │        │        │          ▼
+               │          │         │        │        │      translate/{lang}/{input}/NNN.json
+               │          │         │        │        ▼
+               │          │         │        │    solve/{input}/NNN.json
+               │          │         │        ▼
+               │          │         │    read/{input}/NNN.json
+               │          │         ▼
+               │          │     ocr/{input}/NNN.json
                │          ▼
                │      layout/{input}/NNN.json
                ▼
@@ -102,13 +104,14 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 
 | Command     | Description                                                              |
 |-------------|--------------------------------------------------------------------------|
-| `all`       | Run all phases sequentially (cut, layout, read, solve, translate, write) |
-| `cut`       | Convert PDF inputs to per-page images                                    |
-| `layout`    | Detect document layout regions on page images                            |
-| `read`      | Read structured data from page images via AI vision                      |
-| `solve`     | Resolve abbreviations and knowledge context                              |
-| `translate` | Translate solved pages into target languages                             |
-| `write`     | Render translated data to output formats                                 |
+| `all`       | Run all phases sequentially (cut, layout, ocr, read, solve, translate, write) |
+| `cut`       | Convert PDF inputs to per-page images                                         |
+| `layout`    | Detect document layout regions on page images                                 |
+| `ocr`       | Extract text from page images using OCR (optional)                            |
+| `read`      | Read structured data from page images or OCR output via AI                    |
+| `solve`     | Resolve abbreviations and knowledge context                                   |
+| `translate` | Translate solved pages into target languages                                  |
+| `write`     | Render translated data to output formats                                      |
 
 ### Workspace Commands
 
@@ -149,7 +152,7 @@ write:      -F, --format        Output formats (comma-separated: md,latex,pdf,do
 
 ### Clean command
 
-Targets: `log`, `memory`, `cut`, `layout`, `read`, `solve`, `translate`, `write`, `all`
+Targets: `log`, `memory`, `cut`, `layout`, `ocr`, `read`, `solve`, `translate`, `write`, `all`
 
 ```bash
 mutercim clean read # delete only read/
@@ -199,7 +202,13 @@ layout:
   #   iou: 0.7                   # NMS threshold (default 0.7)
   #   image_size: 1024           # inference resolution (default 1024)
 
-# Read phase — AI vision OCR (uses layout data if available)
+# OCR phase — text extraction (optional, runs between layout and read)
+# When enabled, the read phase can use text-only LLMs instead of vision models
+ocr:
+  tool: ""                       # "qari" (Qari-OCR, Arabic-specialized) or "" (disabled)
+  quantize: 8bit                 # "8bit" (recommended) or "none" (full precision)
+
+# Read phase — structural analysis (uses OCR text and/or page images)
 read:
   models: # ordered model failover chain
     - { provider: gemini, model: gemini-2.5-flash-lite }
@@ -267,7 +276,12 @@ my-book/                       # workspace root
 │       ├── debug/             #   overlay images (when layout.debug: true)
 │       │   └── 001_layout.png
 │       └── ...
-├── read/                      # [generated] structured JSON from AI vision
+├── ocr/                       # [generated] OCR text extraction (when ocr.tool configured)
+│   └── book/
+│       ├── 001.json
+│       ├── report.json
+│       └── ...
+├── read/                      # [generated] structured JSON from AI
 │   └── book/
 │       ├── 001.json
 │       └── ...

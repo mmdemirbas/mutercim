@@ -15,7 +15,7 @@ import (
 func newSolveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "solve",
-		Short: "(Phase 4) Solve read pages with knowledge resolution",
+		Short: "(Phase 5) Solve read pages with knowledge resolution",
 		Long:  "Resolves source abbreviations, detects cross-page continuations, validates structure, and injects translation context.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")

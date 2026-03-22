@@ -298,4 +298,19 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 ## Phase rename: pages → cut
 
 The "pages" phase renamed to "cut" to maintain alphabetical ordering with the new "layout" phase.
-Pipeline: cut → layout → read → solve → translate → write (C, L, R, S, T, W).
+
+## OCR as independent phase
+
+OCR extracted into its own pipeline phase between layout and read.
+Pipeline: cut → layout → ocr → read → solve → translate → write (C, L, O, R, S, T, W).
+
+OCR tools (like layout tools) are specialized single-purpose engines, not LLM providers.
+Interface: internal/ocr/Tool with Start/Stop/RecognizeRegions/RecognizeFullPage.
+
+First implementation: Qari-OCR (NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct).
+2B parameter Arabic OCR model, 8-bit quantized, runs locally in Docker as persistent HTTP server.
+State-of-the-art Arabic diacritics (tashkeel) recognition: 0.061 CER.
+
+When OCR is enabled, the read phase switches to text-only LLM (no vision needed).
+When OCR is disabled, the read phase falls back to vision-LLM-does-everything.
+Four degradation paths (layout±ocr combinations) all produce the same read output schema.

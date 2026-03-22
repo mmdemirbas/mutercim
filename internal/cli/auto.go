@@ -11,6 +11,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
+	"github.com/mmdemirbas/mutercim/internal/ocr"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
@@ -21,6 +22,7 @@ type phase int
 const (
 	phaseCut       phase = iota
 	phaseLayout    phase = iota
+	phaseOCR       phase = iota
 	phaseRead      phase = iota
 	phaseSolve     phase = iota
 	phaseTranslate phase = iota
@@ -34,6 +36,11 @@ func hasPhaseOutput(p phase, ws *workspace.Workspace, cfg *config.Config) bool {
 		return dirHasEntries(ws.CutDir())
 	case phaseLayout:
 		return dirHasEntries(ws.LayoutDir())
+	case phaseOCR:
+		if cfg.OCR.Tool == "" {
+			return true // OCR disabled counts as "output present" — skip it
+		}
+		return dirHasEntries(ws.OcrDir())
 	case phaseRead:
 		return dirHasEntries(ws.ReadDir())
 	case phaseSolve:
@@ -97,6 +104,27 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 				Workspace: ws, Config: cfg, Pages: pagesToProcess, Logger: logger, Display: disp,
 			}); err != nil {
 				return fmt.Errorf("auto layout: %w", err)
+			}
+		}
+	}
+
+	if startPhase <= phaseOCR && phaseOCR < targetPhase {
+		if cfg.OCR.Tool == "" {
+			logger.Info("ocr tool disabled, skipping ocr phase")
+		} else {
+			logger.Info("=== AUTO: OCR ===")
+			ocrTool := ocr.NewTool(cfg.OCR.Tool)
+			if ocrTool == nil {
+				return fmt.Errorf("unknown OCR tool: %q", cfg.OCR.Tool)
+			}
+			if qt, ok := ocrTool.(*ocr.QariTool); ok {
+				qt.Quantize = cfg.OCR.Quantize
+			}
+			if _, err := pipeline.OCR(ctx, pipeline.OCROptions{
+				Workspace: ws, Config: cfg, Tool: ocrTool,
+				Pages: pagesToProcess, Logger: logger, Display: disp,
+			}); err != nil {
+				return fmt.Errorf("auto ocr: %w", err)
 			}
 		}
 	}
@@ -177,6 +205,8 @@ func phaseName(p phase) string {
 		return "cut"
 	case phaseLayout:
 		return "layout"
+	case phaseOCR:
+		return "ocr"
 	case phaseRead:
 		return "read"
 	case phaseSolve:

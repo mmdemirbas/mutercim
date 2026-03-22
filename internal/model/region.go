@@ -9,6 +9,8 @@ type RegionPage struct {
 	PageSize      PageSize `json:"page_size"`
 	ReadModel     string   `json:"read_model"`
 	LayoutTool    string   `json:"layout_tool"`
+	OCRSource     string   `json:"ocr_source,omitempty"`
+	LayoutSource  string   `json:"layout_source,omitempty"`
 	ReadTimestamp string   `json:"read_timestamp"`
 	Regions       []Region `json:"regions"`
 	ReadingOrder  []string `json:"reading_order"`

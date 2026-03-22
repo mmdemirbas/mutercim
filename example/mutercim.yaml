@@ -20,7 +20,7 @@ layout:
   #   image_size — input resolution for inference in pixels (default 1024)
   #     Larger → more detail for the model, slower inference
   #   max_det — maximum detections per page (default 300)
-  params: { confidence: 0.15, iou: 0.3, image_size: 1280 }
+  params: { confidence: 0.15, iou: 0.25, image_size: 2048 }
 
 read:
   models:
@@ -35,14 +35,13 @@ read:
   retry: { max_attempts: 0, backoff_seconds: 2 }
 
 translate:
-  languages: [ ar, tr ]
+  languages: [ ar ]
   models:
     - { provider: groq, model: llama-3.3-70b-versatile }
     - { provider: gemini, model: gemini-2.5-flash-lite }
     - { provider: mistral, model: mistral-small-latest }
     - { provider: gemini, model: gemini-2.5-flash }
     - { provider: openrouter, model: meta-llama/llama-3.3-70b-instruct:free }
-    #- { provider: ollama, model: qwen3:14b }
   context_window: 2
 
 write:

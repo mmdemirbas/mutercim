@@ -2,26 +2,23 @@ package cli
 
 import (
 	"fmt"
-	"strings"
+	"log/slog"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
+	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/ocr"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
 
-func newWriteCmd() *cobra.Command {
-	var (
-		formats string
-	)
-
+func newOCRCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:       "write [formats...]",
-		Short:     "(Phase 7) Write translated pages into final output",
-		Long:      "Generates output files from translated JSON. Supported formats: md, latex (tex), pdf, docx.\n\nFormats can be specified as positional arguments to override the config:\n  mutercim write pdf\n  mutercim write md docx",
-		ValidArgs: []string{"md", "latex", "tex", "pdf", "docx"},
+		Use:   "ocr",
+		Short: "(Phase 3) Extract text from page images using OCR",
+		Long:  "Runs OCR on page images using layout regions if available. Requires Docker for the Qari-OCR tool.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
 			if err != nil {
@@ -36,26 +33,21 @@ func newWriteCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("config: %w", err)
 			}
-
-			// Apply output directory override
 			applyOutputDir(ws, cfg)
 
-			// Apply format overrides: positional args > --format flag > config
-			if len(args) > 0 {
-				fmts, err := normalizeFormats(args)
-				if err != nil {
-					return err
-				}
-				cfg.Write.Formats = fmts
-			} else if formats != "" {
-				fmts, err := normalizeFormats(strings.Split(formats, ","))
-				if err != nil {
-					return err
-				}
-				cfg.Write.Formats = fmts
+			if cfg.OCR.Tool == "" {
+				fmt.Println("OCR is disabled (ocr.tool not configured). The read phase will use vision LLM for text extraction.")
+				return nil
 			}
-			// Determine page range
+
+			// Preflight: check Docker (OCR tools run in containers)
+			if err := docker.CheckAvailable(cmd.Context()); err != nil {
+				return err
+			}
+
+			// Determine page range: CLI flag > all
 			pageSpec := pages
+
 			var pagesToProcess []int
 			if pageSpec != "" && pageSpec != "all" {
 				ranges, err := model.ParsePageRanges(pageSpec)
@@ -70,22 +62,35 @@ func newWriteCmd() *cobra.Command {
 
 			// Auto-run prerequisites if needed
 			if auto {
-				if err := runPrerequisites(cmd.Context(), phaseWrite, ws, cfg, pagesToProcess, display.FromContext(cmd.Context())); err != nil {
+				if err := runPrerequisites(cmd.Context(), phaseOCR, ws, cfg, pagesToProcess, display.FromContext(cmd.Context())); err != nil {
 					return err
 				}
 			}
 
-			return pipeline.Write(cmd.Context(), pipeline.WriteOptions{
+			logger := slog.Default()
+
+			// Create OCR tool
+			tool := ocr.NewTool(cfg.OCR.Tool)
+			if tool == nil {
+				return fmt.Errorf("unknown OCR tool: %q", cfg.OCR.Tool)
+			}
+			// Apply quantize config
+			if qt, ok := tool.(*ocr.QariTool); ok {
+				qt.Quantize = cfg.OCR.Quantize
+			}
+
+			_, err = pipeline.OCR(cmd.Context(), pipeline.OCROptions{
 				Workspace: ws,
 				Config:    cfg,
+				Tool:      tool,
 				Pages:     pagesToProcess,
 				Force:     force,
+				Logger:    logger,
 				Display:   display.FromContext(cmd.Context()),
 			})
+			return err
 		},
 	}
-
-	cmd.Flags().StringVarP(&formats, "format", "F", "", "output formats, comma-separated: md,latex,pdf,docx (overridden by positional args)")
 
 	return cmd
 }

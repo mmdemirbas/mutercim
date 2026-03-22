@@ -122,10 +122,11 @@ between languages, preserving layout, structure, and domain-specific terminology
 		ordered(1, newAllCmd()),
 		ordered(2, newCutCmd()),
 		ordered(3, newLayoutCmd()),
-		ordered(4, newReadCmd()),
-		ordered(5, newSolveCmd()),
-		ordered(6, newTranslateCmd()),
-		ordered(7, newWriteCmd()),
+		ordered(4, newOCRCmd()),
+		ordered(5, newReadCmd()),
+		ordered(6, newSolveCmd()),
+		ordered(7, newTranslateCmd()),
+		ordered(8, newWriteCmd()),
 	)
 
 	// Workspace commands

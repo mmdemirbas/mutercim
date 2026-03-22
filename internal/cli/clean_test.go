@@ -39,12 +39,14 @@ func TestExpandTargets_plus_suffix(t *testing.T) {
 		input string
 		want  []string
 	}{
-		{"cut+", []string{"cut", "layout", "read", "solve", "translate", "write"}},
+		{"cut+", []string{"cut", "layout", "ocr", "read", "solve", "translate", "write"}},
 		{"read+", []string{"read", "solve", "translate", "write"}},
 		{"solve+", []string{"solve", "translate", "write"}},
 		{"translate+", []string{"translate", "write"}},
 		{"write+", []string{"write"}},
-		{"log+", []string{"log", "memory", "cut", "layout", "read", "solve", "translate", "write"}},
+		{"ocr+", []string{"ocr", "read", "solve", "translate", "write"}},
+		{"layout+", []string{"layout", "ocr", "read", "solve", "translate", "write"}},
+		{"log+", []string{"log", "memory", "cut", "layout", "ocr", "read", "solve", "translate", "write"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
@@ -179,8 +181,11 @@ func TestPhaseIndex(t *testing.T) {
 	if phaseIndex("layout") != 3 {
 		t.Errorf("phaseIndex(layout) = %d, want 3", phaseIndex("layout"))
 	}
-	if phaseIndex("write") != 7 {
-		t.Errorf("phaseIndex(write) = %d, want 7", phaseIndex("write"))
+	if phaseIndex("ocr") != 4 {
+		t.Errorf("phaseIndex(ocr) = %d, want 4", phaseIndex("ocr"))
+	}
+	if phaseIndex("write") != 8 {
+		t.Errorf("phaseIndex(write) = %d, want 8", phaseIndex("write"))
 	}
 	if phaseIndex("bogus") != -1 {
 		t.Errorf("phaseIndex(bogus) = %d, want -1", phaseIndex("bogus"))

@@ -310,9 +310,9 @@ func TestBuildPhaseRows(t *testing.T) {
 	}
 	rows := buildPhaseRows(ws, cfg, []string{stem}, 3)
 
-	// cut, layout, read, solve, translate(tr), write(tr) = 6 rows
-	if len(rows) != 6 {
-		t.Fatalf("got %d rows, want 6", len(rows))
+	// cut, layout, ocr, read, solve, translate(tr), write(tr) = 7 rows
+	if len(rows) != 7 {
+		t.Fatalf("got %d rows, want 7", len(rows))
 	}
 
 	// Cut: 3/3, done
@@ -325,14 +325,19 @@ func TestBuildPhaseRows(t *testing.T) {
 		t.Errorf("layout row: completed=%d total=%d skipped=%v", rows[1].Completed, rows[1].Total, rows[1].Skipped)
 	}
 
+	// OCR: skipped (no tool configured)
+	if !rows[2].Skipped {
+		t.Errorf("ocr row: expected skipped when tool is empty")
+	}
+
 	// Read: 2/3, not done
-	if rows[2].Completed != 2 || rows[2].Total != 3 || rows[2].Done {
-		t.Errorf("read row: completed=%d total=%d done=%v", rows[2].Completed, rows[2].Total, rows[2].Done)
+	if rows[3].Completed != 2 || rows[3].Total != 3 || rows[3].Done {
+		t.Errorf("read row: completed=%d total=%d done=%v", rows[3].Completed, rows[3].Total, rows[3].Done)
 	}
 
 	// Solve: 0/2, not done
-	if rows[3].Completed != 0 || rows[3].Total != 2 {
-		t.Errorf("solve row: completed=%d total=%d", rows[3].Completed, rows[3].Total)
+	if rows[4].Completed != 0 || rows[4].Total != 2 {
+		t.Errorf("solve row: completed=%d total=%d", rows[4].Completed, rows[4].Total)
 	}
 }
 
@@ -346,14 +351,19 @@ func TestBuildPhaseRows_NoInputs(t *testing.T) {
 	}
 	rows := buildPhaseRows(ws, cfg, nil, 0)
 
-	// cut, layout, read, solve, translate(tr), write(tr) = 6 rows
-	if len(rows) != 6 {
-		t.Fatalf("got %d rows, want 6", len(rows))
+	// cut, layout, ocr, read, solve, translate(tr), write(tr) = 7 rows
+	if len(rows) != 7 {
+		t.Fatalf("got %d rows, want 7", len(rows))
 	}
 
 	// Layout should be skipped when tool is empty
 	if !rows[1].Skipped {
 		t.Errorf("layout row should be skipped when tool is empty")
+	}
+
+	// OCR should be skipped when tool is empty
+	if !rows[2].Skipped {
+		t.Errorf("ocr row should be skipped when tool is empty")
 	}
 
 	// All zeroes

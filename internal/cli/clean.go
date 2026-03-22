@@ -12,8 +12,8 @@ import (
 )
 
 // cleanablePhases defines the phase ordering for "+" suffix expansion.
-// The order matches the pipeline: log, memory, cut, read, solve, translate, write.
-var cleanablePhases = []string{"log", "memory", "cut", "layout", "read", "solve", "translate", "write"}
+// The order matches the pipeline: log, memory, cut, layout, ocr, read, solve, translate, write.
+var cleanablePhases = []string{"log", "memory", "cut", "layout", "ocr", "read", "solve", "translate", "write"}
 
 // phaseDir returns the workspace directory for a cleanable phase.
 func phaseDir(ws *workspace.Workspace, phase string) string {
@@ -26,6 +26,8 @@ func phaseDir(ws *workspace.Workspace, phase string) string {
 		return ws.CutDir()
 	case "layout":
 		return ws.LayoutDir()
+	case "ocr":
+		return ws.OcrDir()
 	case "read":
 		return ws.ReadDir()
 	case "solve":
@@ -135,11 +137,13 @@ func newCleanCmd() *cobra.Command {
 		Short: "Delete generated data for specified phases",
 		Long: `Delete generated directories and reset progress tracking.
 
-Targets: log, memory, cut, layout, read, solve, translate, write, all
+Targets: log, memory, cut, layout, ocr, read, solve, translate, write, all
 
 Use "+" suffix to include downstream phases:
   mutercim clean read+       # read/ solve/ translate/ write/
-  mutercim clean cut+        # cut/ layout/ read/ solve/ translate/ write/
+  mutercim clean ocr+        # ocr/ read/ solve/ translate/ write/
+  mutercim clean layout+     # layout/ ocr/ read/ solve/ translate/ write/
+  mutercim clean cut+        # cut/ layout/ ocr/ read/ solve/ translate/ write/
   mutercim clean all         # everything (except input/ and knowledge/)
 
 Multiple targets:

@@ -13,6 +13,7 @@ type Phase string
 const (
 	PhaseCut       Phase = "CUT"
 	PhaseLayout    Phase = "LAYOUT"
+	PhaseOCR       Phase = "OCR"
 	PhaseRead      Phase = "READ"
 	PhaseSolve     Phase = "SOLVE"
 	PhaseTranslate Phase = "TRANS"

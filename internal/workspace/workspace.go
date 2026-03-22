@@ -76,7 +76,12 @@ func (w *Workspace) LayoutDir() string {
 	return filepath.Join(w.outputBase(), "layout")
 }
 
-// ReadDir returns the OCR extraction directory path.
+// OcrDir returns the OCR text extraction directory path.
+func (w *Workspace) OcrDir() string {
+	return filepath.Join(w.outputBase(), "ocr")
+}
+
+// ReadDir returns the structural reading directory path.
 func (w *Workspace) ReadDir() string {
 	return filepath.Join(w.outputBase(), "read")
 }

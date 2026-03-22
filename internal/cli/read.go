@@ -26,8 +26,8 @@ func newReadCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "read",
-		Short: "(Phase 3) Read structured data from page images (OCR)",
-		Long:  "Sends page images to an AI vision model and reads structured JSON with regions and metadata. Images must exist in cut/ (use --auto to run prerequisite phases automatically).",
+		Short: "(Phase 4) Read structured data from page images or OCR output",
+		Long:  "Sends page images (or OCR text when OCR is enabled) to an AI model and reads structured JSON with regions and metadata. When OCR is enabled, text-only LLMs can be used instead of vision models.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
 			if err != nil {

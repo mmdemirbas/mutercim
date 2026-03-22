@@ -102,6 +102,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	imagesDir := filepath.Join(ws.CutDir(), stem)
 	readDir := filepath.Join(ws.ReadDir(), stem)
 	layoutDir := filepath.Join(ws.LayoutDir(), stem)
+	ocrDir := filepath.Join(ws.OcrDir(), stem)
 
 	// List available images
 	images, err := input.ListImages(imagesDir)
@@ -207,9 +208,24 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			hasLayout = true
 		}
 
+		// Check for pre-existing OCR data
+		ocrPath := filepath.Join(ocrDir, pageFilename(pageNum, len(pagesToProcess)))
+		var ocrPage *model.OCRPage
+		hasOCR := false
+		if op, err := loadOCRPage(ocrPath); err == nil {
+			ocrPage = op
+			hasOCR = true
+		}
+
 		// Skip if output is up-to-date (mtime check)
+		// When OCR is available, read depends on OCR output instead of page images
 		outputPath := filepath.Join(readDir, pageFilename(pageNum, len(pagesToProcess)))
-		rebuildInputs := append([]string{imgPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
+		var rebuildInputs []string
+		if hasOCR {
+			rebuildInputs = append([]string{ocrPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
+		} else {
+			rebuildInputs = append([]string{imgPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
+		}
 		if hasLayout {
 			rebuildInputs = append(rebuildInputs, layoutPath)
 		}
@@ -219,37 +235,89 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			continue
 		}
 
-		// Load image
-		imageData, err := input.LoadImage(imgPath)
-		if err != nil {
-			logger.Error("failed to load image", "input", stem, "page", pageNum, "error", err)
-			failed++
-			if opts.Display != nil {
-				opts.Display.Update(display.PageResult{
-					Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
-					Total: len(pagesToProcess), Completed: completed, Failed: failed, Err: err,
-				})
-			}
-			continue
-		}
-
 		// Set status before AI call
 		statusPageNum = pageNum
 		currentModel := activeModel()
-		if opts.Display != nil {
-			statusText := fmt.Sprintf("page %d: reading via %s", pageNum, currentModel)
-			if hasLayout {
-				statusText = fmt.Sprintf("page %d: %s + %s ...", pageNum, layoutToolName, currentModel)
+
+		var readResult *reader.ReadResult
+
+		if hasOCR {
+			// OCR provides text — use text-only LLM path (no vision needed)
+			ocrToolName := ocrPage.Tool
+
+			if opts.Display != nil {
+				statusText := fmt.Sprintf("page %d: reading via %s (ocr: %s)", pageNum, currentModel, ocrToolName)
+				opts.Display.SetStatus(display.StatusLine{
+					Text:      statusText,
+					StartedAt: time.Now(),
+				})
 			}
-			opts.Display.SetStatus(display.StatusLine{
-				Text:      statusText,
-				StartedAt: time.Now(),
-			})
+
+			logger.Info("reading page", "page", pageNum, "layout", hasLayout, "ocr_source", ocrToolName)
+
+			if hasLayout && len(ocrPage.Regions) > 0 {
+				// Case 1: layout + OCR — build OCR region data with layout bboxes/types
+				ocrRegions := make([]reader.OCRRegionData, 0, len(ocrPage.Regions))
+				// Build a lookup from OCR region results
+				for _, ocrReg := range ocrPage.Regions {
+					// Find matching layout region for bbox and type
+					var bbox model.BBox
+					var regionType string
+					for _, lr := range layoutRegions {
+						if lr.ID == ocrReg.ID {
+							bbox = lr.BBox
+							regionType = lr.Type
+							break
+						}
+					}
+					ocrRegions = append(ocrRegions, reader.OCRRegionData{
+						ID:   ocrReg.ID,
+						Text: ocrReg.Text,
+						BBox: bbox,
+						Type: regionType,
+					})
+				}
+				readResult, err = rdr.ReadRegionPageWithOCR(ctx, pageNum, currentModel,
+					ocrRegions, "", layoutToolName, ocrToolName)
+			} else {
+				// Case 3: OCR text without layout — full text segmentation
+				readResult, err = rdr.ReadRegionPageWithOCR(ctx, pageNum, currentModel,
+					nil, ocrPage.FullText, "", ocrToolName)
+			}
+		} else {
+			// No OCR — use vision LLM path (existing behavior)
+
+			// Load image
+			imageData, err2 := input.LoadImage(imgPath)
+			if err2 != nil {
+				logger.Error("failed to load image", "input", stem, "page", pageNum, "error", err2)
+				failed++
+				if opts.Display != nil {
+					opts.Display.Update(display.PageResult{
+						Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
+						Total: len(pagesToProcess), Completed: completed, Failed: failed, Err: err2,
+					})
+				}
+				continue
+			}
+
+			if opts.Display != nil {
+				statusText := fmt.Sprintf("page %d: reading via %s", pageNum, currentModel)
+				if hasLayout {
+					statusText = fmt.Sprintf("page %d: %s + %s ...", pageNum, layoutToolName, currentModel)
+				}
+				opts.Display.SetStatus(display.StatusLine{
+					Text:      statusText,
+					StartedAt: time.Now(),
+				})
+			}
+
+			logger.Info("reading page", "page", pageNum, "layout", hasLayout)
+
+			readResult, err = rdr.ReadRegionPage(ctx, imageData, pageNum, currentModel, layoutRegions, layoutToolName)
 		}
 
-		logger.Info("reading page", "page", pageNum, "layout", hasLayout)
-
-		readResult, err := rdr.ReadRegionPage(ctx, imageData, pageNum, currentModel, layoutRegions, layoutToolName)
+		// err is set by whichever path was taken
 		if opts.Display != nil {
 			opts.Display.SetStatus(display.StatusLine{}) // clear status
 		}

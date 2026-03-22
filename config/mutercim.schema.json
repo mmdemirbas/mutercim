@@ -95,6 +95,31 @@
       ],
       "type": "string"
     },
+    "ocr": {
+      "additionalProperties": false,
+      "description": "OCR phase settings. Extracts text from page images using a specialized OCR model. Runs between layout and read phases. When enabled, the read phase can use text-only LLMs instead of vision models.",
+      "properties": {
+        "quantize": {
+          "default": "8bit",
+          "description": "Model quantization for OCR. '8bit' is recommended by authors for OCR accuracy. 'none' uses full precision (more VRAM, marginally better).",
+          "enum": [
+            "8bit",
+            "none"
+          ],
+          "type": "string"
+        },
+        "tool": {
+          "default": "",
+          "description": "OCR tool name. 'qari' uses Qari-OCR (Arabic-specialized, requires Docker). Empty string disables OCR (read phase uses vision LLM for text extraction).",
+          "enum": [
+            "",
+            "qari"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "output": {
       "default": ".",
       "description": "Base directory for all generated output (cut/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.",
@@ -102,7 +127,7 @@
     },
     "read": {
       "additionalProperties": false,
-      "description": "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata). If layout data exists, it uses pre-detected regions; otherwise it uses AI-only mode.",
+      "description": "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata). If layout data exists, it uses pre-detected regions; otherwise it uses AI-only mode. When OCR is enabled, text-only LLMs can be used.",
       "properties": {
         "concurrency": {
           "default": 1,

@@ -155,6 +155,25 @@ func buildPhaseRows(ws *workspace.Workspace, cfg *config.Config, inputs []string
 		})
 	}
 
+	// OCR phase
+	if cfg.OCR.Tool == "" {
+		rows = append(rows, display.ProgressRow{
+			Phase: display.PhaseOCR, Skipped: true,
+			SkipReason: "disabled (read uses vision LLM)",
+		})
+	} else {
+		ocrCompleted := 0
+		for _, stem := range inputs {
+			ocrCompleted += countJSONFiles(filepath.Join(ws.OcrDir(), stem))
+		}
+		ocrTotal := totalImages
+		rows = append(rows, display.ProgressRow{
+			Phase: display.PhaseOCR, Completed: ocrCompleted,
+			Total: ocrTotal,
+			Done:  ocrTotal > 0 && ocrCompleted >= ocrTotal,
+		})
+	}
+
 	// Read phase
 	readCompleted := 0
 	for _, stem := range inputs {
@@ -251,7 +270,7 @@ func dirHasFiles(dir string) bool {
 // discoverInputs finds input stems by scanning workspace subdirectories.
 func discoverInputs(ws *workspace.Workspace) []string {
 	seen := make(map[string]bool)
-	for _, dir := range []string{ws.CutDir(), ws.LayoutDir(), ws.ReadDir(), ws.SolveDir()} {
+	for _, dir := range []string{ws.CutDir(), ws.LayoutDir(), ws.OcrDir(), ws.ReadDir(), ws.SolveDir()} {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue

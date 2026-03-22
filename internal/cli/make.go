@@ -14,6 +14,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
 	"github.com/mmdemirbas/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/ocr"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
@@ -22,7 +23,7 @@ import (
 func newAllCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:       "all [formats...]",
-		Short:     "(Phase *) Run all phases: cut -> layout -> read -> solve -> translate -> write",
+		Short:     "(Phase *) Run all phases: cut -> layout -> ocr -> read -> solve -> translate -> write",
 		Long:      "Executes the full pipeline sequentially. Validates system dependencies before starting.\n\nOptional format arguments override the write phase output formats:\n  mutercim all pdf\n  mutercim all md docx",
 		ValidArgs: []string{"md", "latex", "tex", "pdf", "docx"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -125,8 +126,34 @@ func newAllCmd() *cobra.Command {
 				}
 			}
 
-			// Phase 3: Read
-			logger.Info("=== Phase 3: READ ===")
+			// Phase 3: OCR
+			var ocrTool ocr.Tool
+			if cfg.OCR.Tool == "" {
+				logger.Info("ocr tool disabled, skipping ocr phase")
+			} else {
+				logger.Info("=== Phase 3: OCR ===")
+				ocrTool = ocr.NewTool(cfg.OCR.Tool)
+				if ocrTool == nil {
+					return fmt.Errorf("unknown OCR tool: %q", cfg.OCR.Tool)
+				}
+				if qt, ok := ocrTool.(*ocr.QariTool); ok {
+					qt.Quantize = cfg.OCR.Quantize
+				}
+				if _, err := pipeline.OCR(cmd.Context(), pipeline.OCROptions{
+					Workspace: ws,
+					Config:    cfg,
+					Tool:      ocrTool,
+					Pages:     pagesToProcess,
+					Force:     force,
+					Logger:    logger,
+					Display:   disp,
+				}); err != nil {
+					return fmt.Errorf("ocr: %w", err)
+				}
+			}
+
+			// Phase 4: Read
+			logger.Info("=== Phase 4: READ ===")
 			readChain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, logger)
 			if err != nil {
 				return fmt.Errorf("create read providers: %w", err)
@@ -150,8 +177,8 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("stopping pipeline: read produced 0 pages")
 			}
 
-			// Phase 4: Solve
-			logger.Info("=== Phase 4: SOLVE ===")
+			// Phase 5: Solve
+			logger.Info("=== Phase 5: SOLVE ===")
 			k, err := knowledge.Load(cfg.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
@@ -177,8 +204,8 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("stopping pipeline: solve produced 0 pages")
 			}
 
-			// Phase 5: Translate
-			logger.Info("=== Phase 5: TRANSLATE ===")
+			// Phase 6: Translate
+			logger.Info("=== Phase 6: TRANSLATE ===")
 			translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Translate.Retry, logger)
 			if err != nil {
 				return fmt.Errorf("create translate providers: %w", err)
@@ -203,8 +230,8 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("stopping pipeline: translate produced 0 pages")
 			}
 
-			// Phase 6: Write
-			logger.Info("=== Phase 6: WRITE ===")
+			// Phase 7: Write
+			logger.Info("=== Phase 7: WRITE ===")
 			if err := pipeline.Write(cmd.Context(), pipeline.WriteOptions{
 				Workspace: ws,
 				Config:    cfg,
@@ -214,6 +241,13 @@ func newAllCmd() *cobra.Command {
 				Display:   disp,
 			}); err != nil {
 				return fmt.Errorf("write: %w", err)
+			}
+
+			// Stop OCR container if it was started
+			if ocrTool != nil {
+				if err := ocrTool.Stop(cmd.Context()); err != nil {
+					logger.Warn("failed to stop ocr container", "error", err)
+				}
 			}
 
 			logger.Info("=== All phases complete ===")
@@ -256,6 +290,18 @@ func buildPhaseConfigs(cfg *config.Config) []display.PhaseConfig {
 		configs = append(configs, display.PhaseConfig{
 			Phase: display.PhaseLayout,
 			Info:  layoutInfo,
+		})
+	}
+
+	// OCR
+	if cfg.OCR.Tool != "" {
+		ocrInfo := cfg.OCR.Tool
+		if cfg.OCR.Quantize != "" {
+			ocrInfo += " (" + cfg.OCR.Quantize + ")"
+		}
+		configs = append(configs, display.PhaseConfig{
+			Phase: display.PhaseOCR,
+			Info:  ocrInfo,
 		})
 	}
 

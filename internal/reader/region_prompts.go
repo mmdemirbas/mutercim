@@ -89,6 +89,96 @@ Return JSON with this exact schema:
 
 Respond with ONLY JSON. No markdown formatting, no explanations.`
 
+// regionSystemPromptWithLayoutAndOCR is the system prompt for Case 1: layout + OCR.
+// The LLM receives TEXT only (no image). It refines structure.
+const regionSystemPromptWithLayoutAndOCR = `You are analyzing the OCR output of an Arabic document page. The page has been divided into regions by a layout detector, and each region has been OCR'd independently.
+
+Tasks:
+1. Verify and refine region types based on text content (header, entry, footnote, separator, page_number)
+2. Determine the correct reading order
+3. Detect style attributes (bold, font_size estimate, alignment, direction)
+4. Fix obvious OCR artifacts but PRESERVE all diacritical marks — they are intentional
+5. Do NOT rewrite, summarize, or translate the text
+6. Convert Arabic-Indic numerals to Western digits for numeric fields only
+
+Return JSON with this exact schema:
+{
+  "regions": [
+    {
+      "id": "r1",
+      "bbox": [x, y, width, height],
+      "text": "<refined text with diacritics>",
+      "type": "header|entry|footnote|separator|page_number|other",
+      "style": {"font_size": 14, "bold": false, "direction": "rtl", "alignment": "right"},
+      "column": 1
+    }
+  ],
+  "reading_order": ["r1", "r2", "r3"],
+  "warnings": ["<any issues>"]
+}
+
+Respond with ONLY JSON. No markdown formatting, no explanations.`
+
+// regionSystemPromptWithOCROnly is the system prompt for Case 3: OCR text without layout.
+// The LLM receives unstructured full-page text and must segment into regions.
+const regionSystemPromptWithOCROnly = `You are analyzing OCR text extracted from an Arabic document page. The text has no structural markup — you must segment it into logical regions.
+
+Tasks:
+1. Segment this text into logical regions (header, entries, footnotes, separator, page_number)
+2. Assign a type to each region
+3. Determine reading order
+4. Detect style attributes where inferable from content
+5. Fix obvious OCR artifacts but PRESERVE all diacritical marks — they are intentional
+6. Convert Arabic-Indic numerals to Western digits for numeric fields only
+
+Return JSON with this exact schema:
+{
+  "regions": [
+    {
+      "id": "r1",
+      "bbox": [0, 0, 0, 0],
+      "text": "<region text>",
+      "type": "header|entry|footnote|separator|page_number|other",
+      "style": {"font_size": 14, "bold": false, "direction": "rtl", "alignment": "right"}
+    }
+  ],
+  "reading_order": ["r1", "r2", "r3"],
+  "warnings": ["<any issues>"]
+}
+
+Respond with ONLY JSON. No markdown formatting, no explanations.`
+
+// BuildRegionUserPromptWithLayoutAndOCR builds the user prompt for Case 1: layout + OCR.
+func BuildRegionUserPromptWithLayoutAndOCR(regions []OCRRegionData) string {
+	if len(regions) == 0 {
+		return "No regions provided."
+	}
+
+	var b strings.Builder
+	b.WriteString("Layout regions with OCR text:\n\n")
+
+	for _, r := range regions {
+		fmt.Fprintf(&b, "Region %s (type: %s, bbox: [%d,%d,%d,%d]):\n",
+			r.ID, r.Type, r.BBox[0], r.BBox[1], r.BBox[2], r.BBox[3])
+		fmt.Fprintf(&b, "\"\"\"\n%s\n\"\"\"\n\n", r.Text)
+	}
+
+	b.WriteString("Verify and refine region types based on text content. Determine reading order. Detect style attributes. Fix obvious OCR artifacts but preserve diacritical marks.\n")
+	b.WriteString("Return JSON array of regions with reading_order.")
+
+	return b.String()
+}
+
+// BuildRegionUserPromptWithOCROnly builds the user prompt for Case 3: OCR text without layout.
+func BuildRegionUserPromptWithOCROnly(fullText string) string {
+	var b strings.Builder
+	b.WriteString("Below is the OCR text extracted from an Arabic document page. The text has no structural markup.\n\n")
+	fmt.Fprintf(&b, "\"\"\"\n%s\n\"\"\"\n\n", fullText)
+	b.WriteString("Segment this text into logical regions. Assign types. Determine reading order.\n")
+	b.WriteString("Return JSON array of regions with reading_order.")
+	return b.String()
+}
+
 // BuildRegionUserPrompt returns the user prompt for the AI-only strategy.
 func BuildRegionUserPrompt() string {
 	return "Analyze this page image. Detect ALL text regions on the page with their bounding boxes, content, type, and style. Return regions in reading order."
