@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // CheckAvailable returns an error if Docker is not installed or the daemon is not running.
@@ -36,10 +37,14 @@ func EnsureImage(ctx context.Context, image, dockerfileDir string) error {
 	if dockerfileDir != "" {
 		// Always run docker build — the layer cache handles skipping unchanged layers.
 		slog.Debug("ensuring docker image", "image", image, "dir", dockerfileDir)
-		out, err := exec.CommandContext(ctx, "docker", "build", "-q", "-t", image, dockerfileDir).CombinedOutput()
+		start := time.Now()
+		out, err := exec.CommandContext(ctx, "docker", "build", "-t", image, dockerfileDir).CombinedOutput()
+		elapsed := time.Since(start)
 		if err != nil {
-			return fmt.Errorf("docker build %s failed: %w\n%s", image, err, truncateOutput(string(out), 500))
+			slog.Error("docker build failed", "image", image, "elapsed_s", int(elapsed.Seconds()), "output", string(out))
+			return fmt.Errorf("docker build %s failed: %w\n%s", image, err, truncateOutput(string(out), 2000))
 		}
+		slog.Debug("docker build complete", "image", image, "elapsed_s", int(elapsed.Seconds()))
 		return nil
 	}
 

@@ -104,6 +104,8 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 		return PhaseResult{}, fmt.Errorf("no images found in %s", imagesDir)
 	}
 
+	logger.Info("found images for ocr", "count", len(images), "input", stem)
+
 	// Build page->image map
 	imageMap := make(map[int]string)
 	for _, img := range images {
@@ -157,6 +159,7 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 			rebuildInputs = append(rebuildInputs, layoutPath)
 		}
 		if !opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
+			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pageNum)
 			skipped++
 			continue
 		}
@@ -182,6 +185,7 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 		var ocrErr error
 
 		if layoutPage != nil && len(layoutPage.Regions) > 0 {
+			logger.Debug("ocr with layout regions", "page", pageNum, "regions", len(layoutPage.Regions))
 			// Convert layout regions to OCR region inputs (using corner bbox format)
 			regions := make([]ocr.RegionInput, len(layoutPage.Regions))
 			for i, lr := range layoutPage.Regions {
@@ -197,6 +201,7 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 			}
 			ocrResult, ocrErr = opts.Tool.RecognizeRegions(ctx, imgPath, regions)
 		} else {
+			logger.Debug("ocr full page (no layout)", "page", pageNum)
 			ocrResult, ocrErr = opts.Tool.RecognizeFullPage(ctx, imgPath)
 		}
 

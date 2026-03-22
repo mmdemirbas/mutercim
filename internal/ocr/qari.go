@@ -65,10 +65,11 @@ func (q *QariTool) Name() string { return "qari" }
 func (q *QariTool) Start(ctx context.Context) error {
 	// Ensure Docker image exists
 	if q.DockerfileDir != "" {
-		slog.Info("building qari-ocr docker image (first run, may take several minutes)")
+		slog.Info("ensuring qari-ocr docker image", "image", q.DockerImage, "dockerfile_dir", q.DockerfileDir)
 		if err := docker.EnsureImage(ctx, q.DockerImage, q.DockerfileDir); err != nil {
 			return fmt.Errorf("ensure qari-ocr image: %w", err)
 		}
+		slog.Info("qari-ocr docker image ready", "image", q.DockerImage)
 	}
 
 	// Check if container is already running and healthy
@@ -79,6 +80,7 @@ func (q *QariTool) Start(ctx context.Context) error {
 			return nil
 		}
 		// Container exists but not healthy — stop and restart
+		slog.Warn("qari-ocr container exists but not healthy, restarting", "port", port)
 		q.stopContainer(ctx)
 	}
 
@@ -95,7 +97,7 @@ func (q *QariTool) Start(ctx context.Context) error {
 		quantizeEnv = "8bit"
 	}
 
-	slog.Info("starting qari-ocr container", "port", port, "quantize", quantizeEnv)
+	slog.Info("starting qari-ocr container", "port", port, "quantize", quantizeEnv, "image", q.DockerImage)
 	args := []string{
 		"run", "-d", "--rm",
 		"--name", qariContainerName,
@@ -106,27 +108,40 @@ func (q *QariTool) Start(ctx context.Context) error {
 
 	out, err := exec.CommandContext(ctx, "docker", args...).CombinedOutput()
 	if err != nil {
+		slog.Error("docker run qari-ocr failed", "args", args, "output", strings.TrimSpace(string(out)), "error", err)
 		return fmt.Errorf("docker run qari-ocr: %w\noutput: %s", err, string(out))
 	}
+	slog.Debug("docker run qari-ocr started", "container_id", strings.TrimSpace(string(out)))
 
 	// Poll health endpoint until ready
 	start := time.Now()
 	ticker := time.NewTicker(healthPollInterval)
 	defer ticker.Stop()
 
+	slog.Info("waiting for qari-ocr model to load", "timeout", startTimeout)
+
 	for {
 		select {
 		case <-ctx.Done():
+			slog.Warn("qari-ocr startup interrupted", "elapsed_s", int(time.Since(start).Seconds()))
 			return ctx.Err()
 		case <-ticker.C:
 			if q.IsReady(ctx) {
 				elapsed := time.Since(start)
-				slog.Info("qari-ocr model loaded", "elapsed_s", int(elapsed.Seconds()))
+				slog.Info("qari-ocr model loaded", "elapsed_s", int(elapsed.Seconds()), "port", port)
 				return nil
 			}
-			if time.Since(start) > startTimeout {
+			elapsed := time.Since(start)
+			if elapsed > startTimeout {
+				// Grab container logs before stopping
+				logs := q.containerLogs(ctx)
+				slog.Error("qari-ocr startup timed out", "elapsed_s", int(elapsed.Seconds()), "timeout_s", int(startTimeout.Seconds()), "container_logs", logs)
 				q.stopContainer(ctx)
-				return fmt.Errorf("qari-ocr startup timed out after %v", startTimeout)
+				return fmt.Errorf("qari-ocr startup timed out after %v — container logs:\n%s", startTimeout, logs)
+			}
+			// Log progress every 10 seconds
+			if int(elapsed.Seconds())%10 == 0 && elapsed.Seconds() > 1 {
+				slog.Debug("qari-ocr still loading", "elapsed_s", int(elapsed.Seconds()))
 			}
 		}
 	}
@@ -173,6 +188,8 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 		return nil, fmt.Errorf("qari-ocr not started")
 	}
 
+	slog.Debug("ocr regions request", "image", imagePath, "regions", len(regions), "port", q.port)
+
 	// Build multipart request
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -210,12 +227,14 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 
 	resp, err := q.client.Do(req)
 	if err != nil {
+		slog.Error("ocr regions request failed", "image", imagePath, "error", err, "port", q.port)
 		return nil, fmt.Errorf("ocr regions request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
+		slog.Error("ocr regions failed", "image", imagePath, "status", resp.StatusCode, "body", string(respBody))
 		return nil, fmt.Errorf("ocr regions failed (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
@@ -229,7 +248,7 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 		TotalElapsed int    `json:"total_elapsed_ms"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
+		return nil, fmt.Errorf("decode ocr regions response: %w", err)
 	}
 
 	results := make([]RegionResult, len(apiResp.Results))
@@ -240,6 +259,8 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 			ElapsedMs: r.ElapsedMs,
 		}
 	}
+
+	slog.Debug("ocr regions complete", "image", imagePath, "regions", len(results), "total_ms", apiResp.TotalElapsed)
 
 	return &Result{
 		Regions: results,
@@ -253,6 +274,8 @@ func (q *QariTool) RecognizeFullPage(ctx context.Context, imagePath string) (*Re
 	if q.port == 0 {
 		return nil, fmt.Errorf("qari-ocr not started")
 	}
+
+	slog.Debug("ocr full page request", "image", imagePath, "port", q.port)
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -271,12 +294,14 @@ func (q *QariTool) RecognizeFullPage(ctx context.Context, imagePath string) (*Re
 
 	resp, err := q.client.Do(req)
 	if err != nil {
+		slog.Error("ocr full page request failed", "image", imagePath, "error", err, "port", q.port)
 		return nil, fmt.Errorf("ocr request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
+		slog.Error("ocr full page failed", "image", imagePath, "status", resp.StatusCode, "body", string(respBody))
 		return nil, fmt.Errorf("ocr failed (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
@@ -286,8 +311,10 @@ func (q *QariTool) RecognizeFullPage(ctx context.Context, imagePath string) (*Re
 		ElapsedMs int    `json:"elapsed_ms"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
+		return nil, fmt.Errorf("decode ocr response: %w", err)
 	}
+
+	slog.Debug("ocr full page complete", "image", imagePath, "chars", len(apiResp.Text), "elapsed_ms", apiResp.ElapsedMs)
 
 	return &Result{
 		FullText: apiResp.Text,
@@ -302,27 +329,41 @@ func (q *QariTool) findExistingContainer(ctx context.Context) (int, bool) {
 		"--format", "{{range .NetworkSettings.Ports}}{{range .}}{{.HostPort}}{{end}}{{end}}",
 		qariContainerName).CombinedOutput()
 	if err != nil {
+		slog.Debug("no existing qari-ocr container found", "error", err)
 		return 0, false
 	}
 	portStr := strings.TrimSpace(string(out))
 	if portStr == "" {
+		slog.Debug("existing qari-ocr container has no port mapping", "output", string(out))
 		return 0, false
 	}
 	var port int
 	if _, err := fmt.Sscanf(portStr, "%d", &port); err != nil {
+		slog.Warn("failed to parse qari-ocr container port", "port_str", portStr, "error", err)
 		return 0, false
 	}
+	slog.Debug("found existing qari-ocr container", "port", port)
 	return port, true
 }
 
 // stopContainer stops the Qari-OCR container. Tolerant of already-stopped containers.
 func (q *QariTool) stopContainer(ctx context.Context) {
+	slog.Debug("stopping qari-ocr container", "container", qariContainerName)
 	out, err := exec.CommandContext(ctx, "docker", "stop", qariContainerName).CombinedOutput()
 	if err != nil {
-		slog.Debug("qari-ocr container stop", "output", strings.TrimSpace(string(out)), "error", err)
+		slog.Debug("qari-ocr container stop (may already be stopped)", "output", strings.TrimSpace(string(out)), "error", err)
 	} else {
 		slog.Info("qari-ocr container stopped")
 	}
+}
+
+// containerLogs returns recent logs from the Qari-OCR container (last 50 lines).
+func (q *QariTool) containerLogs(ctx context.Context) string {
+	out, err := exec.CommandContext(ctx, "docker", "logs", "--tail", "50", qariContainerName).CombinedOutput()
+	if err != nil {
+		return fmt.Sprintf("<failed to get container logs: %v>", err)
+	}
+	return strings.TrimSpace(string(out))
 }
 
 // addFileField adds a file to a multipart writer.
