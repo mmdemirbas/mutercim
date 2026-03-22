@@ -7,13 +7,9 @@ output: ./output
 pages:
   dpi: 300
 
-read:
+layout:
+  tool: doclayout-yolo
   debug: true
-  layout_tool: "doclayout-yolo"
-  # Tuning parameters for the layout tool (doclayout-yolo).
-  # These control how aggressively the YOLO model detects and merges regions.
-  # Use with read.debug: true to visualize the effect on debug overlay images.
-  #
   #   confidence — minimum detection score to keep (0.0–1.0, default 0.2)
   #     Lower → more detections (finer, possibly noisy)
   #     Higher → fewer detections (only high-certainty regions)
@@ -23,19 +19,16 @@ read:
   #   image_size — input resolution for inference in pixels (default 1024)
   #     Larger → more detail for the model, slower inference
   #   max_det — maximum detections per page (default 300)
-  layout_tool_params:
-    confidence: 0.15
-    iou: 0.3
-    image_size: 1280
+  params: { confidence: 0.15, iou: 0.3, image_size: 1280 }
+
+read:
   models:
     - { provider: gemini, model: gemini-2.5-flash-lite }
     - { provider: gemini, model: gemini-2.5-flash }
     - { provider: groq, model: llama-3.2-90b-vision-preview }
     - { provider: ollama, model: qwen2.5vl:7b }
   concurrency: 1
-  retry:
-    max_attempts: 0
-    backoff_seconds: 2
+  retry: { max_attempts: 0, backoff_seconds: 2 }
 
 translate:
   languages: [ ar, en, tr ]

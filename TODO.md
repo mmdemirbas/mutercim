@@ -17,7 +17,4 @@
 
 - "write" > "expand_sources" property is tightly coupled to my hadith book sample. It conflicts with
   my general purpose translator tool vision.
-
-- Even if the layout tool is disabled, we still need to know the layout information for the later steps. In that case the AI tool should try to infer this information. Or maybe it should try always but we prefer the layout tool's output when it is enabled.
-
-- I NEED TO SKİP OCR BUT ONLY RUN LAYOUT TOOL FOR THE LAYOUT INFORMATION
+* Instead, add a "source_expansion" step that can be optionally added after "translate" or "solve". It will take the translated output and expand it with source information (e.g. for hadith, add isnad and original text in arabic). This way it's decoupled from the writing/formatting logic and can be used in more contexts.  

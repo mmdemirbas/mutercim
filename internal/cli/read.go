@@ -10,7 +10,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/apiclient"
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
-	"github.com/mmdemirbas/mutercim/internal/layout"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/provider"
@@ -91,19 +90,15 @@ func newReadCmd() *cobra.Command {
 				}
 			}
 
-			// Create layout tool if configured
-			layoutTool := layout.NewTool(cfg.Read.LayoutTool)
-
 			// Run read pipeline
 			_, err = pipeline.Read(cmd.Context(), pipeline.ReadOptions{
-				Workspace:  ws,
-				Config:     cfg,
-				Provider:   chain,
-				LayoutTool: layoutTool,
-				Pages:      pagesToProcess,
-				Force:      force,
-				Logger:     logger,
-				Display:    display.FromContext(cmd.Context()),
+				Workspace: ws,
+				Config:    cfg,
+				Provider:  chain,
+				Pages:     pagesToProcess,
+				Force:     force,
+				Logger:    logger,
+				Display:   display.FromContext(cmd.Context()),
 			})
 			return err
 		},

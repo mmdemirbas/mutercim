@@ -81,9 +81,9 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build config summary fields
-	layoutTool := cfg.Read.LayoutTool
+	layoutTool := cfg.Layout.Tool
 	if layoutTool == "" {
-		layoutTool = "ai-only"
+		layoutTool = "disabled"
 	}
 
 	var readModels []string
@@ -132,6 +132,18 @@ func buildPhaseRows(ws *workspace.Workspace, inputs []string, totalImages int, t
 	rows = append(rows, display.ProgressRow{
 		Phase: display.PhasePages, Completed: pagesCompleted, Total: pagesTotal,
 		Done: pagesCompleted > 0 && pagesCompleted >= pagesTotal,
+	})
+
+	// Count layout JSON files per input stem
+	layoutCompleted := 0
+	for _, stem := range inputs {
+		layoutCompleted += countJSONFiles(filepath.Join(ws.LayoutDir(), stem))
+	}
+	layoutTotal := totalImages
+	rows = append(rows, display.ProgressRow{
+		Phase: display.PhaseLayout, Completed: layoutCompleted,
+		Total: layoutTotal,
+		Done:  layoutTotal > 0 && layoutCompleted >= layoutTotal,
 	})
 
 	// Count read JSON files per input stem
@@ -230,7 +242,7 @@ func dirHasFiles(dir string) bool {
 // discoverInputs finds input stems by scanning workspace subdirectories.
 func discoverInputs(ws *workspace.Workspace) []string {
 	seen := make(map[string]bool)
-	for _, dir := range []string{ws.PagesDir(), ws.ReadDir(), ws.SolveDir()} {
+	for _, dir := range []string{ws.PagesDir(), ws.LayoutDir(), ws.ReadDir(), ws.SolveDir()} {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue

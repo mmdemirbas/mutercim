@@ -69,6 +69,26 @@ const (
 	LayoutSourceAI        = "ai"
 )
 
+// LayoutPage is the output of the layout detection phase for a single page.
+// It contains only spatial information (bbox, type, confidence) — no text or style.
+type LayoutPage struct {
+	Version    string         `json:"version"`
+	PageNumber int            `json:"page_number"`
+	PageSize   PageSize       `json:"page_size"`
+	Tool       string         `json:"tool"`
+	ToolParams map[string]any `json:"tool_params,omitempty"`
+	Regions    []LayoutRegion `json:"regions"`
+}
+
+// LayoutRegion is a region detected by the layout tool without text content.
+type LayoutRegion struct {
+	ID         string  `json:"id"`
+	BBox       BBox    `json:"bbox"`
+	Type       string  `json:"type"`
+	RawClass   string  `json:"raw_class,omitempty"`
+	Confidence float64 `json:"confidence,omitempty"`
+}
+
 // SolvedRegionPage extends RegionPage with solver metadata.
 // The solver does NOT modify region text, bbox, or type — it only
 // adds metadata that helps the translate phase.

@@ -283,3 +283,14 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Output filename fixed to 'book' in write phase, no more `book.title`
 - Removed `latex_docker_image` — hardcoded like other Docker images
 - retry/rate_limit are now per-phase (read, solve, translate), not global
+
+## Layout as independent phase
+
+- Layout detection extracted from read phase into its own pipeline phase
+- Pipeline: pages → layout → read → solve → translate → write
+- Layout output: bounding boxes with type, confidence, raw_class — no text
+- Read phase works with or without layout data (graceful degradation)
+- Config: `layout.tool`, `layout.params`, `layout.debug` — separate from read
+- Layout tool tuning params (confidence, iou, image_size, max_det) exposed for experimentation
+- Debug overlay images moved from read to layout phase
+- `mutercim layout` runs standalone; `mutercim clean layout+` cascades correctly

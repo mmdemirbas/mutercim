@@ -13,21 +13,24 @@ companion names) but the glossary system is general-purpose.
 ## Pipeline overview
 
 ```
-PDF/images ──► pages ──► read ──► solve ──► translate ──► write
-               │          │        │          │             │
-               │          │        │          │             ▼
-               │          │        │          │         .md .tex .pdf .docx
-               │          │        │          ▼
-               │          │        │      translate/{lang}/{input}/NNN.json
-               │          │        ▼
-               │          │    solve/{input}/NNN.json
+PDF/images ──► pages ──► layout ──► read ──► solve ──► translate ──► write
+               │          │          │        │          │             │
+               │          │          │        │          │             ▼
+               │          │          │        │          │         .md .tex .pdf .docx
+               │          │          │        │          ▼
+               │          │          │        │      translate/{lang}/{input}/NNN.json
+               │          │          │        ▼
+               │          │          │    solve/{input}/NNN.json
+               │          │          ▼
+               │          │      read/{input}/NNN.json
                │          ▼
-               │      read/{input}/NNN.json
+               │      layout/{input}/NNN.json
                ▼
            pages/{input}/NNN.png
 ```
 
 - **pages** — Convert PDF inputs to per-page PNG images (via pdftoppm)
+- **layout** — Detect document regions with bounding boxes (via DocLayout-YOLO or Surya)
 - **read** — Extract structured text from page images using AI vision models
 - **solve** — Resolve abbreviations, inject glossary context, validate structure (local, no API)
 - **translate** — Translate solved pages into target languages using AI models
@@ -98,11 +101,12 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 
 ### Pipeline Commands
 
-| Command     | Description                                                        |
-|-------------|--------------------------------------------------------------------|
-| `all`       | Run all phases sequentially (pages, read, solve, translate, write) |
-| `pages`     | Convert PDF inputs to per-page images                              |
-| `read`      | Read structured data from page images via AI vision                |
+| Command     | Description                                                                |
+|-------------|----------------------------------------------------------------------------|
+| `all`       | Run all phases sequentially (pages, layout, read, solve, translate, write) |
+| `pages`     | Convert PDF inputs to per-page images                                      |
+| `layout`    | Detect document layout regions on page images                              |
+| `read`      | Read structured data from page images via AI vision                        |
 | `solve`     | Resolve abbreviations and knowledge context                        |
 | `translate` | Translate solved pages into target languages                       |
 | `write`     | Render translated data to output formats                           |
@@ -128,7 +132,7 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 
 ### Clean command
 
-Targets: `log`, `memory`, `pages`, `read`, `solve`, `translate`, `write`, `all`
+Targets: `log`, `memory`, `pages`, `layout`, `read`, `solve`, `translate`, `write`, `all`
 
 ```bash
 mutercim clean read # delete only read/
@@ -166,9 +170,17 @@ inputs:
 pages:
   dpi: 300                       # DPI (default: 300, min: 72)
 
-# Read phase — AI vision OCR
+# Layout detection (runs before read phase)
+layout:
+  tool: doclayout-yolo           # "doclayout-yolo" (default), "surya", or "" (disabled)
+  debug: false                   # write overlay PNGs to layout/<input>/debug/
+  # params:
+  #   confidence: 0.2            # min detection score (default 0.2)
+  #   iou: 0.7                   # NMS threshold (default 0.7)
+  #   image_size: 1024           # inference resolution (default 1024)
+
+# Read phase — AI vision OCR (uses layout data if available)
 read:
-  layout_tool: "doclayout-yolo"  # "doclayout-yolo" (default), "surya", or "" (AI-only)
   models:                        # ordered model failover chain
     - { provider: gemini, model: gemini-2.5-flash-lite }
     - { provider: gemini, model: gemini-2.5-flash }
@@ -189,9 +201,6 @@ translate:
     - { provider: openrouter, model: meta-llama/llama-3.3-70b-instruct:free }
     - { provider: ollama, model: qwen3:14b }
   context_window: 2
-  retry:
-    max_attempts: 3
-    backoff_seconds: 2
 
 # Write phase — output rendering
 write:
@@ -201,7 +210,6 @@ write:
 # Knowledge: list of YAML files and/or directories (default: [./knowledge])
 knowledge:
   - ./knowledge
-  # - ./extra-terms.yaml
 ```
 
 ### ModelSpec fields
@@ -233,6 +241,12 @@ my-book/                       # workspace root
 │   └── book/                  #   organized by input file stem
 │       ├── 001.png
 │       ├── 002.png
+│       └── ...
+├── layout/                    # [generated] layout detection regions
+│   └── book/
+│       ├── 001.json
+│       ├── debug/             #   overlay images (when layout.debug: true)
+│       │   └── 001_layout.png
 │       └── ...
 ├── read/                      # [generated] structured JSON from AI vision
 │   └── book/
@@ -354,8 +368,11 @@ sending pages to the AI for text extraction. Three options:
 Configure in `mutercim.yaml`:
 
 ```yaml
-read:
-  layout_tool: "doclayout-yolo"  # or "surya" or ""
+layout:
+  tool: doclayout-yolo  # or "surya" or ""
+  debug: true           # overlay images for visual verification
+  params:               # tool-specific tuning
+    confidence: 0.15
 ```
 
 Docker images are built automatically on first use when running from the repo directory.

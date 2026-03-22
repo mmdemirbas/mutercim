@@ -305,9 +305,9 @@ func TestBuildPhaseRows(t *testing.T) {
 
 	rows := buildPhaseRows(ws, []string{stem}, 3, []string{"tr"})
 
-	// pages, read, solve, translate(tr), write(tr) = 5 rows
-	if len(rows) != 5 {
-		t.Fatalf("got %d rows, want 5", len(rows))
+	// pages, layout, read, solve, translate(tr), write(tr) = 6 rows
+	if len(rows) != 6 {
+		t.Fatalf("got %d rows, want 6", len(rows))
 	}
 
 	// Pages: 3/3, done
@@ -315,14 +315,19 @@ func TestBuildPhaseRows(t *testing.T) {
 		t.Errorf("pages row: completed=%d total=%d done=%v", rows[0].Completed, rows[0].Total, rows[0].Done)
 	}
 
+	// Layout: 0/3, not done
+	if rows[1].Completed != 0 || rows[1].Total != 3 {
+		t.Errorf("layout row: completed=%d total=%d", rows[1].Completed, rows[1].Total)
+	}
+
 	// Read: 2/3, not done
-	if rows[1].Completed != 2 || rows[1].Total != 3 || rows[1].Done {
-		t.Errorf("read row: completed=%d total=%d done=%v", rows[1].Completed, rows[1].Total, rows[1].Done)
+	if rows[2].Completed != 2 || rows[2].Total != 3 || rows[2].Done {
+		t.Errorf("read row: completed=%d total=%d done=%v", rows[2].Completed, rows[2].Total, rows[2].Done)
 	}
 
 	// Solve: 0/2, not done
-	if rows[2].Completed != 0 || rows[2].Total != 2 {
-		t.Errorf("solve row: completed=%d total=%d", rows[2].Completed, rows[2].Total)
+	if rows[3].Completed != 0 || rows[3].Total != 2 {
+		t.Errorf("solve row: completed=%d total=%d", rows[3].Completed, rows[3].Total)
 	}
 }
 
@@ -332,9 +337,9 @@ func TestBuildPhaseRows_NoInputs(t *testing.T) {
 
 	rows := buildPhaseRows(ws, nil, 0, []string{"tr"})
 
-	// pages, read, solve, translate(tr), write(tr) = 5 rows
-	if len(rows) != 5 {
-		t.Fatalf("got %d rows, want 5", len(rows))
+	// pages, layout, read, solve, translate(tr), write(tr) = 6 rows
+	if len(rows) != 6 {
+		t.Fatalf("got %d rows, want 6", len(rows))
 	}
 
 	// All zeroes

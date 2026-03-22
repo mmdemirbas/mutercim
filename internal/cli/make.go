@@ -11,7 +11,6 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
-	"github.com/mmdemirbas/mutercim/internal/layout"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
@@ -21,7 +20,7 @@ import (
 func newAllCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:       "all [formats...]",
-		Short:     "(Phase *) Run all phases: pages -> read -> solve -> translate -> write",
+		Short:     "(Phase *) Run all phases: pages -> layout -> read -> solve -> translate -> write",
 		Long:      "Executes the full pipeline sequentially. Validates system dependencies before starting.\n\nOptional format arguments override the write phase output formats:\n  mutercim all pdf\n  mutercim all md docx",
 		ValidArgs: []string{"md", "latex", "tex", "pdf", "docx"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -104,6 +103,23 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("pages: %w", err)
 			}
 
+			// Phase L: Layout
+			if cfg.Layout.Tool == "" {
+				logger.Info("layout tool disabled, skipping layout phase")
+			} else {
+				logger.Info("=== LAYOUT ===")
+				if _, err := pipeline.Layout(cmd.Context(), pipeline.LayoutOptions{
+					Workspace: ws,
+					Config:    cfg,
+					Pages:     pagesToProcess,
+					Force:     force,
+					Logger:    logger,
+					Display:   disp,
+				}); err != nil {
+					return fmt.Errorf("layout: %w", err)
+				}
+			}
+
 			// Phase 1: Read
 			logger.Info("=== Phase 1: READ ===")
 			readChain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, logger)
@@ -113,14 +129,13 @@ func newAllCmd() *cobra.Command {
 			defer readChain.Close()
 
 			readResult, err := pipeline.Read(cmd.Context(), pipeline.ReadOptions{
-				Workspace:  ws,
-				Config:     cfg,
-				Provider:   readChain,
-				LayoutTool: layout.NewTool(cfg.Read.LayoutTool),
-				Pages:      pagesToProcess,
-				Force:      force,
-				Logger:     logger,
-				Display:    disp,
+				Workspace: ws,
+				Config:    cfg,
+				Provider:  readChain,
+				Pages:     pagesToProcess,
+				Force:     force,
+				Logger:    logger,
+				Display:   disp,
 			})
 			if err != nil {
 				return fmt.Errorf("read: %w", err)

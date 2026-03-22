@@ -41,9 +41,70 @@ output: ./
 pages:
   dpi: 300                           # DPI for PDF-to-image conversion (min: 72) — higher = better OCR, larger files
 
+# ─── Layout phase (region detection) ────────────────────────────────────────
+#
+# Detects document regions (headers, columns, tables, footnotes) with bounding
+# boxes on page images. Output is used by the read phase to guide OCR.
+# When tool is empty, layout phase is skipped and read uses AI-only mode.
+# Each layout tool interprets its own params. Unknown keys are logged and ignored.
+#
+# Choose ONE of the tool sections below and uncomment it.
+
+# --- Option A: DocLayout-YOLO (default, recommended) ---
+# Best for multi-column layouts with distinct document structure.
+# Detects: headers, text blocks, tables, figures, footnotes, page numbers.
+# Does NOT extract text — only bounding boxes and types.
+#
+# Params:
+#   confidence (float, default 0.2)
+#     Minimum detection score to keep a region (0.0–1.0).
+#     Lower → more detections (finer granularity, possibly noisy).
+#     Higher → fewer detections (only high-certainty regions).
+#   iou (float, default 0.7)
+#     IoU threshold for non-maximum suppression (0.0–1.0).
+#     Lower → more aggressive merging of overlapping boxes.
+#     Higher → allows more overlapping detections to coexist.
+#   image_size (int, default 1024)
+#     Input image size in pixels for model inference. The model resizes
+#     the page to this size internally. Larger → more detail, slower.
+#   max_det (int, default 300)
+#     Maximum number of detections per page image.
+layout:
+  tool: doclayout-yolo               # "doclayout-yolo", "surya", or "" (disabled)
+  debug: false                       # write overlay PNGs to layout/<input>/debug/
+  # params:                          # Uncomment to tune (use debug: true to see results)
+  #   confidence: 0.2                # min detection score, 0.0–1.0 (default 0.2)
+  #   iou: 0.7                       # NMS overlap threshold, 0.0–1.0 (default 0.7)
+  #   image_size: 1024               # inference resolution in px (default 1024)
+  #   max_det: 300                   # max detections per page (default 300)
+
+# --- Option B: Surya OCR ---
+# Detects text lines with preliminary OCR text.
+# Better for text-line-level detection.
+#
+# Params:
+#   languages (string, auto from inputs[].languages)
+#     Comma-separated OCR language codes for text recognition.
+#     Automatically set from the input's source languages if not specified.
+#     Examples: "ar", "ar,fa", "en,tr"
+# layout:
+#   tool: surya
+#   debug: false
+#   params:
+#     languages: "ar,fa"             # auto-set from inputs[].languages if omitted
+
+# --- Option C: Disabled (AI-only) ---
+# The read phase handles everything — layout detection + OCR + text extraction.
+# Simpler documents, or when Docker is unavailable.
+# layout:
+#   tool: ""
+
 # ─── Read phase (OCR/vision) ─────────────────────────────────────────────────
 #
-# Sends page images to AI vision models to extract structured JSON.
+# Sends page images (+ layout regions if available) to AI vision models to extract structured JSON.
+# If layout output exists, the LLM refines region types and extracts text.
+# If not, the LLM detects regions from scratch (AI-only mode).
+#
 # Models are tried in order; on 429/quota exhaustion, fails over to next.
 # All models here must support vision (image input).
 #
@@ -63,40 +124,6 @@ pages:
 #   OpenRouter: openrouter.ai — free models available immediately
 
 read:
-  layout_tool: "doclayout-yolo"      # Layout detection tool (default: doclayout-yolo)
-                                     #   "doclayout-yolo" — DocLayout-YOLO: detects document structure (headers, columns,
-                                     #     footnotes, tables). Best for multi-column layouts. Requires Docker + image.
-                                     #   "surya" — Surya OCR: detects text lines with preliminary OCR. Requires Docker + image.
-                                     #   "" — AI-only: vision model handles both layout detection and text extraction
-  # layout_tool_params — tuning parameters for the layout tool.
-  # Each layout tool interprets its own params. Unknown keys are logged and ignored.
-  #
-  # For doclayout-yolo:
-  #   confidence (float, default 0.2)
-  #     Minimum detection score to keep a region (0.0–1.0).
-  #     Lower → more detections (finer granularity, possibly noisy).
-  #     Higher → fewer detections (only high-certainty regions).
-  #   iou (float, default 0.7)
-  #     IoU threshold for non-maximum suppression (0.0–1.0).
-  #     Lower → more aggressive merging of overlapping boxes.
-  #     Higher → allows more overlapping detections to coexist.
-  #   image_size (int, default 1024)
-  #     Input image size in pixels for model inference. The model resizes
-  #     the page to this size internally. Larger → more detail, slower.
-  #   max_det (int, default 300)
-  #     Maximum number of detections per page image.
-  #
-  # For surya:
-  #   languages (string, auto from inputs[].languages)
-  #     Comma-separated OCR language codes for text recognition.
-  #     Automatically set from the input's source languages if not specified.
-  #     Examples: "ar", "ar,fa", "en,tr"
-  #
-  # Uncomment and adjust to experiment (use read.debug: true to see results):
-  # layout_tool_params:
-  #   confidence: 0.15
-  #   iou: 0.3
-  #   image_size: 1280
   models:                            # Ordered failover chain — first is primary
     # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
     - { provider: gemini, model: gemini-2.5-flash-lite }
@@ -105,7 +132,7 @@ read:
     # 3. Groq: fast, vision via Llama (1,000 RPD, 30 RPM)
     - { provider: groq, model: llama-3.2-90b-vision-preview }
     # 4. xAI: $25 free credits, good vision
-    #- { provider: xai, model: grok-2-vision-latest }
+    - { provider: xai, model: grok-2-vision-latest }
     # 5. Local fallback: always available, slow
     - { provider: ollama, model: qwen2.5vl:7b }
   concurrency: 1                     # Parallel read workers (min: 1) — currently only 1 supported
@@ -131,7 +158,7 @@ translate:
     # 4. Gemini Flash: higher quality fallback (250 RPD)
     - { provider: gemini, model: gemini-2.5-flash }
     # 5. xAI: $25 free credits
-    #- { provider: xai, model: grok-2-latest }
+    - { provider: xai, model: grok-2-latest }
     # 6. OpenRouter: community-funded free models
     - { provider: openrouter, model: meta-llama/llama-3.3-70b-instruct:free }
     # 7. Local fallback

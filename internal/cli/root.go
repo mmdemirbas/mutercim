@@ -109,10 +109,11 @@ between languages, preserving layout, structure, and domain-specific terminology
 	addToGroup(rootCmd, "pipeline",
 		ordered(1, newAllCmd()),
 		ordered(2, newPagesCmd()),
-		ordered(3, newReadCmd()),
-		ordered(4, newSolveCmd()),
-		ordered(5, newTranslateCmd()),
-		ordered(6, newWriteCmd()),
+		ordered(3, newLayoutCmd()),
+		ordered(4, newReadCmd()),
+		ordered(5, newSolveCmd()),
+		ordered(6, newTranslateCmd()),
+		ordered(7, newWriteCmd()),
 	)
 
 	// Workspace commands

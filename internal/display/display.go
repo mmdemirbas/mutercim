@@ -12,6 +12,7 @@ type Phase string
 
 const (
 	PhasePages     Phase = "PAGES"
+	PhaseLayout    Phase = "LAYOUT"
 	PhaseRead      Phase = "READ"
 	PhaseSolve     Phase = "SOLVE"
 	PhaseTranslate Phase = "TRANS"

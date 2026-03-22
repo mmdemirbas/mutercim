@@ -21,6 +21,7 @@ type Config struct {
 	Inputs    []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
 	Output    string          `yaml:"output" mapstructure:"output" json:"output"`
 	Pages     PagesConfig     `yaml:"pages" mapstructure:"pages" json:"pages"`
+	Layout    LayoutConfig    `yaml:"layout" mapstructure:"layout" json:"layout"`
 	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
 	Solve     SolveConfig     `yaml:"solve" mapstructure:"solve" json:"solve"`
 	Translate TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
@@ -42,15 +43,19 @@ type ModelSpec struct {
 	BaseURL  string `yaml:"base_url,omitempty" mapstructure:"base_url" json:"base_url,omitempty"` // override base URL
 }
 
+// LayoutConfig holds layout detection phase settings.
+type LayoutConfig struct {
+	Tool   string         `yaml:"tool,omitempty" mapstructure:"tool" json:"tool,omitempty"`       // "doclayout-yolo" (default), "surya", or "" (disabled)
+	Debug  bool           `yaml:"debug,omitempty" mapstructure:"debug" json:"debug,omitempty"`    // when true, write debug overlay images
+	Params map[string]any `yaml:"params,omitempty" mapstructure:"params" json:"params,omitempty"` // tool-specific tuning parameters
+}
+
 // ReadConfig holds read-phase settings.
 type ReadConfig struct {
-	Debug            bool            `yaml:"debug,omitempty" mapstructure:"debug" json:"debug,omitempty"`                                        // when true, write layout debug overlay images
-	LayoutTool       string          `yaml:"layout_tool,omitempty" mapstructure:"layout_tool" json:"layout_tool,omitempty"`                      // "doclayout-yolo" (default), "surya", or "" (disabled)
-	LayoutToolParams map[string]any  `yaml:"layout_tool_params,omitempty" mapstructure:"layout_tool_params" json:"layout_tool_params,omitempty"` // tool-specific tuning parameters
-	Models           []ModelSpec     `yaml:"models" mapstructure:"models" json:"models"`
-	Concurrency      int             `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"` // reserved for future parallel processing
-	Retry            RetryConfig     `yaml:"retry,omitempty" mapstructure:"retry" json:"retry,omitempty"`
-	RateLimit        RateLimitConfig `yaml:"rate_limit,omitempty" mapstructure:"rate_limit" json:"rate_limit,omitempty"`
+	Models      []ModelSpec     `yaml:"models" mapstructure:"models" json:"models"`
+	Concurrency int             `yaml:"concurrency" mapstructure:"concurrency" json:"concurrency"` // reserved for future parallel processing
+	Retry       RetryConfig     `yaml:"retry,omitempty" mapstructure:"retry" json:"retry,omitempty"`
+	RateLimit   RateLimitConfig `yaml:"rate_limit,omitempty" mapstructure:"rate_limit" json:"rate_limit,omitempty"`
 }
 
 // SolveConfig holds solve-phase settings.
@@ -91,7 +96,8 @@ func SetDefaults(v *viper.Viper) {
 	v.SetDefault("output", ".")
 	v.SetDefault("pages.dpi", 300)
 
-	v.SetDefault("read.layout_tool", "doclayout-yolo")
+	v.SetDefault("layout.tool", "doclayout-yolo")
+
 	v.SetDefault("read.concurrency", 1)
 	v.SetDefault("read.retry.max_attempts", 3)
 	v.SetDefault("read.retry.backoff_seconds", 2)

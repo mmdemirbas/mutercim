@@ -71,6 +71,11 @@ func (w *Workspace) PagesDir() string {
 	return filepath.Join(w.outputBase(), "pages")
 }
 
+// LayoutDir returns the layout detection directory path.
+func (w *Workspace) LayoutDir() string {
+	return filepath.Join(w.outputBase(), "layout")
+}
+
 // ReadDir returns the OCR extraction directory path.
 func (w *Workspace) ReadDir() string {
 	return filepath.Join(w.outputBase(), "read")

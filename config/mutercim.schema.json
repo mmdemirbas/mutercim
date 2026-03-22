@@ -48,6 +48,29 @@
       },
       "type": "array"
     },
+    "layout": {
+      "additionalProperties": false,
+      "description": "Layout detection phase settings. Detects document regions (headers, columns, tables, footnotes) with bounding boxes before the read phase.",
+      "properties": {
+        "debug": {
+          "default": false,
+          "description": "When true, write annotated PNG images showing detected bounding boxes to layout/\u003cinput\u003e/debug/. Useful for verifying and tuning layout detection.",
+          "type": "boolean"
+        },
+        "params": {},
+        "tool": {
+          "default": "doclayout-yolo",
+          "description": "Layout detection tool. 'doclayout-yolo' uses DocLayout-YOLO (default, best for document structure). 'surya' uses Surya OCR. Both require Docker. Empty string disables layout detection (read phase uses AI-only mode).",
+          "enum": [
+            "",
+            "doclayout-yolo",
+            "surya"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "output": {
       "default": ".",
       "description": "Base directory for all generated output (pages/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.",
@@ -68,7 +91,7 @@
     },
     "read": {
       "additionalProperties": false,
-      "description": "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata).",
+      "description": "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata). If layout data exists, it uses pre-detected regions; otherwise it uses AI-only mode.",
       "properties": {
         "concurrency": {
           "default": 1,
@@ -76,22 +99,6 @@
           "minimum": 1,
           "type": "integer"
         },
-        "debug": {
-          "default": false,
-          "description": "When true, write annotated PNG images showing layout tool bounding boxes to read/\u003cinput\u003e/debug/. Useful for verifying layout detection before AI processing.",
-          "type": "boolean"
-        },
-        "layout_tool": {
-          "default": "doclayout-yolo",
-          "description": "Layout detection tool for precise bounding boxes. 'doclayout-yolo' uses DocLayout-YOLO (default, best for document structure). 'surya' uses Surya OCR. Both require Docker. Empty string means AI-only mode.",
-          "enum": [
-            "",
-            "doclayout-yolo",
-            "surya"
-          ],
-          "type": "string"
-        },
-        "layout_tool_params": {},
         "models": {
           "description": "Ordered failover chain of AI models for OCR. The first model is primary; if it returns 429/quota errors, the next model is tried. All models must support vision for the read phase.",
           "items": {

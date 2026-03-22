@@ -20,6 +20,7 @@ type phase int
 
 const (
 	phasePages     phase = iota
+	phaseLayout    phase = iota
 	phaseRead      phase = iota
 	phaseSolve     phase = iota
 	phaseTranslate phase = iota
@@ -31,6 +32,8 @@ func hasPhaseOutput(p phase, ws *workspace.Workspace, cfg *config.Config) bool {
 	switch p {
 	case phasePages:
 		return dirHasEntries(ws.PagesDir())
+	case phaseLayout:
+		return dirHasEntries(ws.LayoutDir())
 	case phaseRead:
 		return dirHasEntries(ws.ReadDir())
 	case phaseSolve:
@@ -82,6 +85,19 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 			Workspace: ws, Config: cfg, Pages: pagesToProcess, Logger: logger, Display: disp,
 		}); err != nil {
 			return fmt.Errorf("auto pages: %w", err)
+		}
+	}
+
+	if startPhase <= phaseLayout && phaseLayout < targetPhase {
+		if cfg.Layout.Tool == "" {
+			logger.Info("layout tool disabled, skipping layout phase")
+		} else {
+			logger.Info("=== AUTO: LAYOUT ===")
+			if _, err := pipeline.Layout(ctx, pipeline.LayoutOptions{
+				Workspace: ws, Config: cfg, Pages: pagesToProcess, Logger: logger, Display: disp,
+			}); err != nil {
+				return fmt.Errorf("auto layout: %w", err)
+			}
 		}
 	}
 
@@ -159,6 +175,8 @@ func phaseName(p phase) string {
 	switch p {
 	case phasePages:
 		return "pages"
+	case phaseLayout:
+		return "layout"
 	case phaseRead:
 		return "read"
 	case phaseSolve:
