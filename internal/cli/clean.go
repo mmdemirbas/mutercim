@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
@@ -158,6 +159,16 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 			if err != nil {
 				return fmt.Errorf("workspace: %w", err)
 			}
+
+			configPath := cfgFile
+			if configPath == "" {
+				configPath = ws.ConfigPath()
+			}
+			cfg, err := config.Load(configPath)
+			if err != nil {
+				return fmt.Errorf("config: %w", err)
+			}
+			applyOutputDir(ws, cfg)
 
 			phases, err := expandTargets(args)
 			if err != nil {
