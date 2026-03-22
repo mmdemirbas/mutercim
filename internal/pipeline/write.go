@@ -190,15 +190,23 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 	}
 
 	if opts.Display != nil {
+		writeCompleted := len(succeeded)
+		writeFailed := len(failed)
+		writeTotal := len(succeeded) + len(failed)
+		var writeErr error
+		if writeFailed > 0 {
+			writeErr = fmt.Errorf("%d format(s) failed: %s", writeFailed, strings.Join(failed, "; "))
+		}
 		opts.Display.Update(display.PageResult{
 			Phase: display.PhaseWrite, Input: stem,
-			Total: len(pages), Completed: len(pages), Lang: targetLang,
+			Total: writeTotal, Completed: writeCompleted, Failed: writeFailed,
+			Lang: targetLang, Err: writeErr,
 		})
 		opts.Display.FinishPhase(display.PhaseWrite, stem, targetLang)
 	}
 
 	if len(succeeded) > 0 {
-		logger.Info("write complete", "input", stem, "wrote", succeeded, "failed", failed)
+		logger.Info("write complete", "input", stem, "formats_succeeded", succeeded, "formats_failed", failed)
 	}
 
 	// Write report (langWriteDir already defined above)

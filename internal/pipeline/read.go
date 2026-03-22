@@ -280,6 +280,20 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			continue
 		}
 
+		// Pages with no regions (e.g. JSON extraction failed) count as failed
+		if len(regionPage.Regions) == 0 && len(regionPage.Warnings) > 0 {
+			logger.Warn("page read produced no regions", "input", stem, "page", pageNum, "warnings", regionPage.Warnings)
+			failed++
+			if opts.Display != nil {
+				opts.Display.Update(display.PageResult{
+					Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
+					Total: len(pagesToProcess), Completed: completed, Failed: failed,
+					Err: fmt.Errorf("%s", regionPage.Warnings[0]),
+				})
+			}
+			continue
+		}
+
 		// Count region types for display
 		entryCount, footnoteCount := countRegionTypes(regionPage.Regions)
 
