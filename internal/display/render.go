@@ -10,11 +10,19 @@ import (
 
 const barWidth = 20
 
+// PhaseConfig holds static config info for a pipeline phase (shown in dashboard).
+type PhaseConfig struct {
+	Phase    Phase
+	Info     string   // brief info on the progress line (e.g. tool name)
+	SubItems []string // numbered list below the progress line (e.g. model chain)
+}
+
 // HeaderData holds metadata shown in the header section of both live and status displays.
 type HeaderData struct {
-	InputName  string
-	InputPages int    // total pages available
-	PageRange  string // e.g. "1-50", empty means all
+	InputName    string
+	InputPages   int           // total pages available
+	PageRange    string        // e.g. "1-50", empty means all
+	PhaseConfigs []PhaseConfig // per-phase config summaries
 }
 
 // RenderHeader writes the header section and returns the number of lines written.

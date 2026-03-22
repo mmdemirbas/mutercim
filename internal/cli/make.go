@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
@@ -72,8 +73,9 @@ func newAllCmd() *cobra.Command {
 					}
 				}
 				disp.SetHeader(display.HeaderData{
-					InputName: inputName,
-					PageRange: pageSpec,
+					InputName:    inputName,
+					PageRange:    pageSpec,
+					PhaseConfigs: buildPhaseConfigs(cfg),
 				})
 			}
 			var pagesToProcess []int
@@ -223,6 +225,44 @@ func newAllCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// buildPhaseConfigs creates per-phase config summaries for the live dashboard header.
+func buildPhaseConfigs(cfg *config.Config) []display.PhaseConfig {
+	var configs []display.PhaseConfig
+
+	// Layout
+	if cfg.Layout.Tool != "" {
+		layoutInfo := cfg.Layout.Tool
+		configs = append(configs, display.PhaseConfig{
+			Phase: display.PhaseLayout,
+			Info:  layoutInfo,
+		})
+	}
+
+	// Read
+	var readModels []string
+	for _, m := range cfg.Read.Models {
+		readModels = append(readModels, m.Provider+"/"+m.Model)
+	}
+	configs = append(configs, display.PhaseConfig{
+		Phase:    display.PhaseRead,
+		SubItems: readModels,
+	})
+
+	// Translate
+	var transModels []string
+	for _, m := range cfg.Translate.Models {
+		transModels = append(transModels, m.Provider+"/"+m.Model)
+	}
+	transInfo := "\u2192 " + strings.Join(cfg.Translate.Languages, ", ")
+	configs = append(configs, display.PhaseConfig{
+		Phase:    display.PhaseTranslate,
+		Info:     transInfo,
+		SubItems: transModels,
+	})
+
+	return configs
 }
 
 func printPhaseSummary(w io.Writer, colors display.StatusColors, name string, result pipeline.PhaseResult) {

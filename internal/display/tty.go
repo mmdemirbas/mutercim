@@ -226,6 +226,14 @@ func (d *TTYDisplay) render() {
 		fmt.Fprintln(&buf, RenderProgressLine(row, d.colors))
 		lines++
 
+		// Sub-items (model list, etc.) — show only before phase starts or when finished
+		if ps.completed == 0 && ps.failed == 0 && !ps.finished {
+			for _, sub := range RenderSubItems(row.SubItems, d.colors) {
+				fmt.Fprintln(&buf, sub)
+				lines++
+			}
+		}
+
 		// Status line under the active (non-finished) phase
 		if !statusRendered && !ps.finished && d.status.Text != "" {
 			elapsed := d.now().Sub(d.status.StartedAt)
@@ -278,6 +286,16 @@ func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int
 	return lines
 }
 
+// phaseConfigFor returns the PhaseConfig matching the given phase, if any.
+func (d *TTYDisplay) phaseConfigFor(phase Phase) *PhaseConfig {
+	for i := range d.header.PhaseConfigs {
+		if d.header.PhaseConfigs[i].Phase == phase {
+			return &d.header.PhaseConfigs[i]
+		}
+	}
+	return nil
+}
+
 // buildLiveRow creates a ProgressRow for live rendering (shows rate/ETA for active phases).
 func (d *TTYDisplay) buildLiveRow(key phaseKey, ps *phaseState) ProgressRow {
 	row := ProgressRow{
@@ -288,6 +306,12 @@ func (d *TTYDisplay) buildLiveRow(key phaseKey, ps *phaseState) ProgressRow {
 		Total:     ps.total,
 		Warnings:  ps.warnings,
 		Done:      ps.finished,
+	}
+
+	// Add per-phase config info from header
+	if pc := d.phaseConfigFor(key.phase); pc != nil {
+		row.Info = pc.Info
+		row.SubItems = pc.SubItems
 	}
 
 	if ps.finished {
@@ -314,6 +338,10 @@ func (d *TTYDisplay) buildFinishRow(key phaseKey, ps *phaseState) ProgressRow {
 		Total:     ps.total,
 		Warnings:  ps.warnings,
 		Done:      ps.finished,
+	}
+
+	if pc := d.phaseConfigFor(key.phase); pc != nil {
+		row.Info = pc.Info
 	}
 
 	if !ps.finishTime.IsZero() {
