@@ -56,12 +56,12 @@ func Layout(ctx context.Context, opts LayoutOptions) (PhaseResult, error) {
 	}
 
 	// Discover input stems from images directory
-	stems, err := discoverSubdirs(opts.Workspace.PagesDir())
+	stems, err := discoverSubdirs(opts.Workspace.CutDir())
 	if err != nil {
 		return PhaseResult{}, fmt.Errorf("discover images: %w", err)
 	}
 	if len(stems) == 0 {
-		return PhaseResult{}, fmt.Errorf("no page images found in %s — run 'mutercim pages' first", opts.Workspace.PagesDir())
+		return PhaseResult{}, fmt.Errorf("no page images found in %s — run 'mutercim cut' first", opts.Workspace.CutDir())
 	}
 
 	// Build per-input page lookup from config
@@ -109,7 +109,7 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 
 	ws := opts.Workspace
 	cfg := opts.Config
-	imagesDir := filepath.Join(ws.PagesDir(), stem)
+	imagesDir := filepath.Join(ws.CutDir(), stem)
 	layoutDir := filepath.Join(ws.LayoutDir(), stem)
 
 	// List available images

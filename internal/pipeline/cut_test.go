@@ -10,7 +10,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-func TestPagesSkipsImageDirectory(t *testing.T) {
+func TestCutSkipsImageDirectory(t *testing.T) {
 	dir := t.TempDir()
 
 	// Input is a directory (not a PDF) — should be a no-op
@@ -21,25 +21,25 @@ func TestPagesSkipsImageDirectory(t *testing.T) {
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Inputs: []config.InputSpec{{Path: imagesDir}},
-		Pages:  config.PagesConfig{DPI: 300},
+		Cut:    config.CutConfig{DPI: 300},
 	}
 
-	err := Pages(context.Background(), PagesOptions{
+	err := Cut(context.Background(), CutOptions{
 		Workspace: ws,
 		Config:    cfg,
 	})
 	if err != nil {
-		t.Fatalf("Pages() error: %v", err)
+		t.Fatalf("Cut() error: %v", err)
 	}
 
-	// pages/ should NOT have been created since input isn't a PDF
-	stemDir := filepath.Join(ws.PagesDir(), filepath.Base(imagesDir))
+	// cut/ should NOT have been created since input isn't a PDF
+	stemDir := filepath.Join(ws.CutDir(), filepath.Base(imagesDir))
 	if _, err := os.Stat(stemDir); err == nil {
-		t.Error("expected no pages/<stem> dir for non-PDF input")
+		t.Error("expected no cut/<stem> dir for non-PDF input")
 	}
 }
 
-func TestPagesNoInputs(t *testing.T) {
+func TestCutNoInputs(t *testing.T) {
 	dir := t.TempDir()
 
 	ws := &workspace.Workspace{Root: dir}
@@ -47,7 +47,7 @@ func TestPagesNoInputs(t *testing.T) {
 		Inputs: nil,
 	}
 
-	err := Pages(context.Background(), PagesOptions{
+	err := Cut(context.Background(), CutOptions{
 		Workspace: ws,
 		Config:    cfg,
 	})
@@ -86,7 +86,7 @@ func TestContiguousRanges(t *testing.T) {
 	}
 }
 
-func TestPagesPerInputPages(t *testing.T) {
+func TestCutPerInputPages(t *testing.T) {
 	// We can't test actual PDF conversion without pdftoppm, but we can test
 	// that non-PDF inputs with per-input pages still get the no-op treatment.
 	dir := t.TempDir()
@@ -98,14 +98,14 @@ func TestPagesPerInputPages(t *testing.T) {
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Inputs: []config.InputSpec{{Path: imagesDir, Pages: "1-5"}},
-		Pages:  config.PagesConfig{DPI: 300},
+		Cut:    config.CutConfig{DPI: 300},
 	}
 
-	err := Pages(context.Background(), PagesOptions{
+	err := Cut(context.Background(), CutOptions{
 		Workspace: ws,
 		Config:    cfg,
 	})
 	if err != nil {
-		t.Fatalf("Pages() error: %v", err)
+		t.Fatalf("Cut() error: %v", err)
 	}
 }

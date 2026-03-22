@@ -36,9 +36,9 @@ knowledge:
 
 output: ./
 
-# ─── Pages phase (PDF → images) ─────────────────────────────────────────────
+# ─── Cut phase (PDF → images) ────────────────────────────────────────────────
 
-pages:
+cut:
   dpi: 300                           # DPI for PDF-to-image conversion (min: 72) — higher = better OCR, larger files
 
 # ─── Layout phase (region detection) ────────────────────────────────────────

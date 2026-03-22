@@ -18,8 +18,8 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
-// PagesOptions configures the pagination pipeline.
-type PagesOptions struct {
+// CutOptions configures the page cutting pipeline.
+type CutOptions struct {
 	Workspace *workspace.Workspace
 	Config    *config.Config
 	Pages     []int // CLI override pages; nil means use per-input or global config
@@ -28,9 +28,9 @@ type PagesOptions struct {
 	Display   display.Display
 }
 
-// Pages runs the pagination phase: converts PDF inputs to per-page images.
+// Cut runs the page cutting phase: converts PDF inputs to per-page images.
 // For inputs that are already image directories, this is a no-op.
-func Pages(ctx context.Context, opts PagesOptions) error {
+func Cut(ctx context.Context, opts CutOptions) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -56,42 +56,42 @@ func Pages(ctx context.Context, opts PagesOptions) error {
 			}
 		}
 
-		if err := pagesOneInput(ctx, opts, resolved, stem, pages); err != nil {
-			logger.Error("pagination failed", "input", inp.Path, "error", err)
+		if err := cutOneInput(ctx, opts, resolved, stem, pages); err != nil {
+			logger.Error("page cutting failed", "input", inp.Path, "error", err)
 			failures++
 		}
 	}
 
 	if failures == len(inputs) {
-		return fmt.Errorf("all %d inputs failed pagination", failures)
+		return fmt.Errorf("all %d inputs failed page cutting", failures)
 	}
 	return nil
 }
 
-func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem string, pages []int) error {
+func cutOneInput(ctx context.Context, opts CutOptions, inputPath, stem string, pages []int) error {
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.Default()
 	}
 
-	imagesDir := filepath.Join(opts.Workspace.PagesDir(), stem)
+	imagesDir := filepath.Join(opts.Workspace.CutDir(), stem)
 
 	if !config.IsPDF(inputPath) {
-		logger.Info("images already available, skipping pagination", "input", stem)
+		logger.Info("images already available, skipping cut", "input", stem)
 		return nil
 	}
 
-	// Skip if pages directory is up-to-date (images newer than PDF)
+	// Skip if cut directory is up-to-date (images newer than PDF)
 	if !opts.Force && dirHasEntries(imagesDir) && !rebuild.NeedsRebuild(imagesDir, inputPath) {
-		logger.Debug("skipping pagination (up-to-date)", "input", stem)
+		logger.Debug("skipping cut (up-to-date)", "input", stem)
 		images, _ := input.ListImages(imagesDir)
 		if opts.Display != nil {
-			opts.Display.StartPhase(display.PhasePages, stem, len(images), "")
+			opts.Display.StartPhase(display.PhaseCut, stem, len(images), "")
 			opts.Display.Update(display.PageResult{
-				Phase: display.PhasePages, Input: stem,
+				Phase: display.PhaseCut, Input: stem,
 				Total: len(images), Completed: len(images),
 			})
-			opts.Display.FinishPhase(display.PhasePages, stem, "")
+			opts.Display.FinishPhase(display.PhaseCut, stem, "")
 		}
 		return nil
 	}
@@ -101,10 +101,10 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 	}
 
 	ranges := contiguousRanges(pages)
-	dpi := opts.Config.Pages.DPI
+	dpi := opts.Config.Cut.DPI
 	logger.Info("converting PDF to images", "input", inputPath, "dpi", dpi, "ranges", len(ranges))
 	if opts.Display != nil {
-		opts.Display.StartPhase(display.PhasePages, stem, 0, "")
+		opts.Display.StartPhase(display.PhaseCut, stem, 0, "")
 		opts.Display.SetStatus(display.StatusLine{
 			Text:      fmt.Sprintf("converting %s to images (dpi %d)", filepath.Base(inputPath), dpi),
 			StartedAt: time.Now(),
@@ -114,12 +114,12 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 	for _, r := range ranges {
 		if err := input.ConvertPDFToImages(ctx, inputPath, imagesDir, dpi, r[0], r[1], dockerDir); err != nil {
 			if opts.Display != nil {
-				opts.Display.StartPhase(display.PhasePages, stem, 1, "")
+				opts.Display.StartPhase(display.PhaseCut, stem, 1, "")
 				opts.Display.Update(display.PageResult{
-					Phase: display.PhasePages, Input: stem,
+					Phase: display.PhaseCut, Input: stem,
 					Total: 1, Failed: 1, Err: err,
 				})
-				opts.Display.FinishPhase(display.PhasePages, stem, "")
+				opts.Display.FinishPhase(display.PhaseCut, stem, "")
 			}
 			return fmt.Errorf("convert PDF %s: %w", inputPath, err)
 		}
@@ -132,17 +132,17 @@ func pagesOneInput(ctx context.Context, opts PagesOptions, inputPath, stem strin
 	// Count resulting images
 	images, err := input.ListImages(imagesDir)
 	if err == nil {
-		logger.Info("pagination complete", "input", stem, "images", len(images))
+		logger.Info("page cutting complete", "input", stem, "images", len(images))
 	}
 	imageCount := len(images)
 
 	if opts.Display != nil {
-		opts.Display.StartPhase(display.PhasePages, stem, imageCount, "")
+		opts.Display.StartPhase(display.PhaseCut, stem, imageCount, "")
 		opts.Display.Update(display.PageResult{
-			Phase: display.PhasePages, Input: stem,
+			Phase: display.PhaseCut, Input: stem,
 			Total: imageCount, Completed: imageCount,
 		})
-		opts.Display.FinishPhase(display.PhasePages, stem, "")
+		opts.Display.FinishPhase(display.PhaseCut, stem, "")
 	}
 
 	return nil

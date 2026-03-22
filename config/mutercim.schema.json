@@ -4,6 +4,19 @@
   "additionalProperties": false,
   "description": "Configuration file for mutercim — Islamic scholarly book translation tool.",
   "properties": {
+    "cut": {
+      "additionalProperties": false,
+      "description": "Page-generation settings (PDF to images).",
+      "properties": {
+        "dpi": {
+          "default": 300,
+          "description": "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.",
+          "minimum": 72,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "inputs": {
       "default": [
         {
@@ -26,7 +39,7 @@
             "type": "string"
           },
           "path": {
-            "description": "Path to input PDF or image directory (relative to workspace root). The filename stem becomes the subdirectory name under pages/, read/, solve/.",
+            "description": "Path to input PDF or image directory (relative to workspace root). The filename stem becomes the subdirectory name under cut/, read/, solve/.",
             "type": "string"
           }
         },
@@ -73,21 +86,8 @@
     },
     "output": {
       "default": ".",
-      "description": "Base directory for all generated output (pages/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.",
+      "description": "Base directory for all generated output (cut/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.",
       "type": "string"
-    },
-    "pages": {
-      "additionalProperties": false,
-      "description": "Page-generation settings (PDF to images).",
-      "properties": {
-        "dpi": {
-          "default": 300,
-          "description": "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.",
-          "minimum": 72,
-          "type": "integer"
-        }
-      },
-      "type": "object"
     },
     "read": {
       "additionalProperties": false,

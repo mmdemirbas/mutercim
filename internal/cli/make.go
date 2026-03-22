@@ -20,7 +20,7 @@ import (
 func newAllCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:       "all [formats...]",
-		Short:     "(Phase *) Run all phases: pages -> layout -> read -> solve -> translate -> write",
+		Short:     "(Phase *) Run all phases: cut -> layout -> read -> solve -> translate -> write",
 		Long:      "Executes the full pipeline sequentially. Validates system dependencies before starting.\n\nOptional format arguments override the write phase output formats:\n  mutercim all pdf\n  mutercim all md docx",
 		ValidArgs: []string{"md", "latex", "tex", "pdf", "docx"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -90,9 +90,9 @@ func newAllCmd() *cobra.Command {
 				}
 			}
 
-			// Phase 0: Pages (PDF → images)
-			logger.Info("=== PAGES ===")
-			if err := pipeline.Pages(cmd.Context(), pipeline.PagesOptions{
+			// Phase 0: Cut (PDF → images)
+			logger.Info("=== CUT ===")
+			if err := pipeline.Cut(cmd.Context(), pipeline.CutOptions{
 				Workspace: ws,
 				Config:    cfg,
 				Pages:     pagesToProcess,
@@ -100,7 +100,7 @@ func newAllCmd() *cobra.Command {
 				Logger:    logger,
 				Display:   disp,
 			}); err != nil {
-				return fmt.Errorf("pages: %w", err)
+				return fmt.Errorf("cut: %w", err)
 			}
 
 			// Phase L: Layout

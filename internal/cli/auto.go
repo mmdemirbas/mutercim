@@ -19,7 +19,7 @@ import (
 type phase int
 
 const (
-	phasePages     phase = iota
+	phaseCut       phase = iota
 	phaseLayout    phase = iota
 	phaseRead      phase = iota
 	phaseSolve     phase = iota
@@ -30,8 +30,8 @@ const (
 // hasPhaseOutput checks whether a phase has already produced output.
 func hasPhaseOutput(p phase, ws *workspace.Workspace, cfg *config.Config) bool {
 	switch p {
-	case phasePages:
-		return dirHasEntries(ws.PagesDir())
+	case phaseCut:
+		return dirHasEntries(ws.CutDir())
 	case phaseLayout:
 		return dirHasEntries(ws.LayoutDir())
 	case phaseRead:
@@ -75,16 +75,16 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 	logger := slog.Default()
 	logger.Info("auto-running prerequisite phases", "from", phaseName(startPhase), "to", phaseName(targetPhase-1))
 
-	if startPhase <= phasePages && phasePages < targetPhase {
+	if startPhase <= phaseCut && phaseCut < targetPhase {
 		if err := docker.CheckAvailable(ctx); err != nil {
 			return err
 		}
 
-		logger.Info("=== AUTO: PAGES ===")
-		if err := pipeline.Pages(ctx, pipeline.PagesOptions{
+		logger.Info("=== AUTO: CUT ===")
+		if err := pipeline.Cut(ctx, pipeline.CutOptions{
 			Workspace: ws, Config: cfg, Pages: pagesToProcess, Logger: logger, Display: disp,
 		}); err != nil {
-			return fmt.Errorf("auto pages: %w", err)
+			return fmt.Errorf("auto cut: %w", err)
 		}
 	}
 
@@ -173,8 +173,8 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 // phaseName returns a human-readable name for a phase.
 func phaseName(p phase) string {
 	switch p {
-	case phasePages:
-		return "pages"
+	case phaseCut:
+		return "cut"
 	case phaseLayout:
 		return "layout"
 	case phaseRead:

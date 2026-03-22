@@ -62,8 +62,8 @@ func TestLoad_DefaultsApplied(t *testing.T) {
 	if cfg.Read.Retry.MaxAttempts != 3 {
 		t.Errorf("Read.Retry.MaxAttempts = %d, want 3", cfg.Read.Retry.MaxAttempts)
 	}
-	if cfg.Pages.DPI != 300 {
-		t.Errorf("Pages.DPI = %d, want 300", cfg.Pages.DPI)
+	if cfg.Cut.DPI != 300 {
+		t.Errorf("Cut.DPI = %d, want 300", cfg.Cut.DPI)
 	}
 }
 

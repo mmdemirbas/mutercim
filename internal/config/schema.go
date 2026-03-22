@@ -25,18 +25,18 @@ func intPtr(v int) *int { return &v }
 // Structure (field names, types, nesting) comes from reflection on the Go types.
 var schemaAnnotations = map[string]schemaMeta{
 	// output
-	"output": {Description: "Base directory for all generated output (pages/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.", Default: "."},
+	"output": {Description: "Base directory for all generated output (cut/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.", Default: "."},
 
 	// inputs
 	"inputs":             {Description: "Input files or directories. PDFs are converted to page images via pdftoppm; image directories are used as-is. Multiple inputs are processed independently through read/solve/translate, then merged in write.", Default: []map[string]string{{"path": "./input"}}},
 	"inputs[]":           {Required: []string{"path", "languages"}},
-	"inputs[].path":      {Description: "Path to input PDF or image directory (relative to workspace root). The filename stem becomes the subdirectory name under pages/, read/, solve/."},
+	"inputs[].path":      {Description: "Path to input PDF or image directory (relative to workspace root). The filename stem becomes the subdirectory name under cut/, read/, solve/."},
 	"inputs[].pages":     {Description: `Optional page range to process from this input (e.g. "1-50", "1,5,10-20"). If omitted, all pages are processed. Can also be set globally via the --pages CLI flag.`},
 	"inputs[].languages": {Description: "Source language codes for this input (required). First is the primary language used for source markdown output and AI prompt configuration."},
 
-	// pages
-	"pages":     {Description: "Page-generation settings (PDF to images)."},
-	"pages.dpi": {Description: "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.", Default: 300, Minimum: intPtr(72)},
+	// cut
+	"cut":     {Description: "Page-generation settings (PDF to images)."},
+	"cut.dpi": {Description: "DPI for PDF-to-image conversion via pdftoppm. Higher values improve OCR accuracy but increase file size and processing time. 300 is a good balance.", Default: 300, Minimum: intPtr(72)},
 
 	// layout
 	"layout":        {Description: "Layout detection phase settings. Detects document regions (headers, columns, tables, footnotes) with bounding boxes before the read phase."},

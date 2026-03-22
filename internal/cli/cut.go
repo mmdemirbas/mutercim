@@ -13,13 +13,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newPagesCmd() *cobra.Command {
+func newCutCmd() *cobra.Command {
 	var dpi int
 
 	cmd := &cobra.Command{
-		Use:   "pages",
+		Use:   "cut",
 		Short: "(Phase 0) Convert PDF inputs to per-page images",
-		Long:  "Converts PDF files to per-page PNG images in pages/. No-op if the input is already a directory of images.",
+		Long:  "Converts PDF files to per-page PNG images in cut/. No-op if the input is already a directory of images.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
 			if err != nil {
@@ -37,7 +37,7 @@ func newPagesCmd() *cobra.Command {
 			applyOutputDir(ws, cfg)
 
 			if dpi > 0 {
-				cfg.Pages.DPI = dpi
+				cfg.Cut.DPI = dpi
 			}
 
 			// Preflight: check Docker if any input is PDF
@@ -68,7 +68,7 @@ func newPagesCmd() *cobra.Command {
 
 			logger := slog.Default()
 
-			return pipeline.Pages(cmd.Context(), pipeline.PagesOptions{
+			return pipeline.Cut(cmd.Context(), pipeline.CutOptions{
 				Workspace: ws,
 				Config:    cfg,
 				Pages:     pagesToProcess,

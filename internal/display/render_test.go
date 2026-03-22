@@ -10,12 +10,12 @@ import (
 
 func TestRenderProgressLine_Done(t *testing.T) {
 	row := ProgressRow{
-		Phase: PhasePages, Completed: 600, Total: 600, Done: true,
+		Phase: PhaseCut, Completed: 600, Total: 600, Done: true,
 		Elapsed: 5 * time.Minute,
 	}
 	line := RenderProgressLine(row, StatusColors{Enabled: false})
 
-	for _, want := range []string{"PAGES", "600/600", "\u2713", "5m"} {
+	for _, want := range []string{"CUT", "600/600", "\u2713", "5m"} {
 		if !strings.Contains(line, want) {
 			t.Errorf("done line should contain %q, got: %q", want, line)
 		}
@@ -159,7 +159,7 @@ func TestSharedRender_StatusAndLiveProduceSameProgressSection(t *testing.T) {
 
 	// Data that both status command and live dashboard would have
 	testRows := []ProgressRow{
-		{Phase: PhasePages, Completed: 600, Total: 600, Done: true},
+		{Phase: PhaseCut, Completed: 600, Total: 600, Done: true},
 		{Phase: PhaseRead, Completed: 247, Total: 600, Warnings: 2, Failed: 1},
 		{Phase: PhaseSolve, Total: 0}, // pending
 	}
@@ -189,7 +189,7 @@ func TestSharedRender_StatusAndLiveProduceSameProgressSection(t *testing.T) {
 
 	// Verify expected content
 	out := statusBuf.String()
-	for _, want := range []string{"PAGES", "READ", "SOLVE", "600/600", "247/600", "\u2713", "\u2014"} {
+	for _, want := range []string{"CUT", "READ", "SOLVE", "600/600", "247/600", "\u2713", "\u2014"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output should contain %q, got:\n%s", want, out)
 		}
@@ -237,7 +237,7 @@ func TestFormatLabel(t *testing.T) {
 		want  string
 	}{
 		{PhaseRead, "", "        READ"},
-		{PhasePages, "", "       PAGES"},
+		{PhaseCut, "", "         CUT"},
 		{PhaseTranslate, "", "       TRANS"},
 		{PhaseTranslate, "tr", "  TRANS [tr]"},
 		{PhaseWrite, "en", "  WRITE [en]"},

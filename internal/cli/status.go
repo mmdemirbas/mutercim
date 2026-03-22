@@ -52,7 +52,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	// Count total images
 	totalImages := 0
 	for _, stem := range inputs {
-		totalImages += countFiles(filepath.Join(ws.PagesDir(), stem))
+		totalImages += countFiles(filepath.Join(ws.CutDir(), stem))
 	}
 
 	// Build input name from config
@@ -123,14 +123,14 @@ func buildPhaseRows(ws *workspace.Workspace, inputs []string, totalImages int, t
 	// Count pages (image files per input stem)
 	pagesCompleted := 0
 	for _, stem := range inputs {
-		pagesCompleted += countFiles(filepath.Join(ws.PagesDir(), stem))
+		pagesCompleted += countFiles(filepath.Join(ws.CutDir(), stem))
 	}
 	pagesTotal := totalImages
 	if pagesTotal == 0 {
 		pagesTotal = pagesCompleted
 	}
 	rows = append(rows, display.ProgressRow{
-		Phase: display.PhasePages, Completed: pagesCompleted, Total: pagesTotal,
+		Phase: display.PhaseCut, Completed: pagesCompleted, Total: pagesTotal,
 		Done: pagesCompleted > 0 && pagesCompleted >= pagesTotal,
 	})
 
@@ -242,7 +242,7 @@ func dirHasFiles(dir string) bool {
 // discoverInputs finds input stems by scanning workspace subdirectories.
 func discoverInputs(ws *workspace.Workspace) []string {
 	seen := make(map[string]bool)
-	for _, dir := range []string{ws.PagesDir(), ws.LayoutDir(), ws.ReadDir(), ws.SolveDir()} {
+	for _, dir := range []string{ws.CutDir(), ws.LayoutDir(), ws.ReadDir(), ws.SolveDir()} {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue

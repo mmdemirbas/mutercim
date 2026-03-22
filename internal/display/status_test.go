@@ -15,7 +15,7 @@ func TestRenderStatus_AllDone(t *testing.T) {
 		SourceLangs: []string{"ar"},
 		TargetLangs: []string{"tr"},
 		Phases: []ProgressRow{
-			{Phase: PhasePages, Completed: 612, Total: 612, Done: true},
+			{Phase: PhaseCut, Completed: 612, Total: 612, Done: true},
 			{Phase: PhaseRead, Completed: 612, Total: 612, Done: true},
 			{Phase: PhaseSolve, Completed: 612, Total: 612, Done: true},
 			{Phase: PhaseTranslate, Completed: 612, Total: 612, Done: true, Lang: "tr"},
@@ -48,7 +48,7 @@ func TestRenderStatus_Partial(t *testing.T) {
 		InputName:  "vol1.pdf",
 		InputPages: 100,
 		Phases: []ProgressRow{
-			{Phase: PhasePages, Completed: 100, Total: 100, Done: true},
+			{Phase: PhaseCut, Completed: 100, Total: 100, Done: true},
 			{Phase: PhaseRead, Completed: 60, Total: 100, Warnings: 2},
 			{Phase: PhaseSolve, Completed: 0, Total: 60},
 		},
@@ -82,7 +82,7 @@ func TestRenderStatus_EmptyWorkspace(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
 		Phases: []ProgressRow{
-			{Phase: PhasePages, Total: 0},
+			{Phase: PhaseCut, Total: 0},
 			{Phase: PhaseRead, Total: 0},
 		},
 	}
@@ -186,7 +186,7 @@ func TestRenderStatus_TotalCascade(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
 		Phases: []ProgressRow{
-			{Phase: PhasePages, Completed: 612, Total: 612, Done: true},
+			{Phase: PhaseCut, Completed: 612, Total: 612, Done: true},
 			{Phase: PhaseRead, Completed: 370, Total: 612, Warnings: 2},
 			{Phase: PhaseSolve, Completed: 0, Total: 370},
 			{Phase: PhaseTranslate, Completed: 0, Total: 370, Lang: "tr"},
@@ -210,7 +210,7 @@ func TestRenderStatus_ColumnAlignment(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
 		Phases: []ProgressRow{
-			{Phase: PhasePages, Completed: 5, Total: 5, Done: true},
+			{Phase: PhaseCut, Completed: 5, Total: 5, Done: true},
 			{Phase: PhaseRead, Completed: 3, Total: 5},
 			{Phase: PhaseTranslate, Completed: 100, Total: 1000, Lang: "tr"},
 		},

@@ -57,7 +57,7 @@ func TestGenerateSchema_ValidJSON(t *testing.T) {
 	}
 
 	// Verify key config sections exist
-	for _, key := range []string{"inputs", "output", "pages", "read", "solve", "translate", "write", "knowledge"} {
+	for _, key := range []string{"inputs", "output", "cut", "read", "solve", "translate", "write", "knowledge"} {
 		if props[key] == nil {
 			t.Errorf("missing property %q", key)
 		}

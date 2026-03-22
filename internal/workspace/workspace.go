@@ -8,7 +8,7 @@ import (
 
 // Workspace represents a book workspace directory.
 // Root is where mutercim.yaml, input/, and knowledge/ live.
-// OutputDir is the base for all generated directories (pages/, read/, solve/,
+// OutputDir is the base for all generated directories (cut/, read/, solve/,
 // translate/, write/, log/, memory/). Defaults to Root.
 type Workspace struct {
 	Root      string
@@ -66,9 +66,9 @@ func (w *Workspace) MemoryDir() string {
 	return filepath.Join(w.outputBase(), "memory")
 }
 
-// PagesDir returns the page images directory path.
-func (w *Workspace) PagesDir() string {
-	return filepath.Join(w.outputBase(), "pages")
+// CutDir returns the page images directory path.
+func (w *Workspace) CutDir() string {
+	return filepath.Join(w.outputBase(), "cut")
 }
 
 // LayoutDir returns the layout detection directory path.

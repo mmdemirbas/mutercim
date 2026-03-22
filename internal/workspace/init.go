@@ -75,11 +75,13 @@ inputs:
   - path: ./input
     languages: [%s]
 
-pages:
+cut:
   dpi: 300
 
+layout:
+  tool: doclayout-yolo
+
 read:
-  layout_tool: doclayout-yolo
   models:
     - provider: gemini
       model: gemini-2.0-flash

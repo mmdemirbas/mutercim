@@ -20,7 +20,7 @@ type InputSpec struct {
 type Config struct {
 	Inputs    []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
 	Output    string          `yaml:"output" mapstructure:"output" json:"output"`
-	Pages     PagesConfig     `yaml:"pages" mapstructure:"pages" json:"pages"`
+	Cut       CutConfig       `yaml:"cut" mapstructure:"cut" json:"cut"`
 	Layout    LayoutConfig    `yaml:"layout" mapstructure:"layout" json:"layout"`
 	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
 	Solve     SolveConfig     `yaml:"solve" mapstructure:"solve" json:"solve"`
@@ -29,8 +29,8 @@ type Config struct {
 	Knowledge []string        `yaml:"knowledge" mapstructure:"knowledge" json:"knowledge"`
 }
 
-// PagesConfig holds page-generation settings (PDF to images).
-type PagesConfig struct {
+// CutConfig holds page-generation settings (PDF to images).
+type CutConfig struct {
 	DPI int `yaml:"dpi" mapstructure:"dpi" json:"dpi"`
 }
 
@@ -94,7 +94,7 @@ type RateLimitConfig struct {
 // SetDefaults configures default values in viper.
 func SetDefaults(v *viper.Viper) {
 	v.SetDefault("output", ".")
-	v.SetDefault("pages.dpi", 300)
+	v.SetDefault("cut.dpi", 300)
 
 	v.SetDefault("layout.tool", "doclayout-yolo")
 
@@ -167,8 +167,8 @@ func applyDefaults(cfg *Config) {
 	if cfg.Output == "" {
 		cfg.Output = "."
 	}
-	if cfg.Pages.DPI == 0 {
-		cfg.Pages.DPI = 300
+	if cfg.Cut.DPI == 0 {
+		cfg.Cut.DPI = 300
 	}
 	if len(cfg.Read.Models) == 0 {
 		cfg.Read.Models = []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}

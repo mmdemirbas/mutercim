@@ -297,8 +297,8 @@ func TestTTYDisplayClearLines_NewPhaseAdded(t *testing.T) {
 	d := newTTYDisplay(&buf, now)
 
 	// Render with one phase — establishes initial line count
-	d.StartPhase(PhasePages, "vol1", 6, "")
-	d.FinishPhase(PhasePages, "vol1", "")
+	d.StartPhase(PhaseCut, "vol1", 6, "")
+	d.FinishPhase(PhaseCut, "vol1", "")
 
 	firstRender := buf.String()
 	firstLineCount := d.currentLines
@@ -324,8 +324,8 @@ func TestTTYDisplayClearLines_NewPhaseAdded(t *testing.T) {
 	}
 
 	// The new render should contain both phases
-	if !strings.Contains(secondRender, "PAGES") {
-		t.Error("second render should contain PAGES")
+	if !strings.Contains(secondRender, "CUT") {
+		t.Error("second render should contain CUT")
 	}
 	if !strings.Contains(secondRender, "READ") {
 		t.Error("second render should contain READ")
@@ -370,6 +370,9 @@ func TestTTYDisplayStatusLine_Countdown(t *testing.T) {
 		StartedAt: now.Add(-1 * time.Second),
 		Countdown: 4 * time.Second,
 	})
+
+	// Stop the ticker before reading the buffer to avoid a data race
+	d.SetStatus(StatusLine{})
 
 	out := buf.String()
 	if !strings.Contains(out, "3s") {

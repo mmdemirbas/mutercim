@@ -11,7 +11,7 @@ import (
 type Phase string
 
 const (
-	PhasePages     Phase = "PAGES"
+	PhaseCut       Phase = "CUT"
 	PhaseLayout    Phase = "LAYOUT"
 	PhaseRead      Phase = "READ"
 	PhaseSolve     Phase = "SOLVE"

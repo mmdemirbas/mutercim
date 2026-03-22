@@ -19,8 +19,8 @@ func TestLoadDefaults(t *testing.T) {
 		t.Fatalf("Load() error = %v", err)
 	}
 
-	if cfg.Pages.DPI != 300 {
-		t.Errorf("Pages.DPI = %d, want 300", cfg.Pages.DPI)
+	if cfg.Cut.DPI != 300 {
+		t.Errorf("Cut.DPI = %d, want 300", cfg.Cut.DPI)
 	}
 	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "gemini" {
 		t.Errorf("Read.Models = %+v, want [{gemini gemini-2.0-flash}]", cfg.Read.Models)
@@ -46,7 +46,7 @@ func TestLoadFromFile(t *testing.T) {
 inputs:
   - path: ./input
     languages: [ar]
-pages:
+cut:
   dpi: 600
 read:
   models:
@@ -63,8 +63,8 @@ translate:
 		t.Fatalf("Load() error = %v", err)
 	}
 
-	if cfg.Pages.DPI != 600 {
-		t.Errorf("Pages.DPI = %d, want 600", cfg.Pages.DPI)
+	if cfg.Cut.DPI != 600 {
+		t.Errorf("Cut.DPI = %d, want 600", cfg.Cut.DPI)
 	}
 	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "claude" || cfg.Read.Models[0].Model != "claude-sonnet-4-20250514" {
 		t.Errorf("Read.Models = %+v, want [{Provider:claude Model:claude-sonnet-4-20250514}]", cfg.Read.Models)
@@ -243,7 +243,7 @@ func TestModelsDefaultWhenOmitted(t *testing.T) {
 inputs:
   - path: ./input
     languages: [ar]
-pages:
+cut:
   dpi: 300
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")

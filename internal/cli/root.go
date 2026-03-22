@@ -108,7 +108,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 	// Pipeline commands — ordered by phase
 	addToGroup(rootCmd, "pipeline",
 		ordered(1, newAllCmd()),
-		ordered(2, newPagesCmd()),
+		ordered(2, newCutCmd()),
 		ordered(3, newLayoutCmd()),
 		ordered(4, newReadCmd()),
 		ordered(5, newSolveCmd()),

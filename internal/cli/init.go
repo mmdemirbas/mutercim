@@ -20,7 +20,7 @@ func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize a new book workspace in current directory",
-		Long:  `Creates workspace directory structure (input/, knowledge/, log/, memory/, pages/, read/, solve/, translate/, write/) and a default mutercim.yaml config file.`,
+		Long:  `Creates workspace directory structure (input/, knowledge/, log/, memory/, cut/, read/, solve/, translate/, write/) and a default mutercim.yaml config file.`,
 		RunE:  runInit,
 	}
 
@@ -63,6 +63,6 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Place your PDF or page images in input/")
 	fmt.Println("  2. Edit mutercim.yaml to configure models and languages")
-	fmt.Println("  3. Run: mutercim pages && mutercim read")
+	fmt.Println("  3. Run: mutercim cut && mutercim read")
 	return nil
 }

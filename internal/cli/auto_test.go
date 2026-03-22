@@ -16,7 +16,7 @@ func TestHasPhaseOutput_empty_workspace(t *testing.T) {
 		Translate: config.TranslateConfig{Languages: []string{"tr"}},
 	}
 
-	for _, p := range []phase{phasePages, phaseRead, phaseSolve, phaseTranslate} {
+	for _, p := range []phase{phaseCut, phaseRead, phaseSolve, phaseTranslate} {
 		if hasPhaseOutput(p, ws, cfg) {
 			t.Errorf("hasPhaseOutput(%s) = true for empty workspace", phaseName(p))
 		}
@@ -30,12 +30,12 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 		Translate: config.TranslateConfig{Languages: []string{"tr"}},
 	}
 
-	// Create pages output
-	imgDir := filepath.Join(dir, "pages", "TestBook")
+	// Create cut output
+	imgDir := filepath.Join(dir, "cut", "TestBook")
 	os.MkdirAll(imgDir, 0755)
 	os.WriteFile(filepath.Join(imgDir, "001.png"), []byte("fake"), 0644)
-	if !hasPhaseOutput(phasePages, ws, cfg) {
-		t.Error("hasPhaseOutput(pages) = false after creating pages")
+	if !hasPhaseOutput(phaseCut, ws, cfg) {
+		t.Error("hasPhaseOutput(cut) = false after creating cut output")
 	}
 
 	// Create read output
@@ -116,7 +116,7 @@ func TestPhaseName(t *testing.T) {
 		p    phase
 		want string
 	}{
-		{phasePages, "pages"},
+		{phaseCut, "cut"},
 		{phaseRead, "read"},
 		{phaseSolve, "solve"},
 		{phaseTranslate, "translate"},

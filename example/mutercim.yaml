@@ -4,7 +4,7 @@ inputs: [ { path: ./Anfas1.pdf, pages: "156", languages: [ ar ] } ]
 knowledge: [ ./glossary.yaml ]
 output: ./output
 
-pages:
+cut:
   dpi: 300
 
 layout:

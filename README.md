@@ -13,7 +13,7 @@ companion names) but the glossary system is general-purpose.
 ## Pipeline overview
 
 ```
-PDF/images ──► pages ──► layout ──► read ──► solve ──► translate ──► write
+PDF/images ──► cut ──► layout ──► read ──► solve ──► translate ──► write
                │          │          │        │          │             │
                │          │          │        │          │             ▼
                │          │          │        │          │         .md .tex .pdf .docx
@@ -26,10 +26,10 @@ PDF/images ──► pages ──► layout ──► read ──► solve ─�
                │          ▼
                │      layout/{input}/NNN.json
                ▼
-           pages/{input}/NNN.png
+           cut/{input}/NNN.png
 ```
 
-- **pages** — Convert PDF inputs to per-page PNG images (via pdftoppm)
+- **cut** — Convert PDF inputs to per-page PNG images (via pdftoppm)
 - **layout** — Detect document regions with bounding boxes (via DocLayout-YOLO or Surya)
 - **read** — Extract structured text from page images using AI vision models
 - **solve** — Resolve abbreviations, inject glossary context, validate structure (local, no API)
@@ -73,7 +73,7 @@ echo 'GEMINI_API_KEY=your-key-here' >.env
 mutercim all
 
 # Or run phases individually
-mutercim pages
+mutercim cut
 mutercim read
 mutercim solve
 mutercim translate
@@ -103,8 +103,8 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 
 | Command     | Description                                                                |
 |-------------|----------------------------------------------------------------------------|
-| `all`       | Run all phases sequentially (pages, layout, read, solve, translate, write) |
-| `pages`     | Convert PDF inputs to per-page images                                      |
+| `all`       | Run all phases sequentially (cut, layout, read, solve, translate, write)    |
+| `cut`       | Convert PDF inputs to per-page images                                      |
 | `layout`    | Detect document layout regions on page images                              |
 | `read`      | Read structured data from page images via AI vision                        |
 | `solve`     | Resolve abbreviations and knowledge context                        |
@@ -132,12 +132,12 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 
 ### Clean command
 
-Targets: `log`, `memory`, `pages`, `layout`, `read`, `solve`, `translate`, `write`, `all`
+Targets: `log`, `memory`, `cut`, `layout`, `read`, `solve`, `translate`, `write`, `all`
 
 ```bash
 mutercim clean read # delete only read/
 mutercim clean read+ # delete read/ and all downstream (solve/, translate/, write/)
-mutercim clean pages+ # delete pages/ through write/
+mutercim clean cut+ # delete cut/ through write/
 mutercim clean all # delete everything except input/, knowledge/, mutercim.yaml, .env
 mutercim clean log read # delete multiple specific targets
 ```
@@ -167,7 +167,7 @@ inputs:
     languages: [ ar ]
 
 # PDF-to-image conversion
-pages:
+cut:
   dpi: 300                       # DPI (default: 300, min: 72)
 
 # Layout detection (runs before read phase)
@@ -237,7 +237,7 @@ my-book/                       # workspace root
 ├── memory/                    # [generated] auto-extracted knowledge from solve phase
 ├── log/
 │   └── mutercim.log           # [generated] activity log
-├── pages/                     # [generated] page images from PDF conversion
+├── cut/                       # [generated] page images from PDF conversion
 │   └── book/                  #   organized by input file stem
 │       ├── 001.png
 │       ├── 002.png
@@ -391,7 +391,7 @@ is newer than the output, the page is reprocessed. Otherwise it is skipped. Ther
 Use `--force` to bypass timestamp checks and reprocess everything.
 
 Use `--auto` to automatically run missing prerequisite phases. For example,
-`mutercim translate --auto` will run `pages`, `read`, and `solve` first if their
+`mutercim translate --auto` will run `cut`, `read`, and `solve` first if their
 outputs don't exist.
 
 ## Development

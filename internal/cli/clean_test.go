@@ -39,12 +39,12 @@ func TestExpandTargets_plus_suffix(t *testing.T) {
 		input string
 		want  []string
 	}{
-		{"pages+", []string{"pages", "layout", "read", "solve", "translate", "write"}},
+		{"cut+", []string{"cut", "layout", "read", "solve", "translate", "write"}},
 		{"read+", []string{"read", "solve", "translate", "write"}},
 		{"solve+", []string{"solve", "translate", "write"}},
 		{"translate+", []string{"translate", "write"}},
 		{"write+", []string{"write"}},
-		{"log+", []string{"log", "memory", "pages", "layout", "read", "solve", "translate", "write"}},
+		{"log+", []string{"log", "memory", "cut", "layout", "read", "solve", "translate", "write"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
@@ -173,8 +173,8 @@ func TestClean_log_truncates_not_removes(t *testing.T) {
 }
 
 func TestPhaseIndex(t *testing.T) {
-	if phaseIndex("pages") != 2 {
-		t.Errorf("phaseIndex(pages) = %d, want 2", phaseIndex("pages"))
+	if phaseIndex("cut") != 2 {
+		t.Errorf("phaseIndex(cut) = %d, want 2", phaseIndex("cut"))
 	}
 	if phaseIndex("layout") != 3 {
 		t.Errorf("phaseIndex(layout) = %d, want 3", phaseIndex("layout"))

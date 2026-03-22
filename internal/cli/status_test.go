@@ -94,8 +94,8 @@ func TestDiscoverInputs(t *testing.T) {
 		t.Errorf("empty workspace: got %v", stems)
 	}
 
-	// Create pages/book1 and read/book2
-	os.MkdirAll(filepath.Join(dir, "pages", "book1"), 0755)
+	// Create cut/book1 and read/book2
+	os.MkdirAll(filepath.Join(dir, "cut", "book1"), 0755)
 	os.MkdirAll(filepath.Join(dir, "read", "book2"), 0755)
 
 	stems = discoverInputs(ws)
@@ -290,11 +290,11 @@ func TestBuildPhaseRows(t *testing.T) {
 	ws := &workspace.Workspace{Root: dir}
 	stem := "testbook"
 
-	// Create pages with 3 images
-	pagesDir := filepath.Join(dir, "pages", stem)
-	os.MkdirAll(pagesDir, 0755)
+	// Create cut output with 3 images
+	cutDir := filepath.Join(dir, "cut", stem)
+	os.MkdirAll(cutDir, 0755)
 	for _, name := range []string{"001.png", "002.png", "003.png"} {
-		os.WriteFile(filepath.Join(pagesDir, name), []byte("img"), 0644)
+		os.WriteFile(filepath.Join(cutDir, name), []byte("img"), 0644)
 	}
 
 	// Create read with 2 JSON files
@@ -305,14 +305,14 @@ func TestBuildPhaseRows(t *testing.T) {
 
 	rows := buildPhaseRows(ws, []string{stem}, 3, []string{"tr"})
 
-	// pages, layout, read, solve, translate(tr), write(tr) = 6 rows
+	// cut, layout, read, solve, translate(tr), write(tr) = 6 rows
 	if len(rows) != 6 {
 		t.Fatalf("got %d rows, want 6", len(rows))
 	}
 
-	// Pages: 3/3, done
+	// Cut: 3/3, done
 	if rows[0].Completed != 3 || rows[0].Total != 3 || !rows[0].Done {
-		t.Errorf("pages row: completed=%d total=%d done=%v", rows[0].Completed, rows[0].Total, rows[0].Done)
+		t.Errorf("cut row: completed=%d total=%d done=%v", rows[0].Completed, rows[0].Total, rows[0].Done)
 	}
 
 	// Layout: 0/3, not done
@@ -337,7 +337,7 @@ func TestBuildPhaseRows_NoInputs(t *testing.T) {
 
 	rows := buildPhaseRows(ws, nil, 0, []string{"tr"})
 
-	// pages, layout, read, solve, translate(tr), write(tr) = 6 rows
+	// cut, layout, read, solve, translate(tr), write(tr) = 6 rows
 	if len(rows) != 6 {
 		t.Fatalf("got %d rows, want 6", len(rows))
 	}

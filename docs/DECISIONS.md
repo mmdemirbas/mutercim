@@ -294,3 +294,8 @@ Anything here overrides SPEC.md. The codebase is the source of truth.
 - Layout tool tuning params (confidence, iou, image_size, max_det) exposed for experimentation
 - Debug overlay images moved from read to layout phase
 - `mutercim layout` runs standalone; `mutercim clean layout+` cascades correctly
+
+## Phase rename: pages → cut
+
+The "pages" phase renamed to "cut" to maintain alphabetical ordering with the new "layout" phase.
+Pipeline: cut → layout → read → solve → translate → write (C, L, R, S, T, W).

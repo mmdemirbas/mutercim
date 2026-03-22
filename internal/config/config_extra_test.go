@@ -181,9 +181,9 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 		t.Errorf("Translate.Languages = %v, want [tr]", cfg.Translate.Languages)
 	}
 
-	// Pages.DPI
-	if cfg.Pages.DPI != 300 {
-		t.Errorf("Pages.DPI = %d, want 300", cfg.Pages.DPI)
+	// Cut.DPI
+	if cfg.Cut.DPI != 300 {
+		t.Errorf("Cut.DPI = %d, want 300", cfg.Cut.DPI)
 	}
 
 	// Read config — legacy provider/model migrated to models list
@@ -242,7 +242,7 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 
 func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	cfg := &Config{
-		Pages:     PagesConfig{DPI: 600},
+		Cut:       CutConfig{DPI: 600},
 		Inputs:    []InputSpec{{Path: "./custom.pdf", Languages: []string{"fa"}}},
 		Read:      ReadConfig{Models: []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}}, Concurrency: 4, Retry: RetryConfig{MaxAttempts: 5, BackoffSeconds: 10, MaxFailPercent: 10}},
 		Translate: TranslateConfig{Languages: []string{"en"}, Models: []ModelSpec{{Provider: "openai", Model: "gpt-4"}}, ContextWindow: 5, Retry: RetryConfig{MaxAttempts: 5, BackoffSeconds: 10, MaxFailPercent: 10}},
@@ -251,8 +251,8 @@ func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	}
 	applyDefaults(cfg)
 
-	if cfg.Pages.DPI != 600 {
-		t.Errorf("Pages.DPI was overwritten: got %d", cfg.Pages.DPI)
+	if cfg.Cut.DPI != 600 {
+		t.Errorf("Cut.DPI was overwritten: got %d", cfg.Cut.DPI)
 	}
 	if len(cfg.Read.Models) != 1 || cfg.Read.Models[0].Provider != "claude" {
 		t.Errorf("Read.Models was overwritten: got %+v", cfg.Read.Models)

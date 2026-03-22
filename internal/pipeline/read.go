@@ -31,7 +31,7 @@ type ReadOptions struct {
 }
 
 // Read runs the read (OCR) pipeline for all configured inputs.
-// Images must already exist in pages/ (run 'mutercim pages' first).
+// Images must already exist in cut/ (run 'mutercim cut' first).
 func Read(ctx context.Context, opts ReadOptions) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {
@@ -39,12 +39,12 @@ func Read(ctx context.Context, opts ReadOptions) (PhaseResult, error) {
 	}
 
 	// Discover input stems from images directory
-	stems, err := discoverSubdirs(opts.Workspace.PagesDir())
+	stems, err := discoverSubdirs(opts.Workspace.CutDir())
 	if err != nil {
 		return PhaseResult{}, fmt.Errorf("discover images: %w", err)
 	}
 	if len(stems) == 0 {
-		return PhaseResult{}, fmt.Errorf("no page images found in %s — run 'mutercim pages' first", opts.Workspace.PagesDir())
+		return PhaseResult{}, fmt.Errorf("no page images found in %s — run 'mutercim cut' first", opts.Workspace.CutDir())
 	}
 
 	// Build per-input page lookup from config
@@ -99,7 +99,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	ws := opts.Workspace
 	cfg := opts.Config
 
-	imagesDir := filepath.Join(ws.PagesDir(), stem)
+	imagesDir := filepath.Join(ws.CutDir(), stem)
 	readDir := filepath.Join(ws.ReadDir(), stem)
 	layoutDir := filepath.Join(ws.LayoutDir(), stem)
 

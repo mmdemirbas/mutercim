@@ -27,12 +27,12 @@ func (m *mockProvider) Translate(ctx context.Context, systemPrompt, userPrompt s
 	return m.response, nil
 }
 
-// setupReadWorkspace creates a workspace with images already in pages/<stem>/.
+// setupReadWorkspace creates a workspace with images already in cut/<stem>/.
 func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*workspace.Workspace, *config.Config) {
 	t.Helper()
 	dir := t.TempDir()
 
-	imagesDir := filepath.Join(dir, "pages", stem)
+	imagesDir := filepath.Join(dir, "cut", stem)
 	if err := os.MkdirAll(imagesDir, 0755); err != nil {
 		t.Fatalf("mkdir images: %v", err)
 	}
@@ -50,7 +50,7 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
 		Inputs: []config.InputSpec{{Path: "./input/" + stem + ".pdf"}},
-		Pages:  config.PagesConfig{DPI: 300},
+		Cut:    config.CutConfig{DPI: 300},
 		Read: config.ReadConfig{
 			Models:      []config.ModelSpec{{Provider: "mock", Model: "test-model"}},
 			Concurrency: 1,
@@ -115,7 +115,7 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 
 	// Set all inputs to the past so output appears newer
 	past := time.Now().Add(-10 * time.Second)
-	imgPath := filepath.Join(ws.PagesDir(), "testinput", "001.png")
+	imgPath := filepath.Join(ws.CutDir(), "testinput", "001.png")
 	os.Chtimes(imgPath, past, past)
 	os.MkdirAll(ws.KnowledgeDir(), 0755)
 	os.Chtimes(ws.KnowledgeDir(), past, past)
@@ -149,8 +149,8 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 func TestReadPipelineNoImages(t *testing.T) {
 	dir := t.TempDir()
 
-	// pages/ exists but is empty (no subdirs)
-	os.MkdirAll(filepath.Join(dir, "pages"), 0755)
+	// cut/ exists but is empty (no subdirs)
+	os.MkdirAll(filepath.Join(dir, "cut"), 0755)
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{}
@@ -163,7 +163,7 @@ func TestReadPipelineNoImages(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when no images found")
 	}
-	if got := err.Error(); got != "no page images found in "+ws.PagesDir()+" — run 'mutercim pages' first" {
+	if got := err.Error(); got != "no page images found in "+ws.CutDir()+" — run 'mutercim cut' first" {
 		t.Errorf("unexpected error: %q", got)
 	}
 }
@@ -171,7 +171,7 @@ func TestReadPipelineNoImages(t *testing.T) {
 func TestReadPipelineMissingImagesDir(t *testing.T) {
 	dir := t.TempDir()
 
-	// pages/ doesn't exist at all
+	// cut/ doesn't exist at all
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{}
 
@@ -245,7 +245,7 @@ func TestReadPipelineMultiInput(t *testing.T) {
 
 	// Create image directories for two stems
 	for _, stem := range []string{"stem1", "stem2"} {
-		imagesDir := filepath.Join(dir, "pages", stem)
+		imagesDir := filepath.Join(dir, "cut", stem)
 		if err := os.MkdirAll(imagesDir, 0755); err != nil {
 			t.Fatalf("mkdir images for %s: %v", stem, err)
 		}
@@ -260,7 +260,7 @@ func TestReadPipelineMultiInput(t *testing.T) {
 			{Path: "./input/stem1.pdf"},
 			{Path: "./input/stem2.pdf"},
 		},
-		Pages: config.PagesConfig{DPI: 300},
+		Cut: config.CutConfig{DPI: 300},
 		Read: config.ReadConfig{
 			Models:      []config.ModelSpec{{Provider: "mock", Model: "test-model"}},
 			Concurrency: 1,

@@ -39,7 +39,7 @@ func TestNewRootCmd(t *testing.T) {
 	for _, sub := range cmd.Commands() {
 		names[sub.Name()] = true
 	}
-	for _, want := range []string{"all", "pages", "read", "solve", "translate", "write", "init", "status", "config", "clean"} {
+	for _, want := range []string{"all", "cut", "read", "solve", "translate", "write", "init", "status", "config", "clean"} {
 		if !names[want] {
 			t.Errorf("missing subcommand %q", want)
 		}
