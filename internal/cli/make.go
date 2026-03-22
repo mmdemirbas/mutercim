@@ -90,8 +90,8 @@ func newAllCmd() *cobra.Command {
 				}
 			}
 
-			// Phase 0: Cut (PDF → images)
-			logger.Info("=== CUT ===")
+			// Phase 1: Cut (PDF → images)
+			logger.Info("=== Phase 1: CUT ===")
 			if err := pipeline.Cut(cmd.Context(), pipeline.CutOptions{
 				Workspace: ws,
 				Config:    cfg,
@@ -103,11 +103,11 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("cut: %w", err)
 			}
 
-			// Phase L: Layout
+			// Phase 2: Layout
 			if cfg.Layout.Tool == "" {
 				logger.Info("layout tool disabled, skipping layout phase")
 			} else {
-				logger.Info("=== LAYOUT ===")
+				logger.Info("=== Phase 2: LAYOUT ===")
 				if _, err := pipeline.Layout(cmd.Context(), pipeline.LayoutOptions{
 					Workspace: ws,
 					Config:    cfg,
@@ -120,8 +120,8 @@ func newAllCmd() *cobra.Command {
 				}
 			}
 
-			// Phase 1: Read
-			logger.Info("=== Phase 1: READ ===")
+			// Phase 3: Read
+			logger.Info("=== Phase 3: READ ===")
 			readChain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, logger)
 			if err != nil {
 				return fmt.Errorf("create read providers: %w", err)
@@ -145,8 +145,8 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("stopping pipeline: read produced 0 pages")
 			}
 
-			// Phase 2: Solve
-			logger.Info("=== Phase 2: SOLVE ===")
+			// Phase 4: Solve
+			logger.Info("=== Phase 4: SOLVE ===")
 			k, err := knowledge.Load(cfg.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())
 			if err != nil {
 				return fmt.Errorf("load knowledge: %w", err)
@@ -172,8 +172,8 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("stopping pipeline: solve produced 0 pages")
 			}
 
-			// Phase 3: Translate
-			logger.Info("=== Phase 3: TRANSLATE ===")
+			// Phase 5: Translate
+			logger.Info("=== Phase 5: TRANSLATE ===")
 			translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Translate.Retry, logger)
 			if err != nil {
 				return fmt.Errorf("create translate providers: %w", err)
@@ -198,8 +198,8 @@ func newAllCmd() *cobra.Command {
 				return fmt.Errorf("stopping pipeline: translate produced 0 pages")
 			}
 
-			// Phase 4: Write
-			logger.Info("=== Phase 4: WRITE ===")
+			// Phase 6: Write
+			logger.Info("=== Phase 6: WRITE ===")
 			if err := pipeline.Write(cmd.Context(), pipeline.WriteOptions{
 				Workspace: ws,
 				Config:    cfg,

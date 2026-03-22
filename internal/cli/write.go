@@ -19,7 +19,7 @@ func newWriteCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:       "write [formats...]",
-		Short:     "(Phase 4) Write translated pages into final output",
+		Short:     "(Phase 6) Write translated pages into final output",
 		Long:      "Generates output files from translated JSON. Supported formats: md, latex (tex), pdf, docx.\n\nFormats can be specified as positional arguments to override the config:\n  mutercim write pdf\n  mutercim write md docx",
 		ValidArgs: []string{"md", "latex", "tex", "pdf", "docx"},
 		RunE: func(cmd *cobra.Command, args []string) error {

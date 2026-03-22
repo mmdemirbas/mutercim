@@ -22,7 +22,7 @@ func newTranslateCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "translate",
-		Short: "(Phase 3) Translate solved pages into target languages",
+		Short: "(Phase 5) Translate solved pages into target languages",
 		Long:  "Sends solved page data to an AI model with knowledge-injected prompts and saves translated JSON.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")

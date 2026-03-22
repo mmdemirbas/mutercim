@@ -16,7 +16,7 @@ import (
 func newLayoutCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "layout",
-		Short: "(Phase L) Detect document layout regions on page images",
+		Short: "(Phase 2) Detect document layout regions on page images",
 		Long:  "Runs layout detection (e.g. DocLayout-YOLO) on page images and writes per-page region JSON to layout/. Requires Docker.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ws, err := workspace.Discover(".")
