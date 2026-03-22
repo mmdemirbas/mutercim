@@ -2,7 +2,7 @@
 
 log_level: debug
 output: ./output
-inputs: [ { path: ./Anfas1.pdf, pages: "156", languages: [ ar ] } ]
+inputs: [ { path: ./Anfas1.pdf, pages: "200", languages: [ ar ] } ]
 knowledge: [ ./glossary.yaml ]
 
 cut:
@@ -35,7 +35,7 @@ read:
   retry: { max_attempts: 0, backoff_seconds: 2 }
 
 translate:
-  languages: [ ar, en, tr ]
+  languages: [ ar, tr ]
   models:
     - { provider: groq, model: llama-3.3-70b-versatile }
     - { provider: gemini, model: gemini-2.5-flash-lite }
