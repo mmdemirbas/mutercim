@@ -3,12 +3,11 @@
 ## Source of Truth
 
 The codebase is the primary source of truth.
-docs/DECISIONS.md overrides docs/SPEC.md on any conflict.
-docs/SPEC.md is the original blueprint — do NOT spend time updating it.
-When making structural changes, update docs/DECISIONS.md (one line) not docs/SPEC.md.
-
+docs/DECISIONS.md records architectural decisions and design rationale.
 docs/GO-CONVENTIONS.md contains code-level Go conventions (error handling, testing patterns, entry
 point structure). Follow these for implementation style.
+
+When making structural changes, update docs/DECISIONS.md (one line).
 
 ## Build System
 
@@ -47,26 +46,12 @@ Test quality matters:
 - Tests must not depend on network, real API keys, or external services
 - Tests must not use time.Sleep — use channels or sync primitives
 
-## Deviation Tracking
-
-If you make a design choice that differs from SPEC.md (different function signature, renamed
-package, added/removed a field, changed a data flow), append a short entry to docs/DEVIATIONS.md
-explaining what changed and why. Format:
-
-```
-## Phase N — <date or description>
-- **What**: Changed X from SPEC to Y
-- **Why**: <one sentence reason>
-```
-
-Create DEVIATIONS.md if it doesn't exist.
-
 ## Code Style
 
 - Use `log/slog` for all logging (Go stdlib, no external logging library)
 - Use `errors.New` and `fmt.Errorf` with `%w` for error wrapping — no custom error libraries
 - Use Go stdlib `net/http` for HTTP — no external HTTP client libraries
-- Minimal dependencies: only cobra, viper, yaml.v3 as specified in SPEC.md
+- Minimal dependencies: only cobra, viper, yaml.v3
 - All exported types and functions must have doc comments
 - No `init()` functions anywhere
 - No global mutable state
@@ -90,9 +75,8 @@ Create DEVIATIONS.md if it doesn't exist.
 
 ## File Writes
 
-- All state files (progress.json, midstate JSONs, memory knowledge YAMLs) must use atomic write:
-  write
-  to `.tmp` then `os.Rename`
+- All state files (phase output JSONs, memory knowledge YAMLs) must use atomic write:
+  write to `.tmp` then `os.Rename`
 - Per-page output files (markdown, translated JSON) should be written immediately after processing
   each page, not batched
 
@@ -100,14 +84,13 @@ Create DEVIATIONS.md if it doesn't exist.
 
 - Never silently swallow errors. Either return them, log them, or both.
 - Pipeline phases (read, solve, translate, write) must not abort on single-page failures. Log
-  the error, save partial/raw data, record the failure in progress.json, continue to next page.
+  the error, save partial/raw data, continue to next page.
 - Docker availability is checked at command startup via preflight, not lazily on first use.
   Docker images are auto-built on first use via `docker.EnsureImage()`.
 
 ## What NOT To Do
 
-- Do not add dependencies not listed in SPEC.md without asking
-- Do not create files outside the package structure defined in SPEC.md
+- Do not add dependencies without asking
 - Do not use `interface{}` or `any` for typed data — use the concrete model types from
   `internal/model/`
 - Do not use `panic` or `os.Exit` outside of `main.go`
@@ -128,6 +111,3 @@ state of:
 - Clean command targets
 - Quick start instructions
 
-## After Completion of Each Phase
-
-- Add summary of the changes to the end of the relevant phase file.

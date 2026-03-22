@@ -34,7 +34,7 @@ All three must pass before submitting.
 ## Project conventions
 
 - **CLAUDE.md** — agent instructions, coding rules, build discipline
-- **docs/DECISIONS.md** — spec overrides (source of truth over docs/SPEC.md)
+- **docs/DECISIONS.md** — architectural decisions and design rationale
 - **docs/GO-CONVENTIONS.md** — Go patterns (error handling, testing, entry points)
 
 Key rules:
@@ -44,7 +44,7 @@ Key rules:
 - `log/slog` for logging, `net/http` for HTTP, minimal dependencies
 - No `init()` functions, no global mutable state, no `panic`/`os.Exit` outside `main.go`
 - All external tools run in Docker containers (no host-installed pdftoppm, pandoc, etc.)
-- If you make a design choice that differs from SPEC.md, add an entry to docs/DECISIONS.md
+- Record architectural decisions in docs/DECISIONS.md
 
 ## Config schema
 

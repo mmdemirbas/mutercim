@@ -454,7 +454,7 @@ go test ./...
 ### Project conventions
 
 - `CLAUDE.md` — agent instructions and coding rules
-- `docs/DECISIONS.md` — spec overrides (source of truth over `docs/SPEC.md`)
+- `docs/DECISIONS.md` — architectural decisions and design rationale
 - `docs/GO-CONVENTIONS.md` — Go coding patterns
 - Table-driven tests, `httptest.NewServer` for HTTP tests, `t.TempDir()` for file I/O
 - No global mutable state, no `init()` functions, no `panic`/`os.Exit` outside `main.go`

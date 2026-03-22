@@ -1,6 +1,7 @@
 # Decisions & Overrides
 
-Anything here overrides SPEC.md. The codebase is the source of truth.
+The codebase is the primary source of truth. This file records architectural
+decisions, design rationale, and historical context.
 
 ## CLI Command Names
 - extract → read

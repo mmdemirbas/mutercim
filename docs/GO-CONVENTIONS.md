@@ -1,8 +1,7 @@
 # Go Conventions for This Project
 
 > Extracted from project-wide Go standards. Filtered for relevance to mutercim.
-> SPEC.md takes precedence on any architectural decision. This file covers code-level conventions
-> only.
+> DECISIONS.md covers architectural decisions. This file covers code-level conventions only.
 
 ## Entry Point Pattern
 
