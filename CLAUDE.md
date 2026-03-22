@@ -115,6 +115,19 @@ Create DEVIATIONS.md if it doesn't exist.
 - Do not embed large string literals for prompts inline in function bodies — use `prompts.go` files
   as specified
 
+## Documentation
+
+After any structural change (new phase, renamed command, changed config schema, new CLI flag,
+changed workspace layout), update README.md to match. The README must always reflect the current
+state of:
+
+- Pipeline overview diagram and phase list
+- CLI command table and flag descriptions
+- Configuration example (full annotated YAML)
+- Workspace directory layout diagram
+- Clean command targets
+- Quick start instructions
+
 ## After Completion of Each Phase
 
 - Add summary of the changes to the end of the relevant phase file.

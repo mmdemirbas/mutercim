@@ -7,8 +7,7 @@ Layout-preserving document translator.
 Feed a PDF in one language, get structured output in another with the same layout. An AI-powered
 CLI tool that reads page images, extracts structured data, translates it, and renders the result as
 Markdown, LaTeX, PDF, or DOCX. Works with any language pair supported by the configured AI models.
-Ships with an embedded glossary for Arabic Islamic scholarly texts (honorifics, hadith terminology,
-companion names) but the glossary system is general-purpose.
+The glossary system is general-purpose — provide your own terminology files for any domain.
 
 ## Pipeline overview
 
@@ -66,14 +65,14 @@ cp /path/to/book.pdf input/
 # Set API key(s)
 echo 'GEMINI_API_KEY=your-key-here' >.env
 
-# Edit mutercim.yaml to configure your book
-# (at minimum, set the title and input path)
+# Edit mutercim.yaml (at minimum, set input path and source language)
 
 # Run the full pipeline
 mutercim all
 
 # Or run phases individually
 mutercim cut
+mutercim layout
 mutercim read
 mutercim solve
 mutercim translate
@@ -235,8 +234,7 @@ my-book/                       # workspace root
 ├── knowledge/                 # [user] glossary YAML files (never deleted by clean)
 │   └── glossary.yaml
 ├── memory/                    # [generated] auto-extracted knowledge from solve phase
-├── log/
-│   └── mutercim.log           # [generated] activity log
+├── mutercim.log               # [generated] activity log
 ├── cut/                       # [generated] page images from PDF conversion
 │   └── book/                  #   organized by input file stem
 │       ├── 001.png
@@ -333,13 +331,14 @@ read:
 | gemini     | Gemini native    | Yes    | 10          | `GEMINI_API_KEY`                                  |
 | claude     | Anthropic native | Yes    | 50          | `ANTHROPIC_API_KEY`                               |
 | openai     | OpenAI           | Yes    | 500         | `OPENAI_API_KEY`                                  |
-| groq       | OpenAI-compat    | No*    | 30          | `GROQ_API_KEY`                                    |
-| mistral    | OpenAI-compat    | No*    | 60          | `MISTRAL_API_KEY`                                 |
-| openrouter | OpenAI-compat    | No*    | 200         | `OPENROUTER_API_KEY`                              |
-| xai        | OpenAI-compat    | No*    | 60          | `XAI_API_KEY`                                     |
+| groq       | OpenAI-compat    | Auto*  | 30          | `GROQ_API_KEY`                                    |
+| mistral    | OpenAI-compat    | Auto*  | 60          | `MISTRAL_API_KEY`                                 |
+| openrouter | OpenAI-compat    | Auto*  | 200         | `OPENROUTER_API_KEY`                              |
+| xai        | OpenAI-compat    | Auto*  | 60          | `XAI_API_KEY`                                     |
 | ollama     | Ollama native    | Yes    | 1000        | `OLLAMA_HOST` (default: `http://localhost:11434`) |
 
-\* Vision support can be enabled per-model with `vision: true` in the model spec.
+\* Vision auto-detected from model name (patterns: `vision`, `vl`, `scout`, `gemma-3`, `pixtral`).
+Override with `vision: true/false` in the model spec.
 
 ### Provider authentication
 
@@ -391,8 +390,8 @@ is newer than the output, the page is reprocessed. Otherwise it is skipped. Ther
 Use `--force` to bypass timestamp checks and reprocess everything.
 
 Use `--auto` to automatically run missing prerequisite phases. For example,
-`mutercim translate --auto` will run `cut`, `read`, and `solve` first if their
-outputs don't exist.
+`mutercim translate --auto` will run `cut`, `layout`, `read`, and `solve` first if
+their outputs don't exist.
 
 ## Development
 

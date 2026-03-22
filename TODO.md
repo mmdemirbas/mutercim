@@ -20,10 +20,6 @@
 * Instead, add a "source_expansion" step that can be optionally added after "translate" or "solve". It will take the translated output and expand it with source information (e.g. for hadith, add isnad and original text in arabic). This way it's decoupled from the writing/formatting logic and can be used in more contexts.  
 
 
-- Should continue trying next model instead of terminating the operation:
-  09:07:07 INFO   reading page regions  page=156  strategy=local+ai
-  09:07:08 ERROR  read failed  input=Anfas1  page=156  error=read page 156 regions: openrouter read: HTTP 404: 404 Not Found
-  09:07:08 INFO   input read complete  input=Anfas1  completed=0  failed=1  skipped=0
 
 - Add log level to the configuration file.
 - Add '-f' short option to the '--force' option in cli.
