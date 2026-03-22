@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
@@ -303,7 +304,11 @@ func TestBuildPhaseRows(t *testing.T) {
 	os.WriteFile(filepath.Join(readDir, "001.json"), []byte("{}"), 0644)
 	os.WriteFile(filepath.Join(readDir, "002.json"), []byte("{}"), 0644)
 
-	rows := buildPhaseRows(ws, []string{stem}, 3, []string{"tr"})
+	cfg := &config.Config{
+		Layout:    config.LayoutConfig{Tool: "doclayout-yolo"},
+		Translate: config.TranslateConfig{Languages: []string{"tr"}},
+	}
+	rows := buildPhaseRows(ws, cfg, []string{stem}, 3)
 
 	// cut, layout, read, solve, translate(tr), write(tr) = 6 rows
 	if len(rows) != 6 {
@@ -315,9 +320,9 @@ func TestBuildPhaseRows(t *testing.T) {
 		t.Errorf("cut row: completed=%d total=%d done=%v", rows[0].Completed, rows[0].Total, rows[0].Done)
 	}
 
-	// Layout: 0/3, not done
-	if rows[1].Completed != 0 || rows[1].Total != 3 {
-		t.Errorf("layout row: completed=%d total=%d", rows[1].Completed, rows[1].Total)
+	// Layout: 0/3, not done (tool enabled)
+	if rows[1].Completed != 0 || rows[1].Total != 3 || rows[1].Skipped {
+		t.Errorf("layout row: completed=%d total=%d skipped=%v", rows[1].Completed, rows[1].Total, rows[1].Skipped)
 	}
 
 	// Read: 2/3, not done
@@ -335,11 +340,20 @@ func TestBuildPhaseRows_NoInputs(t *testing.T) {
 	dir := t.TempDir()
 	ws := &workspace.Workspace{Root: dir}
 
-	rows := buildPhaseRows(ws, nil, 0, []string{"tr"})
+	cfg := &config.Config{
+		Layout:    config.LayoutConfig{Tool: ""},
+		Translate: config.TranslateConfig{Languages: []string{"tr"}},
+	}
+	rows := buildPhaseRows(ws, cfg, nil, 0)
 
 	// cut, layout, read, solve, translate(tr), write(tr) = 6 rows
 	if len(rows) != 6 {
 		t.Fatalf("got %d rows, want 6", len(rows))
+	}
+
+	// Layout should be skipped when tool is empty
+	if !rows[1].Skipped {
+		t.Errorf("layout row should be skipped when tool is empty")
 	}
 
 	// All zeroes

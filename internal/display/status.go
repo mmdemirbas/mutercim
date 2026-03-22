@@ -8,19 +8,20 @@ import (
 
 // StatusData holds all data needed to render the status dashboard.
 type StatusData struct {
-	InputName   string
-	InputPages  int // total pages from images dir
-	PageRange   string
-	SourceLangs []string
-	TargetLangs []string
-	LayoutTool  string   // configured layout tool name (e.g. "doclayout-yolo", "ai-only")
-	ReadModels  []string // ordered model chain (e.g. ["gemini/gemini-2.5-flash-lite", "groq/llama-3.2-90b"])
-	TransModels []string // ordered model chain
-	Phases      []ProgressRow
-	Warnings    []string // warning messages (page N — description)
-	Errors      []string // error messages
-	LogPath     string
-	LogSize     int64 // bytes
+	InputName    string
+	InputPages   int // total pages from images dir
+	PageRange    string
+	SourceLangs  []string
+	TargetLangs  []string
+	LayoutTool   string   // configured layout tool name (e.g. "doclayout-yolo", "disabled")
+	LayoutParams string   // formatted layout params (e.g. "confidence=0.15, iou=0.3")
+	ReadModels   []string // ordered model chain (e.g. ["gemini/gemini-2.5-flash-lite", "groq/llama-3.2-90b"])
+	TransModels  []string // ordered model chain
+	Phases       []ProgressRow
+	Warnings     []string // warning messages (page N — description)
+	Errors       []string // error messages
+	LogPath      string
+	LogSize      int64 // bytes
 }
 
 // RenderStatus writes the status dashboard to w.
@@ -39,7 +40,11 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 	// Config summary — layout tool and model chains
 	if data.LayoutTool != "" || len(data.ReadModels) > 0 || len(data.TransModels) > 0 {
 		if data.LayoutTool != "" {
-			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Layout")), data.LayoutTool)
+			layoutInfo := data.LayoutTool
+			if data.LayoutParams != "" {
+				layoutInfo += " " + colors.dim("("+data.LayoutParams+")")
+			}
+			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Layout")), layoutInfo)
 		}
 		if len(data.ReadModels) > 0 {
 			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Read")),

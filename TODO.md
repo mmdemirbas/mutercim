@@ -18,3 +18,5 @@
 - "write" > "expand_sources" property is tightly coupled to my hadith book sample. It conflicts with
   my general purpose translator tool vision.
 * Instead, add a "source_expansion" step that can be optionally added after "translate" or "solve". It will take the translated output and expand it with source information (e.g. for hadith, add isnad and original text in arabic). This way it's decoupled from the writing/formatting logic and can be used in more contexts.  
+
+- Live dashboard logs become unuseful after trimming.

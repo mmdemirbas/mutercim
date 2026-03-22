@@ -49,16 +49,18 @@ func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 // ProgressRow holds the data needed to render one phase progress line.
 // Used by both the live dashboard and the status command.
 type ProgressRow struct {
-	Phase     Phase
-	Lang      string
-	Completed int
-	Failed    int
-	Total     int
-	Warnings  int
-	Done      bool
-	Rate      float64       // pages/min, 0 = not available
-	ETA       time.Duration // 0 = not available
-	Elapsed   time.Duration // for finished phases
+	Phase      Phase
+	Lang       string
+	Completed  int
+	Failed     int
+	Total      int
+	Warnings   int
+	Done       bool
+	Skipped    bool          // phase was skipped entirely (e.g. layout tool disabled)
+	SkipReason string        // reason shown when Skipped (e.g. "no tool configured")
+	Rate       float64       // pages/min, 0 = not available
+	ETA        time.Duration // 0 = not available
+	Elapsed    time.Duration // for finished phases
 }
 
 // ANSI color codes.
@@ -177,6 +179,17 @@ func formatDuration(d time.Duration) string {
 // Both the live dashboard and status command use this for consistent output.
 func RenderProgressLine(row ProgressRow, colors StatusColors) string {
 	label := FormatLabel(row.Phase, row.Lang)
+
+	// Skipped phase — show dashes instead of progress bar
+	if row.Skipped {
+		dashes := strings.Repeat("\u2500", barWidth)
+		reason := row.SkipReason
+		if reason == "" {
+			reason = "skipped"
+		}
+		return fmt.Sprintf("  %s  %s  %s", label, colors.dim(dashes), colors.dim(reason))
+	}
+
 	bar := ProgressBar(row.Completed, row.Total)
 
 	// Color the bar

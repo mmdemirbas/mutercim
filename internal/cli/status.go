@@ -65,7 +65,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	// Build phase rows
-	rows := buildPhaseRows(ws, inputs, totalImages, cfg.Translate.Languages)
+	rows := buildPhaseRows(ws, cfg, inputs, totalImages)
 
 	// Collect warnings (errors are in the log now)
 	var warnings []string
@@ -85,6 +85,12 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	if layoutTool == "" {
 		layoutTool = "disabled"
 	}
+	var layoutParamParts []string
+	for k, v := range cfg.Layout.Params {
+		layoutParamParts = append(layoutParamParts, fmt.Sprintf("%s=%v", k, v))
+	}
+	sort.Strings(layoutParamParts)
+	layoutParams := strings.Join(layoutParamParts, ", ")
 
 	var readModels []string
 	for _, m := range cfg.Read.Models {
@@ -96,19 +102,20 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	data := display.StatusData{
-		InputName:   inputName,
-		InputPages:  totalImages,
-		PageRange:   "",
-		SourceLangs: cfg.SourceLanguages(),
-		TargetLangs: cfg.Translate.Languages,
-		LayoutTool:  layoutTool,
-		ReadModels:  readModels,
-		TransModels: transModels,
-		Phases:      rows,
-		Warnings:    warnings,
-		Errors:      nil,
-		LogPath:     logPath,
-		LogSize:     logSize,
+		InputName:    inputName,
+		InputPages:   totalImages,
+		PageRange:    "",
+		SourceLangs:  cfg.SourceLanguages(),
+		TargetLangs:  cfg.Translate.Languages,
+		LayoutTool:   layoutTool,
+		LayoutParams: layoutParams,
+		ReadModels:   readModels,
+		TransModels:  transModels,
+		Phases:       rows,
+		Warnings:     warnings,
+		Errors:       nil,
+		LogPath:      logPath,
+		LogSize:      logSize,
 	}
 
 	colors := display.NewStatusColors(os.Stdout)
@@ -117,34 +124,42 @@ func runStatus(cmd *cobra.Command, args []string) error {
 }
 
 // buildPhaseRows creates the status table rows by counting files on disk.
-func buildPhaseRows(ws *workspace.Workspace, inputs []string, totalImages int, targetLangs []string) []display.ProgressRow {
+func buildPhaseRows(ws *workspace.Workspace, cfg *config.Config, inputs []string, totalImages int) []display.ProgressRow {
 	var rows []display.ProgressRow
+	targetLangs := cfg.Translate.Languages
 
-	// Count pages (image files per input stem)
-	pagesCompleted := 0
+	// Count cut (image files per input stem)
+	cutCompleted := 0
 	for _, stem := range inputs {
-		pagesCompleted += countFiles(filepath.Join(ws.CutDir(), stem))
+		cutCompleted += countFiles(filepath.Join(ws.CutDir(), stem))
 	}
-	pagesTotal := totalImages
-	if pagesTotal == 0 {
-		pagesTotal = pagesCompleted
+	cutTotal := totalImages
+	if cutTotal == 0 {
+		cutTotal = cutCompleted
 	}
 	rows = append(rows, display.ProgressRow{
-		Phase: display.PhaseCut, Completed: pagesCompleted, Total: pagesTotal,
-		Done: pagesCompleted > 0 && pagesCompleted >= pagesTotal,
+		Phase: display.PhaseCut, Completed: cutCompleted, Total: cutTotal,
+		Done: cutCompleted > 0 && cutCompleted >= cutTotal,
 	})
 
-	// Count layout JSON files per input stem
-	layoutCompleted := 0
-	for _, stem := range inputs {
-		layoutCompleted += countJSONFiles(filepath.Join(ws.LayoutDir(), stem))
+	// Layout phase
+	if cfg.Layout.Tool == "" {
+		rows = append(rows, display.ProgressRow{
+			Phase: display.PhaseLayout, Skipped: true,
+			SkipReason: "no tool configured",
+		})
+	} else {
+		layoutCompleted := 0
+		for _, stem := range inputs {
+			layoutCompleted += countJSONFiles(filepath.Join(ws.LayoutDir(), stem))
+		}
+		layoutTotal := totalImages
+		rows = append(rows, display.ProgressRow{
+			Phase: display.PhaseLayout, Completed: layoutCompleted,
+			Total: layoutTotal,
+			Done:  layoutTotal > 0 && layoutCompleted >= layoutTotal,
+		})
 	}
-	layoutTotal := totalImages
-	rows = append(rows, display.ProgressRow{
-		Phase: display.PhaseLayout, Completed: layoutCompleted,
-		Total: layoutTotal,
-		Done:  layoutTotal > 0 && layoutCompleted >= layoutTotal,
-	})
 
 	// Count read JSON files per input stem
 	readCompleted := 0
