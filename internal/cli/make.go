@@ -72,10 +72,8 @@ func newAllCmd() *cobra.Command {
 					}
 				}
 				disp.SetHeader(display.HeaderData{
-					InputName:   inputName,
-					PageRange:   pageSpec,
-					SourceLangs: cfg.SourceLanguages(),
-					TargetLangs: cfg.Translate.Languages,
+					InputName: inputName,
+					PageRange: pageSpec,
 				})
 			}
 			var pagesToProcess []int

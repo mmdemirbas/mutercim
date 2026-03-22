@@ -10,10 +10,8 @@ import (
 func TestRenderStatus_AllDone(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		InputName:   "book.pdf",
-		InputPages:  612,
-		SourceLangs: []string{"ar"},
-		TargetLangs: []string{"tr"},
+		InputName:  "book.pdf",
+		InputPages: 612,
 		Phases: []ProgressRow{
 			{Phase: PhaseCut, Completed: 612, Total: 612, Done: true},
 			{Phase: PhaseRead, Completed: 612, Total: 612, Done: true},
@@ -30,10 +28,8 @@ func TestRenderStatus_AllDone(t *testing.T) {
 
 	for _, want := range []string{
 		"book.pdf (612 pages)",
-		"ar",
-		"tr",
 		"612/612",
-		"\u2713", // checkmark replaces "done"
+		"\u2713", // checkmark
 		"mutercim.log",
 	} {
 		if !strings.Contains(out, want) {
@@ -162,8 +158,6 @@ func TestRenderStatus_WithColors(t *testing.T) {
 func TestRenderStatus_TranslatePerLanguage(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		SourceLangs: []string{"ar"},
-		TargetLangs: []string{"tr", "en"},
 		Phases: []ProgressRow{
 			{Phase: PhaseTranslate, Completed: 50, Total: 100, Lang: "tr"},
 			{Phase: PhaseTranslate, Completed: 0, Total: 100, Lang: "en"},

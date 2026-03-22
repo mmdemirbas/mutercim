@@ -12,14 +12,12 @@ const barWidth = 20
 
 // HeaderData holds metadata shown in the header section of both live and status displays.
 type HeaderData struct {
-	InputName   string
-	InputPages  int    // total pages available
-	PageRange   string // e.g. "1-50", empty means all
-	SourceLangs []string
-	TargetLangs []string
+	InputName  string
+	InputPages int    // total pages available
+	PageRange  string // e.g. "1-50", empty means all
 }
 
-// RenderHeader writes the header section (input, langs) and returns the number of lines written.
+// RenderHeader writes the header section and returns the number of lines written.
 func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 	lines := 0
 	if h.InputName != "" {
@@ -30,13 +28,6 @@ func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 			info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
 		}
 		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Input")), info)
-		lines++
-	}
-	if len(h.SourceLangs) > 0 && len(h.TargetLangs) > 0 {
-		fmt.Fprintf(w, "%s: %s %s %s\n", colors.Cyan(fmt.Sprintf("%6s", "Langs")),
-			strings.Join(h.SourceLangs, ", "),
-			colors.dim("\u2192"),
-			strings.Join(h.TargetLangs, ", "))
 		lines++
 	}
 	if lines > 0 {
@@ -58,6 +49,8 @@ type ProgressRow struct {
 	Done       bool
 	Skipped    bool          // phase was skipped entirely (e.g. layout tool disabled)
 	SkipReason string        // reason shown when Skipped (e.g. "no tool configured")
+	Info       string        // brief info shown after progress (e.g. tool name, target langs)
+	SubItems   []string      // numbered list shown below the progress line (e.g. model chain)
 	Rate       float64       // pages/min, 0 = not available
 	ETA        time.Duration // 0 = not available
 	Elapsed    time.Duration // for finished phases
@@ -229,7 +222,21 @@ func RenderProgressLine(row ProgressRow, colors StatusColors) string {
 		suffix = "  " + strings.Join(parts, "  ")
 	}
 
-	return fmt.Sprintf("%s  %s %s%s", label, bar, counts, suffix)
+	line := fmt.Sprintf("%s  %s %s%s", label, bar, counts, suffix)
+	if row.Info != "" {
+		line += "  " + colors.dim(row.Info)
+	}
+	return line
+}
+
+// RenderSubItems formats the numbered list below a progress row.
+func RenderSubItems(items []string, colors StatusColors) []string {
+	var lines []string
+	for i, item := range items {
+		lines = append(lines, fmt.Sprintf("%12s  %s %s",
+			"", colors.dim(fmt.Sprintf("%d.", i+1)), item))
+	}
+	return lines
 }
 
 // FormatStatusLine renders the in-progress status line below a phase bar.

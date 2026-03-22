@@ -271,13 +271,6 @@ func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int
 		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Input")), info)
 		lines++
 	}
-	if len(h.SourceLangs) > 0 && len(h.TargetLangs) > 0 {
-		fmt.Fprintf(buf, "%s: %s %s %s\n", colors.Cyan(fmt.Sprintf("%6s", "Langs")),
-			strings.Join(h.SourceLangs, ", "),
-			colors.dim("\u2192"),
-			strings.Join(h.TargetLangs, ", "))
-		lines++
-	}
 	if lines > 0 {
 		fmt.Fprintln(buf)
 		lines++

@@ -80,42 +80,15 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		logSize = info.Size()
 	}
 
-	// Build config summary fields
-	layoutTool := cfg.Layout.Tool
-	if layoutTool == "" {
-		layoutTool = "disabled"
-	}
-	var layoutParamParts []string
-	for k, v := range cfg.Layout.Params {
-		layoutParamParts = append(layoutParamParts, fmt.Sprintf("%s=%v", k, v))
-	}
-	sort.Strings(layoutParamParts)
-	layoutParams := strings.Join(layoutParamParts, ", ")
-
-	var readModels []string
-	for _, m := range cfg.Read.Models {
-		readModels = append(readModels, m.Provider+"/"+m.Model)
-	}
-	var transModels []string
-	for _, m := range cfg.Translate.Models {
-		transModels = append(transModels, m.Provider+"/"+m.Model)
-	}
-
 	data := display.StatusData{
-		InputName:    inputName,
-		InputPages:   totalImages,
-		PageRange:    "",
-		SourceLangs:  cfg.SourceLanguages(),
-		TargetLangs:  cfg.Translate.Languages,
-		LayoutTool:   layoutTool,
-		LayoutParams: layoutParams,
-		ReadModels:   readModels,
-		TransModels:  transModels,
-		Phases:       rows,
-		Warnings:     warnings,
-		Errors:       nil,
-		LogPath:      logPath,
-		LogSize:      logSize,
+		InputName:  inputName,
+		InputPages: totalImages,
+		PageRange:  "",
+		Phases:     rows,
+		Warnings:   warnings,
+		Errors:     nil,
+		LogPath:    logPath,
+		LogSize:    logSize,
 	}
 
 	colors := display.NewStatusColors(os.Stdout)
@@ -154,26 +127,41 @@ func buildPhaseRows(ws *workspace.Workspace, cfg *config.Config, inputs []string
 			layoutCompleted += countJSONFiles(filepath.Join(ws.LayoutDir(), stem))
 		}
 		layoutTotal := totalImages
+		layoutInfo := cfg.Layout.Tool
+		if len(cfg.Layout.Params) > 0 {
+			var parts []string
+			for k, v := range cfg.Layout.Params {
+				parts = append(parts, fmt.Sprintf("%s=%v", k, v))
+			}
+			sort.Strings(parts)
+			layoutInfo += " (" + strings.Join(parts, ", ") + ")"
+		}
 		rows = append(rows, display.ProgressRow{
 			Phase: display.PhaseLayout, Completed: layoutCompleted,
 			Total: layoutTotal,
 			Done:  layoutTotal > 0 && layoutCompleted >= layoutTotal,
+			Info:  layoutInfo,
 		})
 	}
 
-	// Count read JSON files per input stem
+	// Read phase with model list
 	readCompleted := 0
 	for _, stem := range inputs {
 		readCompleted += countJSONFiles(filepath.Join(ws.ReadDir(), stem))
 	}
 	readTotal := totalImages
+	var readModels []string
+	for _, m := range cfg.Read.Models {
+		readModels = append(readModels, m.Provider+"/"+m.Model)
+	}
 	rows = append(rows, display.ProgressRow{
 		Phase: display.PhaseRead, Completed: readCompleted,
-		Total: readTotal,
-		Done:  readTotal > 0 && readCompleted >= readTotal,
+		Total:    readTotal,
+		Done:     readTotal > 0 && readCompleted >= readTotal,
+		SubItems: readModels,
 	})
 
-	// Count solve JSON files per input stem
+	// Solve phase
 	solveCompleted := 0
 	for _, stem := range inputs {
 		solveCompleted += countJSONFiles(filepath.Join(ws.SolveDir(), stem))
@@ -185,18 +173,29 @@ func buildPhaseRows(ws *workspace.Workspace, cfg *config.Config, inputs []string
 		Done:  solveTotal > 0 && solveCompleted >= solveTotal,
 	})
 
-	// Translate rows per target language
+	// Translate phase with model list and target languages
+	var transModels []string
+	for _, m := range cfg.Translate.Models {
+		transModels = append(transModels, m.Provider+"/"+m.Model)
+	}
+	transInfo := "\u2192 " + strings.Join(targetLangs, ", ")
 	for _, lang := range targetLangs {
 		transCompleted := 0
 		for _, stem := range inputs {
 			transCompleted += countJSONFiles(filepath.Join(ws.TranslateDir(), lang, stem))
 		}
 		transTotal := solveCompleted
-		rows = append(rows, display.ProgressRow{
+		row := display.ProgressRow{
 			Phase: display.PhaseTranslate, Completed: transCompleted,
 			Total: transTotal, Lang: lang,
 			Done: transTotal > 0 && transCompleted >= transTotal,
-		})
+		}
+		// Show info and model list only on the first translate row
+		if lang == targetLangs[0] {
+			row.Info = transInfo
+			row.SubItems = transModels
+		}
+		rows = append(rows, row)
 	}
 
 	// Write rows per target language

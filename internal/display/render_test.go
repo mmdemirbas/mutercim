@@ -271,10 +271,8 @@ func TestFormatDuration(t *testing.T) {
 func TestRenderHeader_ColonAlignment(t *testing.T) {
 	var buf bytes.Buffer
 	RenderHeader(&buf, HeaderData{
-		InputName:   "vol1.pdf",
-		InputPages:  100,
-		SourceLangs: []string{"ar"},
-		TargetLangs: []string{"tr"},
+		InputName:  "vol1.pdf",
+		InputPages: 100,
 	}, StatusColors{Enabled: false})
 
 	lines := strings.Split(buf.String(), "\n")
@@ -285,8 +283,8 @@ func TestRenderHeader_ColonAlignment(t *testing.T) {
 			colonPositions = append(colonPositions, idx)
 		}
 	}
-	if len(colonPositions) < 2 {
-		t.Fatalf("expected at least 2 lines with colons, got %d", len(colonPositions))
+	if len(colonPositions) < 1 {
+		t.Fatalf("expected at least 1 line with colons, got %d", len(colonPositions))
 	}
 	for i := 1; i < len(colonPositions); i++ {
 		if colonPositions[i] != colonPositions[0] {
@@ -399,14 +397,12 @@ func TestFormatStatusLine_Backoff_Expired(t *testing.T) {
 func TestRenderHeader_LineCount(t *testing.T) {
 	var buf bytes.Buffer
 	lines := RenderHeader(&buf, HeaderData{
-		InputName:   "input.pdf",
-		InputPages:  10,
-		SourceLangs: []string{"ar"},
-		TargetLangs: []string{"tr"},
+		InputName:  "input.pdf",
+		InputPages: 10,
 	}, StatusColors{Enabled: false})
 
-	// 2 content lines + 1 blank separator = 3
-	if lines != 3 {
-		t.Errorf("expected 3 lines (2 content + 1 blank), got %d\noutput:\n%s", lines, buf.String())
+	// 1 content line + 1 blank separator = 2
+	if lines != 2 {
+		t.Errorf("expected 2 lines (1 content + 1 blank), got %d\noutput:\n%s", lines, buf.String())
 	}
 }

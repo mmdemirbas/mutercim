@@ -3,65 +3,39 @@ package display
 import (
 	"fmt"
 	"io"
-	"strings"
 )
 
 // StatusData holds all data needed to render the status dashboard.
 type StatusData struct {
-	InputName    string
-	InputPages   int // total pages from images dir
-	PageRange    string
-	SourceLangs  []string
-	TargetLangs  []string
-	LayoutTool   string   // configured layout tool name (e.g. "doclayout-yolo", "disabled")
-	LayoutParams string   // formatted layout params (e.g. "confidence=0.15, iou=0.3")
-	ReadModels   []string // ordered model chain (e.g. ["gemini/gemini-2.5-flash-lite", "groq/llama-3.2-90b"])
-	TransModels  []string // ordered model chain
-	Phases       []ProgressRow
-	Warnings     []string // warning messages (page N — description)
-	Errors       []string // error messages
-	LogPath      string
-	LogSize      int64 // bytes
+	InputName  string
+	InputPages int // total pages from images dir
+	PageRange  string
+	Phases     []ProgressRow
+	Warnings   []string // warning messages (page N — description)
+	Errors     []string // error messages
+	LogPath    string
+	LogSize    int64 // bytes
 }
 
 // RenderStatus writes the status dashboard to w.
 func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 	fmt.Fprintln(w)
 
-	// Header — uses same shared renderer as live dashboard
+	// Header
 	RenderHeader(w, HeaderData{
-		InputName:   data.InputName,
-		InputPages:  data.InputPages,
-		PageRange:   data.PageRange,
-		SourceLangs: data.SourceLangs,
-		TargetLangs: data.TargetLangs,
+		InputName:  data.InputName,
+		InputPages: data.InputPages,
+		PageRange:  data.PageRange,
 	}, colors)
 
-	// Config summary — layout tool and model chains
-	if data.LayoutTool != "" || len(data.ReadModels) > 0 || len(data.TransModels) > 0 {
-		if data.LayoutTool != "" {
-			layoutInfo := data.LayoutTool
-			if data.LayoutParams != "" {
-				layoutInfo += " " + colors.dim("("+data.LayoutParams+")")
-			}
-			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Layout")), layoutInfo)
-		}
-		if len(data.ReadModels) > 0 {
-			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Read")),
-				strings.Join(data.ReadModels, " \u2192 "))
-		}
-		if len(data.TransModels) > 0 {
-			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%6s", "Trans")),
-				strings.Join(data.TransModels, " \u2192 "))
-		}
-		fmt.Fprintln(w)
-	}
-
-	// Phase rows — uses same shared renderer as live dashboard
+	// Phase rows with per-phase config details
 	for _, row := range data.Phases {
 		fmt.Fprintln(w, RenderProgressLine(row, colors))
 		if weLine := RenderWarnErrorLine(row.Warnings, row.Failed, colors); weLine != "" {
 			fmt.Fprintln(w, weLine)
+		}
+		for _, sub := range RenderSubItems(row.SubItems, colors) {
+			fmt.Fprintln(w, sub)
 		}
 	}
 	fmt.Fprintln(w)
