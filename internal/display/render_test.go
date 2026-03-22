@@ -271,7 +271,7 @@ func TestFormatDuration(t *testing.T) {
 func TestRenderHeader_ColonAlignment(t *testing.T) {
 	var buf bytes.Buffer
 	RenderHeader(&buf, HeaderData{
-		InputName:  "vol1.pdf",
+		Inputs:     []string{"/workspace/input/vol1.pdf"},
 		InputPages: 100,
 	}, StatusColors{Enabled: false})
 
@@ -297,7 +297,7 @@ func TestRenderHeader_ColonAlignment(t *testing.T) {
 func TestRenderHeader_WithPageRange(t *testing.T) {
 	var buf bytes.Buffer
 	RenderHeader(&buf, HeaderData{
-		InputName:  "vol1.pdf",
+		Inputs:     []string{"/workspace/input/vol1.pdf"},
 		InputPages: 612,
 		PageRange:  "1-50",
 	}, StatusColors{Enabled: false})
@@ -311,7 +311,7 @@ func TestRenderHeader_WithPageRange(t *testing.T) {
 func TestRenderHeader_AllPagesNoRange(t *testing.T) {
 	var buf bytes.Buffer
 	RenderHeader(&buf, HeaderData{
-		InputName:  "vol1.pdf",
+		Inputs:     []string{"/workspace/input/vol1.pdf"},
 		InputPages: 612,
 	}, StatusColors{Enabled: false})
 
@@ -397,7 +397,7 @@ func TestFormatStatusLine_Backoff_Expired(t *testing.T) {
 func TestRenderHeader_LineCount(t *testing.T) {
 	var buf bytes.Buffer
 	lines := RenderHeader(&buf, HeaderData{
-		InputName:  "input.pdf",
+		Inputs:     []string{"/workspace/input/input.pdf"},
 		InputPages: 10,
 	}, StatusColors{Enabled: false})
 

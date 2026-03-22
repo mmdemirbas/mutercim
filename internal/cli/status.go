@@ -55,15 +55,6 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		totalImages += countFiles(filepath.Join(ws.CutDir(), stem))
 	}
 
-	// Build input name from config
-	inputName := ""
-	if len(cfg.Inputs) > 0 {
-		inputName = filepath.Base(cfg.Inputs[0].Path)
-		if len(cfg.Inputs) > 1 {
-			inputName += fmt.Sprintf(" (+%d more)", len(cfg.Inputs)-1)
-		}
-	}
-
 	// Build phase rows
 	rows := buildPhaseRows(ws, cfg, inputs, totalImages)
 
@@ -74,7 +65,6 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	warnings = append(warnings, collectValidationWarnings(ws, inputs)...)
 
 	// Log file info
-	logPath := "mutercim.log"
 	var logSize int64
 	if info, err := os.Stat(ws.LogPath()); err == nil {
 		logSize = info.Size()
@@ -98,17 +88,16 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	data := display.StatusData{
-		InputName:  inputName,
 		InputPages: totalImages,
 		PageRange:  "",
 		LogLevel:   cfg.LogLevel,
-		OutputDir:  cfg.Output,
-		Inputs:     cfg.InputPaths(),
-		Knowledge:  cfg.Knowledge,
+		OutputDir:  ws.OutputDir,
+		Inputs:     resolveInputPaths(ws, cfg),
+		Knowledge:  cfg.ResolveKnowledgePaths(ws.Root),
 		Phases:     rows,
 		Warnings:   warnings,
 		Errors:     nil,
-		LogPath:    logPath,
+		LogPath:    ws.LogPath(),
 		LogSize:    logSize,
 	}
 

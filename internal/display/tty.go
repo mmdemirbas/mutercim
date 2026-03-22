@@ -270,26 +270,34 @@ func (d *TTYDisplay) render() {
 // Mirrors RenderHeader but writes to a strings.Builder.
 func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int {
 	lines := 0
-	if h.InputName != "" {
-		info := h.InputName
-		if h.PageRange != "" && h.InputPages > 0 {
-			info += colors.dim(fmt.Sprintf(" (pages %s of %d)", h.PageRange, h.InputPages))
-		} else if h.InputPages > 0 {
-			info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
-		}
-		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Input")), info)
+	if h.LogLevel != "" && h.LogLevel != "info" {
+		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Log")), h.LogLevel)
 		lines++
 	}
-	if h.OutputDir != "" && h.OutputDir != "." {
+	if h.OutputDir != "" {
 		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir)
 		lines++
 	}
+	if len(h.Inputs) > 0 {
+		for i, inp := range h.Inputs {
+			label := "Input"
+			if len(h.Inputs) > 1 {
+				label = fmt.Sprintf("Input %d", i+1)
+			}
+			info := inp
+			if i == 0 {
+				if h.PageRange != "" && h.InputPages > 0 {
+					info += colors.dim(fmt.Sprintf(" (pages %s of %d)", h.PageRange, h.InputPages))
+				} else if h.InputPages > 0 {
+					info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
+				}
+			}
+			fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", label)), info)
+			lines++
+		}
+	}
 	if len(h.Knowledge) > 0 {
 		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", "))
-		lines++
-	}
-	if h.LogLevel != "" && h.LogLevel != "info" {
-		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "LogLevel")), h.LogLevel)
 		lines++
 	}
 	if lines > 0 {

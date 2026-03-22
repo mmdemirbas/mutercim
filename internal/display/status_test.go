@@ -10,7 +10,7 @@ import (
 func TestRenderStatus_AllDone(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		InputName:  "book.pdf",
+		Inputs:     []string{"/workspace/input/book.pdf"},
 		InputPages: 612,
 		Phases: []ProgressRow{
 			{Phase: PhaseCut, Completed: 612, Total: 612, Done: true},
@@ -27,7 +27,8 @@ func TestRenderStatus_AllDone(t *testing.T) {
 	out := buf.String()
 
 	for _, want := range []string{
-		"book.pdf (612 pages)",
+		"/workspace/input/book.pdf",
+		"612 pages",
 		"612/612",
 		"\u2713", // checkmark
 		"mutercim.log",
@@ -41,7 +42,7 @@ func TestRenderStatus_AllDone(t *testing.T) {
 func TestRenderStatus_Partial(t *testing.T) {
 	var buf bytes.Buffer
 	data := StatusData{
-		InputName:  "vol1.pdf",
+		Inputs:     []string{"/workspace/input/vol1.pdf"},
 		InputPages: 100,
 		Phases: []ProgressRow{
 			{Phase: PhaseCut, Completed: 100, Total: 100, Done: true},

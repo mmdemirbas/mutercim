@@ -6,8 +6,8 @@ import (
 )
 
 // StatusData holds all data needed to render the status dashboard.
+// All paths (OutputDir, Inputs, Knowledge, LogPath) should be absolute.
 type StatusData struct {
-	InputName  string
 	InputPages int // total pages from images dir
 	PageRange  string
 	LogLevel   string
@@ -27,7 +27,6 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 
 	// Header
 	RenderHeader(w, HeaderData{
-		InputName:  data.InputName,
 		InputPages: data.InputPages,
 		PageRange:  data.PageRange,
 		LogLevel:   data.LogLevel,

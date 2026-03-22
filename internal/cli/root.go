@@ -202,6 +202,15 @@ func ungroupedCommands(cmds []*cobra.Command) []*cobra.Command {
 	return commandsByOrder(filtered)
 }
 
+// resolveInputPaths returns absolute paths for all configured inputs.
+func resolveInputPaths(ws *workspace.Workspace, cfg *config.Config) []string {
+	paths := make([]string, len(cfg.Inputs))
+	for i, inp := range cfg.Inputs {
+		paths[i] = cfg.ResolvePath(ws.Root, inp.Path)
+	}
+	return paths
+}
+
 // applyOutputDir sets ws.OutputDir from the config's output field and CLI --output flag.
 // CLI flag takes precedence over config.
 func applyOutputDir(ws *workspace.Workspace, cfg *config.Config) {

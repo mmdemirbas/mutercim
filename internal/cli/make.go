@@ -5,7 +5,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -67,20 +66,12 @@ func newAllCmd() *cobra.Command {
 
 			// Set header on live display
 			if disp != nil {
-				inputName := ""
-				if len(cfg.Inputs) > 0 {
-					inputName = filepath.Base(cfg.Inputs[0].Path)
-					if len(cfg.Inputs) > 1 {
-						inputName += fmt.Sprintf(" (+%d more)", len(cfg.Inputs)-1)
-					}
-				}
 				disp.SetHeader(display.HeaderData{
-					InputName:    inputName,
 					PageRange:    pageSpec,
 					LogLevel:     logLevel,
-					OutputDir:    cfg.Output,
-					Inputs:       cfg.InputPaths(),
-					Knowledge:    cfg.Knowledge,
+					OutputDir:    ws.OutputDir,
+					Inputs:       resolveInputPaths(ws, cfg),
+					Knowledge:    cfg.ResolveKnowledgePaths(ws.Root),
 					PhaseConfigs: buildPhaseConfigs(cfg),
 				})
 			}

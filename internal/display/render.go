@@ -18,40 +18,50 @@ type PhaseConfig struct {
 }
 
 // HeaderData holds metadata shown in the header section of both live and status displays.
+// All paths (OutputDir, Inputs, Knowledge) should be absolute.
 type HeaderData struct {
-	InputName    string
 	InputPages   int           // total pages available
 	PageRange    string        // e.g. "1-50", empty means all
 	LogLevel     string        // effective log level
-	OutputDir    string        // output directory
-	Inputs       []string      // input paths
-	Knowledge    []string      // knowledge paths
+	OutputDir    string        // output directory (absolute)
+	Inputs       []string      // input paths (absolute)
+	Knowledge    []string      // knowledge paths (absolute)
 	PhaseConfigs []PhaseConfig // per-phase config summaries
 }
 
 // RenderHeader writes the header section and returns the number of lines written.
+// Order: log level, output, inputs, knowledge.
 func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 	lines := 0
-	if h.InputName != "" {
-		info := h.InputName
-		if h.PageRange != "" && h.InputPages > 0 {
-			info += colors.dim(fmt.Sprintf(" (pages %s of %d)", h.PageRange, h.InputPages))
-		} else if h.InputPages > 0 {
-			info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
-		}
-		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Input")), info)
+	if h.LogLevel != "" && h.LogLevel != "info" {
+		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Log")), h.LogLevel)
 		lines++
 	}
-	if h.OutputDir != "" && h.OutputDir != "." {
+	if h.OutputDir != "" {
 		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir)
 		lines++
 	}
+	if len(h.Inputs) > 0 {
+		for i, inp := range h.Inputs {
+			label := "Input"
+			if len(h.Inputs) > 1 {
+				label = fmt.Sprintf("Input %d", i+1)
+			}
+			info := inp
+			// Show page info only on the first (or only) input
+			if i == 0 {
+				if h.PageRange != "" && h.InputPages > 0 {
+					info += colors.dim(fmt.Sprintf(" (pages %s of %d)", h.PageRange, h.InputPages))
+				} else if h.InputPages > 0 {
+					info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
+				}
+			}
+			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", label)), info)
+			lines++
+		}
+	}
 	if len(h.Knowledge) > 0 {
 		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", "))
-		lines++
-	}
-	if h.LogLevel != "" && h.LogLevel != "info" {
-		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "LogLevel")), h.LogLevel)
 		lines++
 	}
 	if lines > 0 {
