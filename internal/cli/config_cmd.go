@@ -47,6 +47,6 @@ func newConfigCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&format, "format", "f", "yaml", "output format: yaml, json")
+	cmd.Flags().StringVar(&format, "format", "yaml", "output format: yaml, json")
 	return cmd
 }

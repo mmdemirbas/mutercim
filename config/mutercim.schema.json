@@ -84,6 +84,17 @@
       },
       "type": "object"
     },
+    "log_level": {
+      "default": "info",
+      "description": "Log verbosity level. Can be overridden with --log-level (-l) CLI flag.",
+      "enum": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ],
+      "type": "string"
+    },
     "output": {
       "default": ".",
       "description": "Base directory for all generated output (cut/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.",

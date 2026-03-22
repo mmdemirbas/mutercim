@@ -14,7 +14,12 @@ import (
 )
 
 func newLayoutCmd() *cobra.Command {
-	return &cobra.Command{
+	var (
+		layoutTool  string
+		layoutDebug bool
+	)
+
+	cmd := &cobra.Command{
 		Use:   "layout",
 		Short: "(Phase 2) Detect document layout regions on page images",
 		Long:  "Runs layout detection (e.g. DocLayout-YOLO) on page images and writes per-page region JSON to layout/. Requires Docker.",
@@ -33,6 +38,13 @@ func newLayoutCmd() *cobra.Command {
 				return fmt.Errorf("config: %w", err)
 			}
 			applyOutputDir(ws, cfg)
+
+			if layoutTool != "" {
+				cfg.Layout.Tool = layoutTool
+			}
+			if cmd.Flags().Changed("debug") {
+				cfg.Layout.Debug = layoutDebug
+			}
 
 			// Preflight: check Docker (layout tools run in containers)
 			if err := docker.CheckAvailable(cmd.Context()); err != nil {
@@ -74,4 +86,9 @@ func newLayoutCmd() *cobra.Command {
 			return err
 		},
 	}
+
+	cmd.Flags().StringVarP(&layoutTool, "tool", "t", "", "layout tool: doclayout-yolo, surya, or \"\" to disable (default: from config)")
+	cmd.Flags().BoolVar(&layoutDebug, "debug", false, "write debug overlay images (default: from config)")
+
+	return cmd
 }

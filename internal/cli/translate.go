@@ -103,9 +103,9 @@ func newTranslateCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&translateProvider, "translate-provider", "", "provider: gemini, claude, openai, groq, mistral, openrouter, xai, ollama (default: from config)")
-	cmd.Flags().StringVar(&translateModel, "translate-model", "", "model for translation (default: from config)")
-	cmd.Flags().IntVar(&contextWindow, "context-window", 0, "number of previous pages for context (default: from config)")
+	cmd.Flags().StringVarP(&translateProvider, "provider", "P", "", "AI provider: gemini, claude, openai, groq, mistral, openrouter, xai, ollama (default: from config)")
+	cmd.Flags().StringVarP(&translateModel, "model", "m", "", "AI model name (default: from config)")
+	cmd.Flags().IntVarP(&contextWindow, "context-window", "w", 0, "number of previous pages for context (default: from config)")
 
 	return cmd
 }

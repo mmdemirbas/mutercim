@@ -79,7 +79,7 @@ func newCutCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().IntVar(&dpi, "dpi", 0, "DPI for PDF-to-image conversion (default: from config)")
+	cmd.Flags().IntVarP(&dpi, "dpi", "d", 0, "DPI for PDF-to-image conversion (default: from config)")
 
 	return cmd
 }

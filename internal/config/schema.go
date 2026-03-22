@@ -25,7 +25,8 @@ func intPtr(v int) *int { return &v }
 // Structure (field names, types, nesting) comes from reflection on the Go types.
 var schemaAnnotations = map[string]schemaMeta{
 	// output
-	"output": {Description: "Base directory for all generated output (cut/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.", Default: "."},
+	"output":    {Description: "Base directory for all generated output (cut/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.", Default: "."},
+	"log_level": {Description: "Log verbosity level. Can be overridden with --log-level (-l) CLI flag.", Default: "info", Enum: []string{"debug", "info", "warn", "error"}},
 
 	// inputs
 	"inputs":             {Description: "Input files or directories. PDFs are converted to page images via pdftoppm; image directories are used as-is. Multiple inputs are processed independently through read/solve/translate, then merged in write.", Default: []map[string]string{{"path": "./input"}}},

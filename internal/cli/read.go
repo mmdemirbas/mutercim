@@ -104,9 +104,9 @@ func newReadCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&readProvider, "read-provider", "", "provider: gemini, claude, openai, groq, mistral, openrouter, xai, ollama (default: from config)")
-	cmd.Flags().StringVar(&readModel, "read-model", "", "model for reading (default: from config)")
-	cmd.Flags().IntVar(&concurrency, "concurrency", 0, "parallel read workers (default: from config)")
+	cmd.Flags().StringVarP(&readProvider, "provider", "P", "", "AI provider: gemini, claude, openai, groq, mistral, openrouter, xai, ollama (default: from config)")
+	cmd.Flags().StringVarP(&readModel, "model", "m", "", "AI model name (default: from config)")
+	cmd.Flags().IntVarP(&concurrency, "concurrency", "n", 0, "parallel read workers (default: from config)")
 
 	return cmd
 }

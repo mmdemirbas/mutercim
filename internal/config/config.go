@@ -20,6 +20,7 @@ type InputSpec struct {
 type Config struct {
 	Inputs    []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
 	Output    string          `yaml:"output" mapstructure:"output" json:"output"`
+	LogLevel  string          `yaml:"log_level,omitempty" mapstructure:"log_level" json:"log_level,omitempty"`
 	Cut       CutConfig       `yaml:"cut" mapstructure:"cut" json:"cut"`
 	Layout    LayoutConfig    `yaml:"layout" mapstructure:"layout" json:"layout"`
 	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
@@ -94,6 +95,7 @@ type RateLimitConfig struct {
 // SetDefaults configures default values in viper.
 func SetDefaults(v *viper.Viper) {
 	v.SetDefault("output", ".")
+	v.SetDefault("log_level", "info")
 	v.SetDefault("cut.dpi", 300)
 
 	v.SetDefault("layout.tool", "doclayout-yolo")
@@ -166,6 +168,9 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Output == "" {
 		cfg.Output = "."
+	}
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = "info"
 	}
 	if cfg.Cut.DPI == 0 {
 		cfg.Cut.DPI = 300

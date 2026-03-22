@@ -85,7 +85,7 @@ func newWriteCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&formats, "format", "", "output formats, comma-separated: md,latex,pdf,docx (overridden by positional args)")
+	cmd.Flags().StringVarP(&formats, "format", "F", "", "output formats, comma-separated: md,latex,pdf,docx (overridden by positional args)")
 
 	return cmd
 }

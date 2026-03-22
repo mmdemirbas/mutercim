@@ -40,9 +40,6 @@ between languages, preserving layout, structure, and domain-specific terminology
 			loadEnvFile(".env")
 			loadEnvFile(".envrc")
 
-			// Parse log level
-			level := parseLogLevel(logLevel)
-
 			// Set up log file (non-fatal if workspace not found)
 			var fileLogger *slog.Logger
 			var logFileHandle *os.File
@@ -55,18 +52,31 @@ between languages, preserving layout, structure, and domain-specific terminology
 				}
 				if cfg, err := config.Load(configPath); err == nil {
 					applyOutputDir(ws, cfg)
+					if logLevel == "" {
+						logLevel = cfg.LogLevel
+					}
 				}
 				if ws.OutputDir != ws.Root {
 					os.MkdirAll(ws.OutputDir, 0755)
 				}
+
+				// Resolve log level: CLI flag > config > default "info"
+				if logLevel == "" {
+					logLevel = "info"
+				}
+				level := parseLogLevel(logLevel)
+
 				f, err := os.OpenFile(ws.LogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 				if err == nil {
 					logFileHandle = f
 					fileLogger = slog.New(newHumanHandler(f, level))
 				}
 			}
+			if logLevel == "" {
+				logLevel = "info"
+			}
 			if fileLogger == nil {
-				fileLogger = slog.New(newHumanHandler(io.Discard, level))
+				fileLogger = slog.New(newHumanHandler(io.Discard, parseLogLevel(logLevel)))
 			}
 			slog.SetDefault(fileLogger)
 
@@ -96,10 +106,10 @@ between languages, preserving layout, structure, and domain-specific terminology
 	// Common flags
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "path to config file (default: ./mutercim.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&pages, "pages", "p", "", "page range: \"1-50\", \"1,5,10-20\", \"all\" (default: from config or all)")
-	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "log verbosity: debug, info, warn, error")
-	rootCmd.PersistentFlags().StringVarP(&outputDir, "output", "o", "", "output directory (default: ./write)")
-	rootCmd.PersistentFlags().BoolVar(&auto, "auto", false, "auto-run missing prerequisite phases before the requested phase")
-	rootCmd.PersistentFlags().BoolVar(&force, "force", false, "force re-processing of already completed pages")
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "", "log verbosity: debug, info, warn, error (default: from config or info)")
+	rootCmd.PersistentFlags().StringVarP(&outputDir, "output", "o", "", "output directory (default: .)")
+	rootCmd.PersistentFlags().BoolVarP(&auto, "auto", "a", false, "auto-run missing prerequisite phases before the requested phase")
+	rootCmd.PersistentFlags().BoolVarP(&force, "force", "f", false, "force re-processing of already completed pages")
 
 	// Command groups
 	rootCmd.AddGroup(

@@ -5,6 +5,11 @@
 # All keys shown below with their default values and allowed options.
 # Copy this file to your workspace root as "mutercim.yaml" and customize.
 
+# ─── General ─────────────────────────────────────────────────────────────────
+
+log_level: info                  # Log verbosity: debug, info, warn, error. Overridden by -l flag.
+output: ./                       # Base directory for all generated output. Relative to workspace root.
+
 # ─── Inputs ──────────────────────────────────────────────────────────────────
 #
 # Input files or directories to process.
@@ -22,7 +27,6 @@
 #       languages: [ar, fa]
 #     - path: ./input/vol3.pdf       # all pages (default when pages omitted)
 #       languages: [ar]
-
 inputs:
   - path: ./input                    # Path to input PDF or image directory (relative to workspace root)
     pages: all                       # Page range for this input: "1-10,20-30" or "all" (default)
@@ -33,8 +37,6 @@ inputs:
 knowledge:
   - ./knowledge                      # directory: loads all .yaml/.yml files inside
   # - ./extra-glossary.yaml          # file: loaded directly
-
-output: ./
 
 # ─── Cut phase (PDF → images) ────────────────────────────────────────────────
 

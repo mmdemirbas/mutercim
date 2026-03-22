@@ -100,15 +100,15 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 
 ### Pipeline Commands
 
-| Command     | Description                                                                |
-|-------------|----------------------------------------------------------------------------|
-| `all`       | Run all phases sequentially (cut, layout, read, solve, translate, write)    |
-| `cut`       | Convert PDF inputs to per-page images                                      |
-| `layout`    | Detect document layout regions on page images                              |
-| `read`      | Read structured data from page images via AI vision                        |
-| `solve`     | Resolve abbreviations and knowledge context                        |
-| `translate` | Translate solved pages into target languages                       |
-| `write`     | Render translated data to output formats                           |
+| Command     | Description                                                              |
+|-------------|--------------------------------------------------------------------------|
+| `all`       | Run all phases sequentially (cut, layout, read, solve, translate, write) |
+| `cut`       | Convert PDF inputs to per-page images                                    |
+| `layout`    | Detect document layout regions on page images                            |
+| `read`      | Read structured data from page images via AI vision                      |
+| `solve`     | Resolve abbreviations and knowledge context                              |
+| `translate` | Translate solved pages into target languages                             |
+| `write`     | Render translated data to output formats                                 |
 
 ### Workspace Commands
 
@@ -122,11 +122,29 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 ### Common flags
 
 ```
---config, -c    Path to config file (default: ./mutercim.yaml)
---pages, -p     Page range: "1-50", "1,5,10-20" (default: from config or all)
---log-level     Log verbosity: debug, info, warn, error (default: info)
---auto          Auto-run missing prerequisite phases before the requested phase
---force         Force re-processing of already completed pages
+-c, --config      Path to config file (default: ./mutercim.yaml)
+-p, --pages       Page range: "1-50", "1,5,10-20" (default: from config or all)
+-o, --output      Output directory (default: .)
+-l, --log-level   Log verbosity: debug, info, warn, error (default: from config or info)
+-a, --auto        Auto-run missing prerequisite phases before the requested phase
+-f, --force       Force re-processing of already completed pages
+```
+
+### Per-phase flags
+
+Each phase command accepts flags that override config file settings:
+
+```
+cut:        -d, --dpi           DPI for PDF-to-image conversion
+layout:     -t, --tool          Layout tool: doclayout-yolo, surya, or ""
+                --debug         Write debug overlay images
+read:       -P, --provider      AI provider name
+            -m, --model         AI model name
+            -n, --concurrency   Parallel read workers
+translate:  -P, --provider      AI provider name
+            -m, --model         AI model name
+            -w, --context-window Previous pages for context
+write:      -F, --format        Output formats (comma-separated: md,latex,pdf,docx)
 ```
 
 ### Clean command
@@ -156,6 +174,9 @@ mutercim write latex # only .tex (no PDF compilation)
 Full annotated `mutercim.yaml`:
 
 ```yaml
+# Log verbosity (default: info). Can be overridden with -l flag.
+log_level: info                  # debug, info, warn, error
+
 # Input files — PDF or directories of images
 # Each declares its own source languages and optional page range
 inputs:
@@ -180,7 +201,7 @@ layout:
 
 # Read phase — AI vision OCR (uses layout data if available)
 read:
-  models:                        # ordered model failover chain
+  models: # ordered model failover chain
     - { provider: gemini, model: gemini-2.5-flash-lite }
     - { provider: gemini, model: gemini-2.5-flash }
     - { provider: groq, model: llama-3.2-90b-vision-preview }
@@ -370,7 +391,7 @@ Configure in `mutercim.yaml`:
 layout:
   tool: doclayout-yolo  # or "surya" or ""
   debug: true           # overlay images for visual verification
-  params:               # tool-specific tuning
+  params: # tool-specific tuning
     confidence: 0.15
 ```
 
