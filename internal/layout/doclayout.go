@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
@@ -49,6 +50,10 @@ type DocLayoutTool struct {
 	// DockerImage is the Docker image to use. Defaults to DefaultDocLayoutImage.
 	DockerImage string
 
+	// DockerfileDir is the path to docker/doclayout-yolo/ for auto-building.
+	// Empty means skip auto-build (used in tests).
+	DockerfileDir string
+
 	// commander abstracts command execution for testing.
 	commander Commander
 }
@@ -60,8 +65,9 @@ func NewDocLayoutTool(image string) *DocLayoutTool {
 		image = DefaultDocLayoutImage
 	}
 	return &DocLayoutTool{
-		DockerImage: image,
-		commander:   execCommander{},
+		DockerImage:   image,
+		DockerfileDir: docker.FindDockerDir("doclayout-yolo"),
+		commander:     execCommander{},
 	}
 }
 
@@ -152,6 +158,13 @@ var docLayoutTypeMap = map[string]string{
 //   - image_size (int): input image size, default 1024
 //   - max_det (int): max detections, default 300
 func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) ([]model.Region, error) {
+	// Auto-build Docker image if needed
+	if d.DockerfileDir != "" {
+		if err := docker.EnsureImage(ctx, d.DockerImage, d.DockerfileDir); err != nil {
+			return nil, fmt.Errorf("ensure doclayout-yolo image: %w", err)
+		}
+	}
+
 	// Warn on unknown params
 	for k := range params {
 		if !knownDocLayoutParams[k] {

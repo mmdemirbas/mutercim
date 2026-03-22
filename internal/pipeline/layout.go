@@ -140,7 +140,7 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 	}
 
 	// Build params with auto-populated languages
-	params := makeLayoutParams(cfg, stem)
+	params := makeLayoutParams(cfg, tool.Name(), stem)
 
 	// Start progress display
 	if opts.Display != nil {
@@ -337,19 +337,20 @@ func generateLayoutDebugImage(imagePath string, regions []model.Region, pageNum 
 	}
 }
 
-// makeLayoutParams builds the layout tool params map.
-// It starts from the user-configured params, then auto-populates "languages"
-// from the input's source languages if not explicitly set by the user.
-func makeLayoutParams(cfg *config.Config, stem string) map[string]any {
+// makeLayoutParams builds the layout tool params map from user config,
+// then auto-populates tool-specific defaults (e.g. languages for Surya).
+func makeLayoutParams(cfg *config.Config, toolName, stem string) map[string]any {
 	params := make(map[string]any)
 	for k, v := range cfg.Layout.Params {
 		params[k] = v
 	}
 
-	// Auto-set languages from input config if not explicitly provided
-	if _, ok := params["languages"]; !ok {
-		if langs := cfg.SourceLanguagesForStem(stem); len(langs) > 0 {
-			params["languages"] = strings.Join(langs, ",")
+	// Auto-set languages for Surya from input config if not explicitly provided
+	if toolName == "surya" {
+		if _, ok := params["languages"]; !ok {
+			if langs := cfg.SourceLanguagesForStem(stem); len(langs) > 0 {
+				params["languages"] = strings.Join(langs, ",")
+			}
 		}
 	}
 

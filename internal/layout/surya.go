@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
@@ -20,6 +21,10 @@ const DefaultSuryaImage = "mutercim/surya:latest"
 type SuryaTool struct {
 	// DockerImage is the Docker image to use. Defaults to DefaultSuryaImage.
 	DockerImage string
+
+	// DockerfileDir is the path to docker/surya/ for auto-building.
+	// Empty means skip auto-build (used in tests).
+	DockerfileDir string
 
 	// commander abstracts command execution for testing.
 	commander Commander
@@ -45,8 +50,9 @@ func NewSuryaTool(image string) *SuryaTool {
 		image = DefaultSuryaImage
 	}
 	return &SuryaTool{
-		DockerImage: image,
-		commander:   execCommander{},
+		DockerImage:   image,
+		DockerfileDir: docker.FindDockerDir("surya"),
+		commander:     execCommander{},
 	}
 }
 
@@ -112,6 +118,13 @@ var knownSuryaParams = map[string]bool{
 // params supports these keys (all optional):
 //   - languages (string): comma-separated OCR language codes, default "ar"
 func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) ([]model.Region, error) {
+	// Auto-build Docker image if needed
+	if s.DockerfileDir != "" {
+		if err := docker.EnsureImage(ctx, s.DockerImage, s.DockerfileDir); err != nil {
+			return nil, fmt.Errorf("ensure surya image: %w", err)
+		}
+	}
+
 	// Warn on unknown params
 	for k := range params {
 		if !knownSuryaParams[k] {

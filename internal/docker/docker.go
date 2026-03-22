@@ -28,29 +28,28 @@ func CheckAvailable(ctx context.Context) error {
 	return nil
 }
 
-// EnsureImage checks if a Docker image exists locally. If not, it builds it from
-// the given Dockerfile directory. Logs the build at INFO level.
-// If dockerfileDir is empty, auto-build is skipped and an informative error is returned
-// when the image is missing.
+// EnsureImage ensures a Docker image is built and up to date.
+// If dockerfileDir is non-empty, it runs `docker build` (Docker's layer cache
+// makes this near-instant when nothing changed). If dockerfileDir is empty and
+// the image doesn't exist locally, it returns an informative error.
 func EnsureImage(ctx context.Context, image, dockerfileDir string) error {
-	// Check if image already exists
+	if dockerfileDir != "" {
+		// Always run docker build — the layer cache handles skipping unchanged layers.
+		slog.Debug("ensuring docker image", "image", image, "dir", dockerfileDir)
+		out, err := exec.CommandContext(ctx, "docker", "build", "-q", "-t", image, dockerfileDir).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("docker build %s failed: %w\n%s", image, err, truncateOutput(string(out), 500))
+		}
+		return nil
+	}
+
+	// No Dockerfile dir — just check if image exists
 	out, err := exec.CommandContext(ctx, "docker", "image", "inspect", image, "--format", "{{.ID}}").CombinedOutput()
 	if err == nil && strings.TrimSpace(string(out)) != "" {
-		return nil // image exists
+		return nil
 	}
-
-	// Image missing — try to build
-	if dockerfileDir == "" {
-		return fmt.Errorf("docker image %s not found — build it with: docker build -t %s docker/%s/",
-			image, image, imageShortName(image))
-	}
-
-	slog.Info("building docker image", "image", image, "dir", dockerfileDir)
-	buildOut, err := exec.CommandContext(ctx, "docker", "build", "-t", image, dockerfileDir).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("docker build %s failed: %w\n%s", image, err, truncateOutput(string(buildOut), 500))
-	}
-	return nil
+	return fmt.Errorf("docker image %s not found — build it with: docker build -t %s docker/%s/",
+		image, image, imageShortName(image))
 }
 
 // imageShortName extracts the short name from an image like "mutercim/poppler:latest" → "poppler".
@@ -73,18 +72,28 @@ func Run(ctx context.Context, args ...string) ([]byte, error) {
 }
 
 // FindDockerDir returns the path to docker/<tool>/ directory if it can be found.
-// It checks relative to the current working directory first, then relative to the
-// executable location. Returns empty string if not found.
+// It walks upward from the current working directory looking for docker/<tool>/Dockerfile,
+// then checks relative to the executable location. Returns empty string if not found.
 func FindDockerDir(tool string) string {
-	// Check relative to cwd (works when running from repo root)
-	dir := filepath.Join("docker", tool)
-	if isDockerfileDir(dir) {
-		return dir
+	// Walk upward from cwd (works from repo root or any subdirectory)
+	if cwd, err := os.Getwd(); err == nil {
+		dir := cwd
+		for {
+			candidate := filepath.Join(dir, "docker", tool)
+			if isDockerfileDir(candidate) {
+				return candidate
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
 	}
 
 	// Check relative to executable (works for `go install` from repo)
 	if exe, err := os.Executable(); err == nil {
-		dir = filepath.Join(filepath.Dir(exe), "..", "docker", tool)
+		dir := filepath.Join(filepath.Dir(exe), "..", "docker", tool)
 		if isDockerfileDir(dir) {
 			return dir
 		}

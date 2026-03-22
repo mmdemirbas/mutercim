@@ -29,7 +29,6 @@ func ConvertMarkdownToDocx(ctx context.Context, markdownPath, docxPath, dockerfi
 		"run", "--rm",
 		"-v", absDir+":/data",
 		DefaultPandocImage,
-		"pandoc",
 		"/data/"+mdBase,
 		"-o", "/data/"+docxBase,
 		"--from=markdown",
