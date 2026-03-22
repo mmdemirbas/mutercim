@@ -40,6 +40,7 @@ var knownDocLayoutParams = map[string]bool{
 	"iou":        true,
 	"image_size": true,
 	"max_det":    true,
+	"direction":  true,
 }
 
 // DocLayoutTool uses the DocLayout-YOLO model running in Docker
@@ -114,17 +115,23 @@ func (d *DocLayoutTool) Available(ctx context.Context) bool {
 
 // docLayoutOutput is the JSON structure returned by the DocLayout-YOLO container.
 type docLayoutOutput struct {
-	Regions   []docLayoutRegion `json:"regions"`
-	ImageSize struct {
+	Regions        []docLayoutRegion        `json:"regions"`
+	ReadingOrder   []string                 `json:"reading_order"`
+	SeparatorY     *int                     `json:"separator_y"`
+	PostProcessing *model.LayoutPostProcess `json:"post_processing"`
+	ImageSize      struct {
 		Width  int `json:"width"`
 		Height int `json:"height"`
 	} `json:"image_size"`
 }
 
 type docLayoutRegion struct {
+	ID         string  `json:"id"`
 	BBox       [4]int  `json:"bbox"` // [x1, y1, x2, y2] corner format
 	Type       string  `json:"type"`
+	RawType    string  `json:"raw_type"`
 	Confidence float64 `json:"confidence"`
+	Zone       string  `json:"zone"`
 }
 
 // docLayoutTypeMap maps DocLayout-YOLO type labels to our region types.
@@ -157,7 +164,7 @@ var docLayoutTypeMap = map[string]string{
 //   - iou (float64): IoU threshold for NMS, default 0.7
 //   - image_size (int): input image size, default 1024
 //   - max_det (int): max detections, default 300
-func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) ([]model.Region, error) {
+func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) (*DetectResult, error) {
 	// Auto-build Docker image if needed
 	if d.DockerfileDir != "" {
 		if err := docker.EnsureImage(ctx, d.DockerImage, d.DockerfileDir); err != nil {
@@ -193,6 +200,9 @@ func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, par
 	if v, ok := getInt(params, "max_det"); ok {
 		args = append(args, "--max-det", fmt.Sprintf("%d", v))
 	}
+	if v, ok := getString(params, "direction"); ok {
+		args = append(args, "--direction", v)
+	}
 
 	args = append(args, "/input/"+base)
 
@@ -206,43 +216,22 @@ func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, par
 		return nil, fmt.Errorf("doclayout-yolo parse output: %w\nraw: %s", err, string(out))
 	}
 
-	// Class distribution for DEBUG logging
+	// Log class distribution at DEBUG level
 	classCounts := make(map[string]int)
 	var confMin, confMax, confSum float64
 	confMin = 1.0
-
-	var regions []model.Region
-	id := 1
 	for _, dr := range result.Regions {
 		classCounts[dr.Type]++
-		if dr.Confidence < confMin {
-			confMin = dr.Confidence
+		if dr.Confidence > 0 {
+			if dr.Confidence < confMin {
+				confMin = dr.Confidence
+			}
+			if dr.Confidence > confMax {
+				confMax = dr.Confidence
+			}
+			confSum += dr.Confidence
 		}
-		if dr.Confidence > confMax {
-			confMax = dr.Confidence
-		}
-		confSum += dr.Confidence
-
-		regionType := MapDocLayoutType(dr.Type)
-		if regionType == "" {
-			continue // skip "abandon" etc.
-		}
-
-		// Convert from [x1,y1,x2,y2] to [x,y,w,h]
-		bbox := ConvertCornerToXYWH(dr.BBox)
-
-		regions = append(regions, model.Region{
-			ID:           fmt.Sprintf("r%d", id),
-			BBox:         bbox,
-			Type:         regionType,
-			LayoutSource: model.LayoutSourceDocLayout,
-			Confidence:   dr.Confidence,
-			RawClass:     dr.Type,
-		})
-		id++
 	}
-
-	// Log class distribution at DEBUG level
 	if len(result.Regions) > 0 {
 		var parts []string
 		for cls, count := range classCounts {
@@ -259,15 +248,31 @@ func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, par
 		)
 	}
 
-	// Sort by reading order: top-to-bottom, right-to-left (RTL)
-	SortReadingOrderRTL(regions)
-
-	// Reassign IDs after sorting
-	for i := range regions {
-		regions[i].ID = fmt.Sprintf("r%d", i+1)
+	// Convert regions — post-processing (IDs, types, zones, reading order)
+	// is already done by the Python entrypoint
+	regions := make([]model.Region, 0, len(result.Regions))
+	for _, dr := range result.Regions {
+		bbox := ConvertCornerToXYWH(dr.BBox)
+		id := dr.ID
+		if id == "" {
+			id = fmt.Sprintf("r%d", len(regions)+1)
+		}
+		regions = append(regions, model.Region{
+			ID:           id,
+			BBox:         bbox,
+			Type:         dr.Type,
+			LayoutSource: model.LayoutSourceDocLayout,
+			Confidence:   dr.Confidence,
+			RawClass:     dr.RawType,
+		})
 	}
 
-	return regions, nil
+	return &DetectResult{
+		Regions:        regions,
+		ReadingOrder:   result.ReadingOrder,
+		SeparatorY:     result.SeparatorY,
+		PostProcessing: result.PostProcessing,
+	}, nil
 }
 
 // MapDocLayoutType maps a DocLayout-YOLO type label to our region type.

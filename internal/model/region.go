@@ -35,6 +35,7 @@ type Region struct {
 	Column       *int         `json:"column,omitempty"`
 	Confidence   float64      `json:"confidence,omitempty"` // 0.0-1.0, from layout tool. 0 if not available.
 	RawClass     string       `json:"raw_class,omitempty"`  // original class name from layout tool before type mapping
+	Zone         string       `json:"zone,omitempty"`       // zone classification from post-processing (header, entry, footnote, etc.)
 }
 
 // BBox represents a bounding box as [x, y, width, height] in pixels.
@@ -72,12 +73,24 @@ const (
 // LayoutPage is the output of the layout detection phase for a single page.
 // It contains only spatial information (bbox, type, confidence) — no text or style.
 type LayoutPage struct {
-	Version    string         `json:"version"`
-	PageNumber int            `json:"page_number"`
-	PageSize   PageSize       `json:"page_size"`
-	Tool       string         `json:"tool"`
-	ToolParams map[string]any `json:"tool_params,omitempty"`
-	Regions    []LayoutRegion `json:"regions"`
+	Version        string             `json:"version"`
+	PageNumber     int                `json:"page_number"`
+	PageSize       PageSize           `json:"page_size"`
+	Tool           string             `json:"tool"`
+	ToolParams     map[string]any     `json:"tool_params,omitempty"`
+	Regions        []LayoutRegion     `json:"regions"`
+	ReadingOrder   []string           `json:"reading_order,omitempty"`
+	SeparatorY     *int               `json:"separator_y,omitempty"`
+	PostProcessing *LayoutPostProcess `json:"post_processing,omitempty"`
+}
+
+// LayoutPostProcess holds diagnostic info about the post-processing step.
+type LayoutPostProcess struct {
+	SeparatorFound     bool   `json:"separator_found"`
+	SeparatorMethod    string `json:"separator_method,omitempty"`
+	ColumnsDetected    int    `json:"columns_detected"`
+	RegionsBeforeSplit int    `json:"regions_before_split"`
+	RegionsAfterSplit  int    `json:"regions_after_split"`
 }
 
 // LayoutRegion is a region detected by the layout tool without text content.
@@ -87,6 +100,7 @@ type LayoutRegion struct {
 	Type       string  `json:"type"`
 	RawClass   string  `json:"raw_class,omitempty"`
 	Confidence float64 `json:"confidence,omitempty"`
+	Zone       string  `json:"zone,omitempty"`
 }
 
 // SolvedRegionPage extends RegionPage with solver metadata.

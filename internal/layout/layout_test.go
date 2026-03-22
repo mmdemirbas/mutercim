@@ -36,12 +36,12 @@ func (m *mockCommander) Run(_ context.Context, name string, args ...string) ([]b
 
 func TestNoneTool_DetectRegions(t *testing.T) {
 	tool := NoneTool{}
-	regions, err := tool.DetectRegions(context.Background(), "/any/path.png", nil)
+	result, err := tool.DetectRegions(context.Background(), "/any/path.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
-	if regions != nil {
-		t.Errorf("regions = %v, want nil", regions)
+	if len(result.Regions) != 0 {
+		t.Errorf("len(regions) = %d, want 0", len(result.Regions))
 	}
 }
 
@@ -190,30 +190,30 @@ func TestSuryaTool_DetectRegions_Success(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
-	if len(regions) != 3 {
-		t.Fatalf("len(regions) = %d, want 3", len(regions))
+	if len(result.Regions) != 3 {
+		t.Fatalf("len(regions) = %d, want 3", len(result.Regions))
 	}
 
 	// Verify regions
-	if regions[0].ID != "r1" {
-		t.Errorf("regions[0].ID = %q, want %q", regions[0].ID, "r1")
+	if result.Regions[0].ID != "r1" {
+		t.Errorf("regions[0].ID = %q, want %q", result.Regions[0].ID, "r1")
 	}
-	if regions[0].BBox != (model.BBox{400, 50, 700, 60}) {
-		t.Errorf("regions[0].BBox = %v, want [400,50,700,60]", regions[0].BBox)
+	if result.Regions[0].BBox != (model.BBox{400, 50, 700, 60}) {
+		t.Errorf("regions[0].BBox = %v, want [400,50,700,60]", result.Regions[0].BBox)
 	}
-	if regions[0].Text != "حرف الألف" {
-		t.Errorf("regions[0].Text = %q, want %q", regions[0].Text, "حرف الألف")
+	if result.Regions[0].Text != "حرف الألف" {
+		t.Errorf("regions[0].Text = %q, want %q", result.Regions[0].Text, "حرف الألف")
 	}
-	if regions[0].LayoutSource != model.LayoutSourceSurya {
-		t.Errorf("regions[0].LayoutSource = %q, want %q", regions[0].LayoutSource, model.LayoutSourceSurya)
+	if result.Regions[0].LayoutSource != model.LayoutSourceSurya {
+		t.Errorf("regions[0].LayoutSource = %q, want %q", result.Regions[0].LayoutSource, model.LayoutSourceSurya)
 	}
 
-	if regions[2].ID != "r3" {
-		t.Errorf("regions[2].ID = %q, want %q", regions[2].ID, "r3")
+	if result.Regions[2].ID != "r3" {
+		t.Errorf("regions[2].ID = %q, want %q", result.Regions[2].ID, "r3")
 	}
 
 	// Verify docker command args
@@ -288,12 +288,12 @@ func TestSuryaTool_DetectRegions_EmptyRegions(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
-	if len(regions) != 0 {
-		t.Errorf("len(regions) = %d, want 0", len(regions))
+	if len(result.Regions) != 0 {
+		t.Errorf("len(regions) = %d, want 0", len(result.Regions))
 	}
 }
 

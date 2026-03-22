@@ -121,13 +121,15 @@ func TestDocLayoutTool_Available_Success(t *testing.T) {
 }
 
 func TestDocLayoutTool_DetectRegions_Success(t *testing.T) {
+	// Simulate post-processed output from the Python entrypoint
 	dlJSON := docLayoutOutput{
 		Regions: []docLayoutRegion{
-			{BBox: [4]int{100, 50, 800, 100}, Type: "title", Confidence: 0.95},
-			{BBox: [4]int{500, 200, 800, 500}, Type: "plain text", Confidence: 0.85},
-			{BBox: [4]int{100, 200, 400, 500}, Type: "plain text", Confidence: 0.80},
-			{BBox: [4]int{100, 550, 800, 580}, Type: "page-footer", Confidence: 0.70},
+			{ID: "r1", BBox: [4]int{100, 50, 800, 100}, Type: "header", RawType: "title", Confidence: 0.95, Zone: "header"},
+			{ID: "r2", BBox: [4]int{500, 200, 800, 500}, Type: "entry", RawType: "plain text", Confidence: 0.85, Zone: "entry"},
+			{ID: "r3", BBox: [4]int{100, 200, 400, 500}, Type: "entry", RawType: "plain text", Confidence: 0.80, Zone: "entry"},
+			{ID: "r4", BBox: [4]int{100, 550, 800, 580}, Type: "page_number", RawType: "page-footer", Confidence: 0.70, Zone: "page_number"},
 		},
+		ReadingOrder: []string{"r1", "r2", "r3", "r4"},
 	}
 	dlJSON.ImageSize.Width = 1000
 	dlJSON.ImageSize.Height = 1500
@@ -140,50 +142,43 @@ func TestDocLayoutTool_DetectRegions_Success(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/pages/156.png", nil)
+	result, err := tool.DetectRegions(context.Background(), "/tmp/pages/156.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
-	if len(regions) != 4 {
-		t.Fatalf("len(regions) = %d, want 4", len(regions))
+	if len(result.Regions) != 4 {
+		t.Fatalf("len(regions) = %d, want 4", len(result.Regions))
 	}
 
-	// Title should be first (top of page)
-	if regions[0].Type != model.RegionTypeHeader {
-		t.Errorf("regions[0].Type = %q, want %q", regions[0].Type, model.RegionTypeHeader)
+	// Types come from Python post-processing (already refined)
+	if result.Regions[0].Type != "header" {
+		t.Errorf("regions[0].Type = %q, want %q", result.Regions[0].Type, "header")
 	}
 	// BBox should be converted from [x1,y1,x2,y2] to [x,y,w,h]
-	if regions[0].BBox != (model.BBox{100, 50, 700, 50}) {
-		t.Errorf("regions[0].BBox = %v, want [100,50,700,50]", regions[0].BBox)
+	if result.Regions[0].BBox != (model.BBox{100, 50, 700, 50}) {
+		t.Errorf("regions[0].BBox = %v, want [100,50,700,50]", result.Regions[0].BBox)
 	}
-	if regions[0].LayoutSource != model.LayoutSourceDocLayout {
-		t.Errorf("regions[0].LayoutSource = %q, want %q", regions[0].LayoutSource, model.LayoutSourceDocLayout)
+	if result.Regions[0].LayoutSource != model.LayoutSourceDocLayout {
+		t.Errorf("regions[0].LayoutSource = %q, want %q", result.Regions[0].LayoutSource, model.LayoutSourceDocLayout)
 	}
-	// Confidence and RawClass should be set
-	if regions[0].Confidence != 0.95 {
-		t.Errorf("regions[0].Confidence = %v, want 0.95", regions[0].Confidence)
+	if result.Regions[0].Confidence != 0.95 {
+		t.Errorf("regions[0].Confidence = %v, want 0.95", result.Regions[0].Confidence)
 	}
-	if regions[0].RawClass != "title" {
-		t.Errorf("regions[0].RawClass = %q, want %q", regions[0].RawClass, "title")
+	// RawClass comes from raw_type field
+	if result.Regions[0].RawClass != "title" {
+		t.Errorf("regions[0].RawClass = %q, want %q", result.Regions[0].RawClass, "title")
 	}
-	// Regions should have NO text
-	if regions[0].Text != "" {
-		t.Errorf("regions[0].Text = %q, want empty", regions[0].Text)
+	if result.Regions[0].Text != "" {
+		t.Errorf("regions[0].Text = %q, want empty", result.Regions[0].Text)
 	}
-
-	// RTL reading order: right column (higher X) before left column
-	// regions[1] and regions[2] are on the same row; right column (X=500) should come first
-	if regions[1].BBox[0] < regions[2].BBox[0] {
-		t.Errorf("RTL order: expected right column first, got X=%d before X=%d",
-			regions[1].BBox[0], regions[2].BBox[0])
+	// IDs preserved from Python output
+	if result.Regions[0].ID != "r1" {
+		t.Errorf("regions[0].ID = %q, want %q", result.Regions[0].ID, "r1")
 	}
 
-	// IDs should be sequential after sorting
-	for i, r := range regions {
-		want := fmt.Sprintf("r%d", i+1)
-		if r.ID != want {
-			t.Errorf("regions[%d].ID = %q, want %q", i, r.ID, want)
-		}
+	// Reading order from Python
+	if len(result.ReadingOrder) != 4 {
+		t.Errorf("ReadingOrder len = %d, want 4", len(result.ReadingOrder))
 	}
 
 	// Verify docker command args
@@ -258,22 +253,24 @@ func TestDocLayoutTool_DetectRegions_EmptyRegions(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
-	if len(regions) != 0 {
-		t.Errorf("len(regions) = %d, want 0", len(regions))
+	if len(result.Regions) != 0 {
+		t.Errorf("len(regions) = %d, want 0", len(result.Regions))
 	}
 }
 
-func TestDocLayoutTool_DetectRegions_ConfidenceFiltering(t *testing.T) {
+func TestDocLayoutTool_DetectRegions_AllRegionsPassedThrough(t *testing.T) {
+	// Go no longer filters by confidence — Python handles that.
+	// All regions from Docker output are passed through.
 	dlJSON := docLayoutOutput{
 		Regions: []docLayoutRegion{
-			{BBox: [4]int{100, 50, 800, 100}, Type: "title", Confidence: 0.95},
-			{BBox: [4]int{100, 200, 800, 500}, Type: "text", Confidence: 0.15},     // below threshold
-			{BBox: [4]int{100, 550, 800, 580}, Type: "text", Confidence: 0.19},     // below threshold
-			{BBox: [4]int{100, 600, 800, 650}, Type: "footnote", Confidence: 0.20}, // at threshold (included)
+			{ID: "r1", BBox: [4]int{100, 50, 800, 100}, Type: "header", RawType: "title", Confidence: 0.95},
+			{ID: "r2", BBox: [4]int{100, 200, 800, 500}, Type: "entry", RawType: "text", Confidence: 0.15},
+			{ID: "r3", BBox: [4]int{100, 550, 800, 580}, Type: "entry", RawType: "text", Confidence: 0.19},
+			{ID: "r4", BBox: [4]int{100, 600, 800, 650}, Type: "footnote", RawType: "footnote", Confidence: 0.20},
 		},
 	}
 	out, _ := json.Marshal(dlJSON)
@@ -285,25 +282,25 @@ func TestDocLayoutTool_DetectRegions_ConfidenceFiltering(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
-	// Go-side confidence filtering was removed (filtering happens in the Python script),
-	// so all 4 regions should be returned.
-	if len(regions) != 4 {
-		t.Fatalf("len(regions) = %d, want 4 (no Go-side confidence filtering)", len(regions))
+	if len(result.Regions) != 4 {
+		t.Fatalf("len(regions) = %d, want 4", len(result.Regions))
 	}
-	if regions[0].Type != model.RegionTypeHeader {
-		t.Errorf("regions[0].Type = %q, want %q", regions[0].Type, model.RegionTypeHeader)
+	if result.Regions[0].Type != "header" {
+		t.Errorf("regions[0].Type = %q, want %q", result.Regions[0].Type, "header")
 	}
 }
 
-func TestDocLayoutTool_DetectRegions_AbandonSkipped(t *testing.T) {
+func TestDocLayoutTool_DetectRegions_AbandonPassedThrough(t *testing.T) {
+	// Go no longer skips "abandon" regions — Python post-processing uses them
+	// for separator detection and then refines their type.
 	dlJSON := docLayoutOutput{
 		Regions: []docLayoutRegion{
-			{BBox: [4]int{100, 50, 800, 100}, Type: "title", Confidence: 0.95},
-			{BBox: [4]int{50, 200, 100, 300}, Type: "abandon", Confidence: 0.90},
+			{ID: "r1", BBox: [4]int{100, 50, 800, 100}, Type: "header", RawType: "title", Confidence: 0.95},
+			{ID: "r2", BBox: [4]int{50, 200, 100, 300}, Type: "separator", RawType: "abandon", Confidence: 0.90},
 		},
 	}
 	out, _ := json.Marshal(dlJSON)
@@ -315,15 +312,18 @@ func TestDocLayoutTool_DetectRegions_AbandonSkipped(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
-	if len(regions) != 1 {
-		t.Fatalf("len(regions) = %d, want 1 (abandon should be skipped)", len(regions))
+	if len(result.Regions) != 2 {
+		t.Fatalf("len(regions) = %d, want 2 (all regions passed through)", len(result.Regions))
 	}
-	if regions[0].Type != model.RegionTypeHeader {
-		t.Errorf("regions[0].Type = %q, want %q", regions[0].Type, model.RegionTypeHeader)
+	if result.Regions[1].Type != "separator" {
+		t.Errorf("regions[1].Type = %q, want %q", result.Regions[1].Type, "separator")
+	}
+	if result.Regions[1].RawClass != "abandon" {
+		t.Errorf("regions[1].RawClass = %q, want %q", result.Regions[1].RawClass, "abandon")
 	}
 }
 

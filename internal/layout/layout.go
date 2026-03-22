@@ -9,13 +9,21 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
+// DetectResult holds the output from layout detection.
+type DetectResult struct {
+	Regions        []model.Region
+	ReadingOrder   []string                 // region IDs in reading order (from post-processing)
+	SeparatorY     *int                     // Y coordinate of separator line, nil if not found
+	PostProcessing *model.LayoutPostProcess // post-processing diagnostics, nil if not applicable
+}
+
 // Tool detects text regions with bounding boxes on a page image.
 type Tool interface {
 	// DetectRegions analyzes a page image and returns detected text regions
 	// with bounding boxes and preliminary OCR text.
 	// params contains tool-specific tuning parameters (e.g. confidence, iou,
 	// image_size for YOLO-based tools). Unknown params are logged and ignored.
-	DetectRegions(ctx context.Context, imagePath string, params map[string]any) ([]model.Region, error)
+	DetectRegions(ctx context.Context, imagePath string, params map[string]any) (*DetectResult, error)
 
 	// Available reports whether this layout tool is ready to use.
 	// For Docker-based tools, this checks if Docker is running and the
@@ -45,9 +53,9 @@ func NewTool(name string) Tool {
 // AI-only region detection.
 type NoneTool struct{}
 
-// DetectRegions returns an empty region list.
-func (n NoneTool) DetectRegions(_ context.Context, _ string, _ map[string]any) ([]model.Region, error) {
-	return nil, nil
+// DetectRegions returns an empty result.
+func (n NoneTool) DetectRegions(_ context.Context, _ string, _ map[string]any) (*DetectResult, error) {
+	return &DetectResult{}, nil
 }
 
 // Available always returns true — the no-op tool is always available.

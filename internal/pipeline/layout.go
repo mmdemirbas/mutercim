@@ -179,7 +179,7 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 		}
 
 		start := time.Now()
-		regions, err := tool.DetectRegions(ctx, imgPath, params)
+		detectResult, err := tool.DetectRegions(ctx, imgPath, params)
 		ms := time.Since(start).Milliseconds()
 		totalMs += ms
 
@@ -199,6 +199,8 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 			continue
 		}
 
+		regions := detectResult.Regions
+
 		// Count classes for report
 		for _, r := range regions {
 			if r.RawClass != "" {
@@ -211,7 +213,7 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 		// Get page image dimensions for page_size
 		pageSize := getImageSize(imgPath)
 
-		// Build layout regions (no text, no style, no reading_order)
+		// Build layout regions
 		layoutRegions := make([]model.LayoutRegion, len(regions))
 		for i, r := range regions {
 			layoutRegions[i] = model.LayoutRegion{
@@ -220,16 +222,20 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 				Type:       r.Type,
 				RawClass:   r.RawClass,
 				Confidence: r.Confidence,
+				Zone:       r.Zone,
 			}
 		}
 
 		layoutPage := &model.LayoutPage{
-			Version:    "1.0",
-			PageNumber: pageNum,
-			PageSize:   pageSize,
-			Tool:       tool.Name(),
-			ToolParams: params,
-			Regions:    layoutRegions,
+			Version:        "1.0",
+			PageNumber:     pageNum,
+			PageSize:       pageSize,
+			Tool:           tool.Name(),
+			ToolParams:     params,
+			Regions:        layoutRegions,
+			ReadingOrder:   detectResult.ReadingOrder,
+			SeparatorY:     detectResult.SeparatorY,
+			PostProcessing: detectResult.PostProcessing,
 		}
 
 		// Save layout JSON atomically

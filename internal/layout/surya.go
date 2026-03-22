@@ -117,7 +117,7 @@ var knownSuryaParams = map[string]bool{
 //
 // params supports these keys (all optional):
 //   - languages (string): comma-separated OCR language codes, default "ar"
-func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) ([]model.Region, error) {
+func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) (*DetectResult, error) {
 	// Auto-build Docker image if needed
 	if s.DockerfileDir != "" {
 		if err := docker.EnsureImage(ctx, s.DockerImage, s.DockerfileDir); err != nil {
@@ -167,7 +167,7 @@ func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, params 
 		}
 	}
 
-	return regions, nil
+	return &DetectResult{Regions: regions}, nil
 }
 
 // getString extracts a string from a map[string]any.
