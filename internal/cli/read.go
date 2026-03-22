@@ -182,16 +182,34 @@ func defaultRPM(providerName string) int {
 	}
 }
 
-// defaultVision returns whether a provider supports vision by default.
-func defaultVision(providerName string) bool {
+// detectVision determines whether a model supports vision input.
+// Provider-native APIs (gemini, claude, ollama) always support vision.
+// For OpenAI-compatible providers, we check the model name for known
+// vision-capable patterns. Users can always override via the `vision` field.
+func detectVision(providerName, modelName string) bool {
+	// Native providers always support vision
 	switch providerName {
-	case "gemini", "claude", "openai", "ollama":
+	case "gemini", "claude", "openai":
 		return true
-	case "groq", "mistral", "openrouter", "xai":
-		return false
-	default:
-		return false
+	case "ollama":
+		return true
 	}
+
+	// OpenAI-compatible providers: check model name for vision patterns
+	lower := strings.ToLower(modelName)
+	visionPatterns := []string{
+		"vision", "vl", "scout", "pixtral",
+		"gemma-3", "gemma3",
+		"gpt-4o", "gpt-4-turbo",
+		"llava", "bakllava",
+	}
+	for _, pattern := range visionPatterns {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // createProviderChain builds a failover chain from a list of model specs.
@@ -242,7 +260,7 @@ func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig,
 
 // buildSingleProvider creates one provider from a ModelSpec.
 func buildSingleProvider(spec config.ModelSpec, client *apiclient.Client, apiKey string) (provider.Provider, error) {
-	vision := defaultVision(spec.Provider)
+	vision := detectVision(spec.Provider, spec.Model)
 	if spec.Vision != nil {
 		vision = *spec.Vision
 	}
