@@ -22,7 +22,8 @@ type FailoverChain struct {
 	logger         *slog.Logger
 	now            func() time.Time // injectable for testing
 	// OnFailover is called when switching to a different provider due to quota exhaustion.
-	OnFailover func(exhaustedProvider, nextProvider string)
+	OnFailover    func(exhaustedProvider, nextProvider string)
+	lastUsedModel string // label of the provider that last served a successful request
 }
 
 type chainEntry struct {
@@ -128,6 +129,14 @@ func (f *FailoverChain) ActiveProvider(needsVision bool) string {
 	return ""
 }
 
+// LastUsedModel returns the label of the provider that last served a successful request.
+// Returns empty string if no request has succeeded yet.
+func (f *FailoverChain) LastUsedModel() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.lastUsedModel
+}
+
 // ActiveModel returns the display label (e.g. "groq/llama-3.3-70b") of the
 // first non-exhausted, eligible provider. Falls back to provider name.
 func (f *FailoverChain) ActiveModel(needsVision bool) string {
@@ -167,6 +176,9 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 
 		result, err := fn(p)
 		if err == nil {
+			f.mu.Lock()
+			f.lastUsedModel = e.modelLabel
+			f.mu.Unlock()
 			return result, nil
 		}
 

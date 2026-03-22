@@ -263,7 +263,13 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			recentTranslated = recentTranslated[len(recentTranslated)-contextWindow:]
 		}
 		completed++
-		logger.Info("page translated", "input", stem, "page", pf.pageNum, "completed", completed)
+		usedModel := currentModel
+		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
+			if m := chain.LastUsedModel(); m != "" {
+				usedModel = m
+			}
+		}
+		logger.Info("page translated", "input", stem, "page", pf.pageNum, "model", usedModel, "completed", completed)
 		if opts.Display != nil {
 			opts.Display.Update(display.PageResult{
 				Phase: display.PhaseTranslate, Input: stem, PageNum: pf.pageNum,

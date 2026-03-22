@@ -285,11 +285,19 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 
 		completed++
 
+		// Use the model that actually served the request (reflects failover)
+		usedModel := currentModel
+		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
+			if m := chain.LastUsedModel(); m != "" {
+				usedModel = m
+			}
+		}
+
 		logger.Info("page read complete",
 			"input", stem,
 			"page", pageNum,
 			"layout", hasLayout,
-			"model", currentModel,
+			"model", usedModel,
 			"regions", len(regionPage.Regions),
 			"warnings", len(regionPage.Warnings),
 		)
