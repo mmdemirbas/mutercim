@@ -284,6 +284,20 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		opts.Display.FinishPhase(display.PhaseTranslate, stem, targetLang)
 	}
 	logger.Info("translation complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
+
+	// Write report
+	report := map[string]any{
+		"target_lang":     targetLang,
+		"pages_completed": completed,
+		"pages_failed":    failed,
+		"pages_skipped":   skipped,
+	}
+	if data, err := json.MarshalIndent(report, "", "  "); err == nil {
+		if err := atomicWriteFile(filepath.Join(translatedDir, "report.json"), data); err != nil {
+			logger.Warn("failed to write translate report", "error", err)
+		}
+	}
+
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 

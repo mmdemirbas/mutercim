@@ -320,6 +320,18 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	}
 	logger.Info("input read complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
 
+	// Write report
+	report := map[string]any{
+		"pages_completed": completed,
+		"pages_failed":    failed,
+		"pages_skipped":   skipped,
+	}
+	if data, err := json.MarshalIndent(report, "", "  "); err == nil {
+		if err := atomicWriteFile(filepath.Join(readDir, "report.json"), data); err != nil {
+			logger.Warn("failed to write read report", "error", err)
+		}
+	}
+
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 

@@ -160,6 +160,19 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		opts.Display.FinishPhase(display.PhaseSolve, stem, "")
 	}
 	logger.Info("solve complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
+
+	// Write report
+	report := map[string]any{
+		"pages_completed": completed,
+		"pages_failed":    failed,
+		"pages_skipped":   skipped,
+	}
+	if data, err := json.MarshalIndent(report, "", "  "); err == nil {
+		if err := atomicWriteFile(filepath.Join(solvedDir, "report.json"), data); err != nil {
+			logger.Warn("failed to write solve report", "error", err)
+		}
+	}
+
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
 }
 

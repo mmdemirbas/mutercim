@@ -201,6 +201,19 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 		logger.Info("write complete", "input", stem, "wrote", succeeded, "failed", failed)
 	}
 
+	// Write report (langWriteDir already defined above)
+	report := map[string]any{
+		"target_lang":       targetLang,
+		"pages":             len(pages),
+		"formats_succeeded": succeeded,
+		"formats_failed":    failed,
+	}
+	if data, err := json.MarshalIndent(report, "", "  "); err == nil {
+		if err := atomicWriteFile(filepath.Join(langWriteDir, "report.json"), data); err != nil {
+			logger.Warn("failed to write report", "error", err)
+		}
+	}
+
 	// Only return error if ALL formats failed
 	if len(succeeded) == 0 && len(failed) > 0 {
 		return fmt.Errorf("all formats failed for %s [%s]: %s", stem, targetLang, strings.Join(failed, "; "))
