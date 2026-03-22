@@ -54,8 +54,7 @@ type LayoutConfig struct {
 
 // OCRConfig holds OCR phase settings.
 type OCRConfig struct {
-	Tool     string `yaml:"tool,omitempty" mapstructure:"tool" json:"tool,omitempty"`             // "qari" or "" (disabled, skip OCR phase)
-	Quantize string `yaml:"quantize,omitempty" mapstructure:"quantize" json:"quantize,omitempty"` // "8bit" (recommended) or "none" (full precision)
+	Tool string `yaml:"tool,omitempty" mapstructure:"tool" json:"tool,omitempty"` // "qari" or "" (disabled, skip OCR phase)
 }
 
 // ReadConfig holds read-phase settings.

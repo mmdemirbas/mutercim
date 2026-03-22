@@ -99,15 +99,6 @@
       "additionalProperties": false,
       "description": "OCR phase settings. Extracts text from page images using a specialized OCR model. Runs between layout and read phases. When enabled, the read phase can use text-only LLMs instead of vision models.",
       "properties": {
-        "quantize": {
-          "default": "8bit",
-          "description": "Model quantization for OCR. '8bit' is recommended by authors for OCR accuracy. 'none' uses full precision (more VRAM, marginally better).",
-          "enum": [
-            "8bit",
-            "none"
-          ],
-          "type": "string"
-        },
         "tool": {
           "default": "",
           "description": "OCR tool name. 'qari' uses Qari-OCR (Arabic-specialized, requires Docker). Empty string disables OCR (read phase uses vision LLM for text extraction).",

@@ -117,9 +117,6 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 			if ocrTool == nil {
 				return fmt.Errorf("unknown OCR tool: %q", cfg.OCR.Tool)
 			}
-			if qt, ok := ocrTool.(*ocr.QariTool); ok {
-				qt.Quantize = cfg.OCR.Quantize
-			}
 			if _, err := pipeline.OCR(ctx, pipeline.OCROptions{
 				Workspace: ws, Config: cfg, Tool: ocrTool,
 				Pages: pagesToProcess, Logger: logger, Display: disp,

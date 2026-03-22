@@ -127,9 +127,6 @@ func newAllCmd() *cobra.Command {
 				if ocrTool == nil {
 					return fmt.Errorf("unknown OCR tool: %q", cfg.OCR.Tool)
 				}
-				if qt, ok := ocrTool.(*ocr.QariTool); ok {
-					qt.Quantize = cfg.OCR.Quantize
-				}
 				if _, err := pipeline.OCR(cmd.Context(), pipeline.OCROptions{
 					Workspace: ws,
 					Config:    cfg,
@@ -286,13 +283,9 @@ func buildPhaseConfigs(cfg *config.Config) []display.PhaseConfig {
 
 	// OCR
 	if cfg.OCR.Tool != "" {
-		ocrInfo := cfg.OCR.Tool
-		if cfg.OCR.Quantize != "" {
-			ocrInfo += " (" + cfg.OCR.Quantize + ")"
-		}
 		configs = append(configs, display.PhaseConfig{
 			Phase: display.PhaseOCR,
-			Info:  ocrInfo,
+			Info:  cfg.OCR.Tool,
 		})
 	}
 

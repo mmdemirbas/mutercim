@@ -74,11 +74,6 @@ func newOCRCmd() *cobra.Command {
 			if tool == nil {
 				return fmt.Errorf("unknown OCR tool: %q", cfg.OCR.Tool)
 			}
-			// Apply quantize config
-			if qt, ok := tool.(*ocr.QariTool); ok {
-				qt.Quantize = cfg.OCR.Quantize
-			}
-
 			_, err = pipeline.OCR(cmd.Context(), pipeline.OCROptions{
 				Workspace: ws,
 				Config:    cfg,

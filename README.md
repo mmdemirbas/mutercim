@@ -205,8 +205,7 @@ layout:
 # OCR phase — text extraction (optional, runs between layout and read)
 # When enabled, the read phase can use text-only LLMs instead of vision models
 ocr:
-  tool: ""                       # "qari" (Qari-OCR, Arabic-specialized) or "" (disabled)
-  quantize: 8bit                 # "8bit" (recommended) or "none" (full precision)
+  tool: ""                       # "qari" (Qari-OCR v0.3, Arabic-specialized) or "" (disabled)
 
 # Read phase — structural analysis (uses OCR text and/or page images)
 read:

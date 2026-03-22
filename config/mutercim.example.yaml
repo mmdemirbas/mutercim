@@ -109,19 +109,17 @@ layout:
 # When disabled (default), the read phase uses vision LLMs for text extraction.
 #
 # Qari-OCR: Arabic-specialized 2B model with best-in-class diacritics (tashkeel)
-# recognition (0.061 CER). Runs locally in Docker as a persistent HTTP server.
+# recognition. Runs locally in Docker as a persistent HTTP server.
 # Model loads once (~30-60s), then serves requests. First build is ~5-10 min.
 
 # --- Option A: Disabled (default) ---
 # Read phase uses vision LLM for text extraction.
 ocr:
   tool: ""                         # "qari" or "" (disabled)
-  quantize: 8bit                   # "8bit" (recommended) or "none" (full precision)
 
 # --- Option B: Qari-OCR ---
 # ocr:
-#   tool: qari                     # Qari-OCR (NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct)
-#   quantize: 8bit                 # 8-bit quantization (recommended for OCR accuracy)
+#   tool: qari                     # Qari-OCR v0.3 (NAMAA-Space/Qari-OCR-v0.3-VL-2B-Instruct)
 
 # ─── Read phase (structural analysis) ───────────────────────────────────────
 #

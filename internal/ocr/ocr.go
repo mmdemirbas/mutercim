@@ -54,7 +54,7 @@ type Tool interface {
 func NewTool(name string) Tool {
 	switch name {
 	case "qari":
-		return NewQariTool("", "8bit")
+		return NewQariTool("")
 	default:
 		return nil
 	}

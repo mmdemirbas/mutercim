@@ -16,8 +16,7 @@ app = Flask(__name__)
 logger = logging.getLogger("qari-ocr")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-MODEL_NAME = os.environ.get("MODEL", "NAMAA-Space/Qari-OCR-0.2.2.1-VL-2B-Instruct")
-QUANTIZE = os.environ.get("QUANTIZE", "8bit")
+MODEL_NAME = os.environ.get("MODEL", "NAMAA-Space/Qari-OCR-v0.3-VL-2B-Instruct")
 DEVICE = os.environ.get("DEVICE", "cpu")
 MAX_TOKENS = int(os.environ.get("MAX_TOKENS", "2000"))
 
@@ -35,15 +34,12 @@ DEFAULT_PROMPT = (
 def load_model():
     """Load the Qari-OCR model and processor."""
     global model, processor, model_ready
-    logger.info(f"loading model {MODEL_NAME} (quantize={QUANTIZE}, device={DEVICE})")
+    logger.info(f"loading model {MODEL_NAME} (device={DEVICE})")
     start = time.time()
 
-    load_kwargs = {"torch_dtype": "auto", "device_map": DEVICE}
-    if QUANTIZE == "8bit":
-        from transformers import BitsAndBytesConfig
-        load_kwargs["quantization_config"] = BitsAndBytesConfig(load_in_8bit=True)
-
-    model = Qwen2VLForConditionalGeneration.from_pretrained(MODEL_NAME, **load_kwargs)
+    model = Qwen2VLForConditionalGeneration.from_pretrained(
+        MODEL_NAME, torch_dtype="auto", device_map="auto"
+    )
     processor = AutoProcessor.from_pretrained(MODEL_NAME)
     model_ready = True
     logger.info(f"model loaded in {time.time() - start:.1f}s")
@@ -88,7 +84,7 @@ def run_ocr(image, prompt=None):
 def health():
     """Health check endpoint."""
     if model_ready:
-        return jsonify({"status": "ready", "model": MODEL_NAME, "quantize": QUANTIZE})
+        return jsonify({"status": "ready", "model": MODEL_NAME})
     return jsonify({"status": "loading"}), 503
 
 

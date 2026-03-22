@@ -24,7 +24,6 @@ type OCRRegion struct {
 type OCRReport struct {
 	Tool            string `json:"tool"`
 	Model           string `json:"model"`
-	Quantize        string `json:"quantize"`
 	PagesProcessed  int    `json:"pages_processed"`
 	PagesFailed     int    `json:"pages_failed"`
 	AvgMs           int    `json:"avg_ms"`

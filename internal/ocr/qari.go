@@ -36,23 +36,18 @@ const (
 type QariTool struct {
 	DockerImage   string
 	DockerfileDir string
-	Quantize      string // "8bit" or "none"
-	port          int    // dynamically assigned port
+	port          int // dynamically assigned port
 	client        *http.Client
 }
 
-// NewQariTool creates a QariTool with the given Docker image and quantization setting.
-func NewQariTool(image, quantize string) *QariTool {
+// NewQariTool creates a QariTool with the given Docker image.
+func NewQariTool(image string) *QariTool {
 	if image == "" {
 		image = DefaultQariImage
-	}
-	if quantize == "" {
-		quantize = "8bit"
 	}
 	return &QariTool{
 		DockerImage:   image,
 		DockerfileDir: docker.FindDockerDir("qari-ocr"),
-		Quantize:      quantize,
 		client:        &http.Client{Timeout: 120 * time.Second},
 	}
 }
@@ -92,17 +87,11 @@ func (q *QariTool) Start(ctx context.Context) error {
 	q.port = port
 
 	// Start container
-	quantizeEnv := q.Quantize
-	if quantizeEnv == "" {
-		quantizeEnv = "8bit"
-	}
-
-	slog.Info("starting qari-ocr container", "port", port, "quantize", quantizeEnv, "image", q.DockerImage)
+	slog.Info("starting qari-ocr container", "port", port, "image", q.DockerImage)
 	args := []string{
 		"run", "-d", "--rm",
 		"--name", qariContainerName,
 		"-p", fmt.Sprintf("%d:8000", port),
-		"-e", "QUANTIZE=" + quantizeEnv,
 		q.DockerImage,
 	}
 

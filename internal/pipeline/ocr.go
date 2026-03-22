@@ -290,8 +290,6 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 	}
 	report := model.OCRReport{
 		Tool:            opts.Tool.Name(),
-		Model:           "",
-		Quantize:        opts.Config.OCR.Quantize,
 		PagesProcessed:  completed,
 		PagesFailed:     failed,
 		AvgMs:           avgMs,
