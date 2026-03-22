@@ -2,6 +2,7 @@ FROM python:3.11-slim
 
 RUN pip install --no-cache-dir \
     torch \
+    torchvision \
     transformers \
     accelerate \
     qwen_vl_utils \

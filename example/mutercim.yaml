@@ -24,7 +24,6 @@ layout:
 
 ocr:
   tool: qari
-  quantize: 8bit
 
 read:
   models:
