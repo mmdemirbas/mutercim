@@ -7,6 +7,7 @@ detected document regions, their bounding boxes, types, and confidence scores.
 Usage:
     Single file:  python entrypoint.py /input/page.png
     Directory:    python entrypoint.py /input/
+    With params:  python entrypoint.py --conf 0.15 --iou 0.3 --imgsz 1280 /input/page.png
 
 Output (single file): JSON to stdout:
     {"regions": [{"bbox": [x1, y1, x2, y2], "type": "title", "confidence": 0.95}],
@@ -15,11 +16,18 @@ Output (single file): JSON to stdout:
 Output (directory): JSONL to stdout, one JSON per line:
     {"file": "001.png", "regions": [...], "image_size": {...}}
 
+Tunable parameters (passed to YOLO model.predict()):
+    --conf    Confidence threshold, 0.0-1.0 (default: 0.2)
+    --iou     IoU threshold for NMS, 0.0-1.0 (default: 0.7)
+    --imgsz   Input image size in pixels (default: 1024)
+    --max-det Maximum detections per image (default: 300)
+
 Environment:
     DEVICE  - torch device (default: "cpu"). Set to "cuda" for GPU.
     MODEL   - model path (default: /models/doclayout_yolo_docstructbench_imgsz1024.pt)
 """
 
+import argparse
 import json
 import os
 import sys
@@ -36,10 +44,16 @@ def load_model():
     return YOLOv10(model_path)
 
 
-def detect_regions(model, image_path, device):
+def detect_regions(model, image_path, device, conf, iou, imgsz, max_det):
     """Run detection on a single image and return result dict."""
     results = model.predict(
-        str(image_path), imgsz=1024, conf=0.2, device=device, verbose=False
+        str(image_path),
+        imgsz=imgsz,
+        conf=conf,
+        iou=iou,
+        max_det=max_det,
+        device=device,
+        verbose=False,
     )
 
     regions = []
@@ -48,14 +62,14 @@ def detect_regions(model, image_path, device):
         boxes = result.boxes
         for i in range(len(boxes)):
             xyxy = boxes.xyxy[i].tolist()  # [x1, y1, x2, y2]
-            conf = float(boxes.conf[i])
+            conf_score = float(boxes.conf[i])
             cls_id = int(boxes.cls[i])
             cls_name = result.names[cls_id]
 
             regions.append({
                 "bbox": [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])],
                 "type": cls_name,
-                "confidence": round(conf, 4),
+                "confidence": round(conf_score, 4),
             })
 
     # Get image size from the result
@@ -69,11 +83,19 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".webp"}
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: entrypoint.py <image_path_or_directory>", file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="DocLayout-YOLO layout detection")
+    parser.add_argument("input", help="Image path or directory")
+    parser.add_argument("--conf", type=float, default=0.2,
+                        help="Confidence threshold (default: 0.2)")
+    parser.add_argument("--iou", type=float, default=0.7,
+                        help="IoU threshold for NMS (default: 0.7)")
+    parser.add_argument("--imgsz", type=int, default=1024,
+                        help="Input image size (default: 1024)")
+    parser.add_argument("--max-det", type=int, default=300,
+                        help="Maximum detections per image (default: 300)")
+    args = parser.parse_args()
 
-    input_path = Path(sys.argv[1])
+    input_path = Path(args.input)
     device = os.environ.get("DEVICE", "cpu")
 
     model = load_model()
@@ -85,12 +107,14 @@ def main():
             if p.suffix.lower() in IMAGE_EXTENSIONS
         )
         for img_path in images:
-            result = detect_regions(model, img_path, device)
+            result = detect_regions(model, img_path, device,
+                                    args.conf, args.iou, args.imgsz, args.max_det)
             result["file"] = img_path.name
             print(json.dumps(result, ensure_ascii=False))
     else:
         # Single file mode
-        result = detect_regions(model, input_path, device)
+        result = detect_regions(model, input_path, device,
+                                args.conf, args.iou, args.imgsz, args.max_det)
         json.dump(result, sys.stdout, ensure_ascii=False)
 
 

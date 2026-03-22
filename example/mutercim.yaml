@@ -4,84 +4,50 @@ inputs: [ { path: ./Anfas1.pdf, pages: "156", languages: [ ar ] } ]
 knowledge: [ ./glossary.yaml ]
 output: ./output
 
-# ─── Pages phase (PDF → images) ─────────────────────────────────────────────
 pages:
-  dpi: 300 # DPI for PDF-to-image conversion (min: 72) — higher = better OCR, larger files
-
-# ─── Read phase (OCR/vision) ─────────────────────────────────────────────────
-#
-# Sends page images to AI vision models to extract structured JSON.
-# Models are tried in order; on 429/quota exhaustion, fails over to next.
-# All models here must support vision (image input).
-#
-# Providers:  gemini | claude | openai | groq | mistral | openrouter | xai | ollama
-# Default RPMs: gemini=10, groq=30, mistral=60, openrouter=20, openai=500, ollama=1000
-#
-# Per-model options:
-#   rpm:      Requests per minute override (0 = provider default)
-#   vision:   Vision support override (true/false, null = auto-detect)
-#   base_url: Custom API URL (for self-hosted OpenAI-compatible endpoints)
-#
-# API keys: put in .env file (GEMINI_API_KEY, GROQ_API_KEY, etc.)
-#   Gemini:     aistudio.google.com
-#   Groq:       console.groq.com — instant, no credit card
-#   Mistral:    console.mistral.ai — free tier available
-#   xAI:        console.x.ai — $25 free credits on signup
-#   OpenRouter: openrouter.ai — free models available immediately
+  dpi: 300
 
 read:
   debug: true
-  layout_tool: "doclayout-yolo"      # Layout detection tool (default: doclayout-yolo)
-  #   "doclayout-yolo" — DocLayout-YOLO: detects document structure (headers, columns,
-  #     footnotes, tables). Best for multi-column layouts. Requires Docker + image.
-  #   "surya" — Surya OCR: detects text lines with preliminary OCR. Requires Docker + image.
-  #   "" — AI-only: vision model handles both layout detection and text extraction
-  models: # Ordered failover chain — first is primary
-    # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
+  layout_tool: "doclayout-yolo"
+  # Tuning parameters for the layout tool (doclayout-yolo).
+  # These control how aggressively the YOLO model detects and merges regions.
+  # Use with read.debug: true to visualize the effect on debug overlay images.
+  #
+  #   confidence — minimum detection score to keep (0.0–1.0, default 0.2)
+  #     Lower → more detections (finer, possibly noisy)
+  #     Higher → fewer detections (only high-certainty regions)
+  #   iou — IoU threshold for non-maximum suppression (0.0–1.0, default 0.7)
+  #     Lower → more aggressive merging of overlapping boxes
+  #     Higher → allows more overlapping detections to coexist
+  #   image_size — input resolution for inference in pixels (default 1024)
+  #     Larger → more detail for the model, slower inference
+  #   max_det — maximum detections per page (default 300)
+  layout_tool_params:
+    confidence: 0.15
+    iou: 0.3
+    image_size: 1280
+  models:
     - { provider: gemini, model: gemini-2.5-flash-lite }
-    # 2. Gemini Flash: higher quality, lower quota (250 RPD, 10 RPM)
     - { provider: gemini, model: gemini-2.5-flash }
-    # 3. Groq: fast, vision via Llama (1,000 RPD, 30 RPM)
     - { provider: groq, model: llama-3.2-90b-vision-preview }
-    # 4. xAI: $25 free credits, good vision
-    #- { provider: xai, model: grok-2-vision-latest }
-    # 5. Local fallback: always available, slow
     - { provider: ollama, model: qwen2.5vl:7b }
-  concurrency: 1                     # Parallel read workers (min: 1) — currently only 1 supported
+  concurrency: 1
   retry:
-    max_attempts: 0                  # Max retries per API call before marking page as failed (min: 0)
-    backoff_seconds: 2               # Base backoff in seconds, exponential: 2s, 4s, 8s... (min: 1)
-
-# ─── Translation phase ───────────────────────────────────────────────────────
-#
-# Sends structured page data to AI with knowledge-enriched prompts.
-# Vision is NOT required — text-only models work here.
-# Glossary knowledge is injected into the system prompt.
+    max_attempts: 0
+    backoff_seconds: 2
 
 translate:
-  languages: [ ar, en, tr ]           # Target languages — each gets its own translate/ and write/ subdirectory
-  models: # Ordered failover chain — vision not required
-    # 1. Groq: fastest inference, good Arabic (1,000 RPD, 30 RPM)
+  languages: [ ar, en, tr ]
+  models:
     - { provider: groq, model: llama-3.3-70b-versatile }
-    # 2. Gemini Flash-Lite: good quality (1,000 RPD, 15 RPM)
     - { provider: gemini, model: gemini-2.5-flash-lite }
-    # 3. Mistral: massive free quota (~1B tokens/month)
     - { provider: mistral, model: mistral-small-latest }
-    # 4. Gemini Flash: higher quality fallback (250 RPD)
     - { provider: gemini, model: gemini-2.5-flash }
-    # 5. xAI: $25 free credits
-    #- { provider: xai, model: grok-2-latest }
-    # 6. OpenRouter: community-funded free models
     - { provider: openrouter, model: meta-llama/llama-3.3-70b-instruct:free }
-    # 7. Local fallback
     - { provider: ollama, model: qwen3:14b }
-  context_window: 2                  # Previous pages included for continuity (min: 0, higher = more tokens)
-
-# ─── Write phase ─────────────────────────────────────────────────────────────
-#
-# Renders translated data into final output files under write/<lang>/.
-# Output files are named "book" (fixed).
+  context_window: 2
 
 write:
-  formats: [ md, latex, docx, pdf ]    # Output formats: md | latex (.tex only) | pdf (.tex + compile) | docx (via pandoc)
-  expand_sources: true               # Expand source abbreviations in output (e.g. خ → Sahîh-i Buhârî)
+  formats: [ md, latex, docx, pdf ]
+  expand_sources: true

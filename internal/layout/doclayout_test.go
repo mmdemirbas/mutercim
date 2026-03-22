@@ -140,7 +140,7 @@ func TestDocLayoutTool_DetectRegions_Success(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/pages/156.png")
+	regions, err := tool.DetectRegions(context.Background(), "/tmp/pages/156.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -158,6 +158,13 @@ func TestDocLayoutTool_DetectRegions_Success(t *testing.T) {
 	}
 	if regions[0].LayoutSource != model.LayoutSourceDocLayout {
 		t.Errorf("regions[0].LayoutSource = %q, want %q", regions[0].LayoutSource, model.LayoutSourceDocLayout)
+	}
+	// Confidence and RawClass should be set
+	if regions[0].Confidence != 0.95 {
+		t.Errorf("regions[0].Confidence = %v, want 0.95", regions[0].Confidence)
+	}
+	if regions[0].RawClass != "title" {
+		t.Errorf("regions[0].RawClass = %q, want %q", regions[0].RawClass, "title")
 	}
 	// Regions should have NO text
 	if regions[0].Text != "" {
@@ -216,7 +223,7 @@ func TestDocLayoutTool_DetectRegions_DockerError(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png")
+	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err == nil {
 		t.Fatal("DetectRegions: expected error, got nil")
 	}
@@ -233,7 +240,7 @@ func TestDocLayoutTool_DetectRegions_InvalidJSON(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png")
+	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err == nil {
 		t.Fatal("DetectRegions: expected error, got nil")
 	}
@@ -251,7 +258,7 @@ func TestDocLayoutTool_DetectRegions_EmptyRegions(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png")
+	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -278,18 +285,17 @@ func TestDocLayoutTool_DetectRegions_ConfidenceFiltering(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png")
+	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
-	if len(regions) != 2 {
-		t.Fatalf("len(regions) = %d, want 2 (filtered out low confidence)", len(regions))
+	// Go-side confidence filtering was removed (filtering happens in the Python script),
+	// so all 4 regions should be returned.
+	if len(regions) != 4 {
+		t.Fatalf("len(regions) = %d, want 4 (no Go-side confidence filtering)", len(regions))
 	}
 	if regions[0].Type != model.RegionTypeHeader {
 		t.Errorf("regions[0].Type = %q, want %q", regions[0].Type, model.RegionTypeHeader)
-	}
-	if regions[1].Type != model.RegionTypeFootnote {
-		t.Errorf("regions[1].Type = %q, want %q", regions[1].Type, model.RegionTypeFootnote)
 	}
 }
 
@@ -309,7 +315,7 @@ func TestDocLayoutTool_DetectRegions_AbandonSkipped(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png")
+	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -451,6 +457,56 @@ func TestSortReadingOrderRTL_SingleRegion(t *testing.T) {
 	SortReadingOrderRTL(regions)
 	if regions[0].ID != "only" {
 		t.Errorf("ID = %q, want %q", regions[0].ID, "only")
+	}
+}
+
+func TestDocLayoutTool_DetectRegions_WithParams(t *testing.T) {
+	dlJSON := docLayoutOutput{
+		Regions: []docLayoutRegion{
+			{BBox: [4]int{100, 50, 800, 100}, Type: "title", Confidence: 0.95},
+		},
+	}
+	dlJSON.ImageSize.Width = 1000
+	dlJSON.ImageSize.Height = 1500
+	out, _ := json.Marshal(dlJSON)
+
+	cmd := &mockCommander{
+		returns: []mockReturn{
+			{output: out, err: nil},
+		},
+	}
+	tool := newDocLayoutToolWithCommander("", cmd)
+
+	params := map[string]any{
+		"confidence": 0.15,
+		"iou":        0.3,
+	}
+	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", params)
+	if err != nil {
+		t.Fatalf("DetectRegions: %v", err)
+	}
+
+	if len(cmd.calls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(cmd.calls))
+	}
+
+	args := cmd.calls[0].args
+	// Check that --conf 0.1500 and --iou 0.3000 appear in the args
+	foundConf := false
+	foundIou := false
+	for i, arg := range args {
+		if arg == "--conf" && i+1 < len(args) && args[i+1] == "0.1500" {
+			foundConf = true
+		}
+		if arg == "--iou" && i+1 < len(args) && args[i+1] == "0.3000" {
+			foundIou = true
+		}
+	}
+	if !foundConf {
+		t.Errorf("expected --conf 0.1500 in args, got %v", args)
+	}
+	if !foundIou {
+		t.Errorf("expected --iou 0.3000 in args, got %v", args)
 	}
 }
 

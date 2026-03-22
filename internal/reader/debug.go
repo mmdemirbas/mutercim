@@ -82,11 +82,8 @@ func GenerateDebugOverlay(pageImg image.Image, regions []model.Region, readingOr
 		// Draw 2px solid border
 		drawRectBorder(overlay, rect, c, 2)
 
-		// Draw label: "type id" with background
-		label := fmt.Sprintf("%s %s", region.Type, region.ID)
-		if orderNum, ok := readingOrder[region.ID]; ok {
-			label = fmt.Sprintf("[%d] %s %s", orderNum, region.Type, region.ID)
-		}
+		// Draw label with raw class mapping and confidence
+		label := formatDebugLabel(region, readingOrder)
 		drawLabel(overlay, x, y, label, c)
 	}
 
@@ -129,6 +126,28 @@ func drawRectBorder(img *image.RGBA, rect image.Rectangle, c color.RGBA, thickne
 	draw.Draw(img, image.Rect(rect.Min.X, rect.Min.Y, rect.Min.X+thickness, rect.Max.Y), solid, image.Point{}, draw.Over)
 	// Right edge
 	draw.Draw(img, image.Rect(rect.Max.X-thickness, rect.Min.Y, rect.Max.X, rect.Max.Y), solid, image.Point{}, draw.Over)
+}
+
+// formatDebugLabel builds the label text for a region in the debug overlay.
+// Shows [raw→mapped conf] id format when raw class info is available.
+func formatDebugLabel(region model.Region, readingOrder map[string]int) string {
+	var label string
+	if region.RawClass != "" && region.RawClass != region.Type {
+		label = fmt.Sprintf("[%s\u2192%s", region.RawClass, region.Type)
+		if region.Confidence > 0 {
+			label += fmt.Sprintf(" %.2f", region.Confidence)
+		}
+		label += "] " + region.ID
+	} else if region.Confidence > 0 {
+		label = fmt.Sprintf("[%s %.2f] %s", region.Type, region.Confidence, region.ID)
+	} else {
+		label = fmt.Sprintf("%s %s", region.Type, region.ID)
+	}
+
+	if orderNum, ok := readingOrder[region.ID]; ok {
+		label = fmt.Sprintf("[%d] %s", orderNum, label)
+	}
+	return label
 }
 
 // drawLabel draws text with a filled background at the given position.

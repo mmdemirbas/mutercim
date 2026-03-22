@@ -68,6 +68,31 @@ read:
                                      #     footnotes, tables). Best for multi-column layouts. Requires Docker + image.
                                      #   "surya" — Surya OCR: detects text lines with preliminary OCR. Requires Docker + image.
                                      #   "" — AI-only: vision model handles both layout detection and text extraction
+  # layout_tool_params — tuning parameters for the layout tool.
+  # Each layout tool interprets its own params. Unknown keys are logged and ignored.
+  #
+  # For doclayout-yolo:
+  #   confidence (float, default 0.2)
+  #     Minimum detection score to keep a region (0.0–1.0).
+  #     Lower → more detections (finer granularity, possibly noisy).
+  #     Higher → fewer detections (only high-certainty regions).
+  #   iou (float, default 0.7)
+  #     IoU threshold for non-maximum suppression (0.0–1.0).
+  #     Lower → more aggressive merging of overlapping boxes.
+  #     Higher → allows more overlapping detections to coexist.
+  #   image_size (int, default 1024)
+  #     Input image size in pixels for model inference. The model resizes
+  #     the page to this size internally. Larger → more detail, slower.
+  #   max_det (int, default 300)
+  #     Maximum number of detections per page image.
+  #
+  # Surya does not currently use any params.
+  #
+  # Uncomment and adjust to experiment (use read.debug: true to see results):
+  # layout_tool_params:
+  #   confidence: 0.15
+  #   iou: 0.3
+  #   image_size: 1280
   models:                            # Ordered failover chain — first is primary
     # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
     - { provider: gemini, model: gemini-2.5-flash-lite }

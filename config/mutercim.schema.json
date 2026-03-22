@@ -91,6 +91,7 @@
           ],
           "type": "string"
         },
+        "layout_tool_params": {},
         "models": {
           "description": "Ordered failover chain of AI models for OCR. The first model is primary; if it returns 429/quota errors, the next model is tried. All models must support vision for the read phase.",
           "items": {

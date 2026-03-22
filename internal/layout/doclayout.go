@@ -15,12 +15,31 @@ import (
 // DefaultDocLayoutImage is the Docker image used for DocLayout-YOLO detection.
 const DefaultDocLayoutImage = "mutercim/doclayout-yolo:latest"
 
-// MinConfidence is the minimum confidence threshold for accepting a region.
-const MinConfidence = 0.2
-
 // rowClusterThreshold is the maximum vertical distance (in pixels) between
 // region midpoints to consider them part of the same row.
 const rowClusterThreshold = 30
+
+// DocLayout-YOLO tunable parameters (passed to entrypoint.py via CLI flags):
+//
+//   --conf      Confidence threshold, 0.0-1.0 (default: 0.2). Minimum score
+//               to keep a detection. Lower → more detections, possibly noisy.
+//   --iou       IoU threshold for NMS, 0.0-1.0 (default: 0.7). Controls how
+//               aggressively overlapping boxes are merged. Lower → less merging.
+//   --imgsz     Input image size in pixels (default: 1024). The model resizes
+//               the input to this size for inference. Larger → more detail but
+//               slower.
+//   --max-det   Maximum detections per image (default: 300).
+//
+// These correspond to keys in the layout_tool_params config map:
+//   confidence, iou, image_size, max_det
+
+// knownDocLayoutParams lists the parameter names this tool recognizes.
+var knownDocLayoutParams = map[string]bool{
+	"confidence": true,
+	"iou":        true,
+	"image_size": true,
+	"max_det":    true,
+}
 
 // DocLayoutTool uses the DocLayout-YOLO model running in Docker
 // to detect document layout regions with bounding boxes and type labels.
@@ -126,15 +145,43 @@ var docLayoutTypeMap = map[string]string{
 // and returns detected regions with bounding boxes and type labels.
 // Regions have NO text content — only bbox and type. Text is filled in by
 // the vision LLM in the next step.
-func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string) ([]model.Region, error) {
+//
+// params supports these keys (all optional):
+//   - confidence (float64): confidence threshold, default 0.2
+//   - iou (float64): IoU threshold for NMS, default 0.7
+//   - image_size (int): input image size, default 1024
+//   - max_det (int): max detections, default 300
+func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) ([]model.Region, error) {
+	// Warn on unknown params
+	for k := range params {
+		if !knownDocLayoutParams[k] {
+			slog.Warn("unknown layout_tool_param ignored", "param", k, "tool", "doclayout-yolo")
+		}
+	}
+
 	dir := filepath.Dir(imagePath)
 	base := filepath.Base(imagePath)
 	args := []string{
 		"run", "--rm",
 		"-v", dir + ":/input",
 		d.DockerImage,
-		"/input/" + base,
 	}
+
+	// Append tool params as CLI flags
+	if v, ok := getFloat(params, "confidence"); ok {
+		args = append(args, "--conf", fmt.Sprintf("%.4f", v))
+	}
+	if v, ok := getFloat(params, "iou"); ok {
+		args = append(args, "--iou", fmt.Sprintf("%.4f", v))
+	}
+	if v, ok := getInt(params, "image_size"); ok {
+		args = append(args, "--imgsz", fmt.Sprintf("%d", v))
+	}
+	if v, ok := getInt(params, "max_det"); ok {
+		args = append(args, "--max-det", fmt.Sprintf("%d", v))
+	}
+
+	args = append(args, "/input/"+base)
 
 	out, err := d.commander.Run(ctx, "docker", args...)
 	if err != nil {
@@ -146,12 +193,22 @@ func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string) ([]
 		return nil, fmt.Errorf("doclayout-yolo parse output: %w\nraw: %s", err, string(out))
 	}
 
+	// Class distribution for DEBUG logging
+	classCounts := make(map[string]int)
+	var confMin, confMax, confSum float64
+	confMin = 1.0
+
 	var regions []model.Region
 	id := 1
 	for _, dr := range result.Regions {
-		if dr.Confidence < MinConfidence {
-			continue
+		classCounts[dr.Type]++
+		if dr.Confidence < confMin {
+			confMin = dr.Confidence
 		}
+		if dr.Confidence > confMax {
+			confMax = dr.Confidence
+		}
+		confSum += dr.Confidence
 
 		regionType := MapDocLayoutType(dr.Type)
 		if regionType == "" {
@@ -166,8 +223,27 @@ func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string) ([]
 			BBox:         bbox,
 			Type:         regionType,
 			LayoutSource: model.LayoutSourceDocLayout,
+			Confidence:   dr.Confidence,
+			RawClass:     dr.Type,
 		})
 		id++
+	}
+
+	// Log class distribution at DEBUG level
+	if len(result.Regions) > 0 {
+		var parts []string
+		for cls, count := range classCounts {
+			parts = append(parts, fmt.Sprintf("%s:%d", cls, count))
+		}
+		sort.Strings(parts)
+		confMean := confSum / float64(len(result.Regions))
+		slog.Debug("layout detection complete",
+			"detections", len(result.Regions),
+			"classes", strings.Join(parts, ","),
+			"conf_min", fmt.Sprintf("%.2f", confMin),
+			"conf_max", fmt.Sprintf("%.2f", confMax),
+			"conf_mean", fmt.Sprintf("%.2f", confMean),
+		)
 	}
 
 	// Sort by reading order: top-to-bottom, right-to-left (RTL)
@@ -226,4 +302,44 @@ func abs(x int) int {
 		return -x
 	}
 	return x
+}
+
+// getFloat extracts a float64 from a map[string]any, handling int and float types.
+func getFloat(m map[string]any, key string) (float64, bool) {
+	v, ok := m[key]
+	if !ok {
+		return 0, false
+	}
+	switch val := v.(type) {
+	case float64:
+		return val, true
+	case float32:
+		return float64(val), true
+	case int:
+		return float64(val), true
+	case int64:
+		return float64(val), true
+	default:
+		return 0, false
+	}
+}
+
+// getInt extracts an int from a map[string]any, handling int and float types.
+func getInt(m map[string]any, key string) (int, bool) {
+	v, ok := m[key]
+	if !ok {
+		return 0, false
+	}
+	switch val := v.(type) {
+	case int:
+		return val, true
+	case int64:
+		return int(val), true
+	case float64:
+		return int(val), true
+	case float32:
+		return int(val), true
+	default:
+		return 0, false
+	}
 }

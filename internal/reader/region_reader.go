@@ -28,6 +28,8 @@ type Reader struct {
 	// DebugDir, when non-empty, enables layout debug overlays.
 	// Annotated PNG images are written to this directory after layout detection.
 	DebugDir string
+	// LayoutParams holds tool-specific tuning parameters passed to the layout tool.
+	LayoutParams map[string]any
 }
 
 // ReadResult bundles the read page with layout detection metrics.
@@ -81,7 +83,7 @@ func (r *Reader) ReadRegionPage(ctx context.Context, image []byte, imagePath str
 
 		start := time.Now()
 		var err error
-		layoutRegions, err = layoutTool.DetectRegions(ctx, imagePath)
+		layoutRegions, err = layoutTool.DetectRegions(ctx, imagePath, r.LayoutParams)
 		layoutMs = int(time.Since(start).Milliseconds())
 
 		if err != nil {

@@ -36,7 +36,7 @@ func (m *mockCommander) Run(_ context.Context, name string, args ...string) ([]b
 
 func TestNoneTool_DetectRegions(t *testing.T) {
 	tool := NoneTool{}
-	regions, err := tool.DetectRegions(context.Background(), "/any/path.png")
+	regions, err := tool.DetectRegions(context.Background(), "/any/path.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestSuryaTool_DetectRegions_Success(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png")
+	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestSuryaTool_DetectRegions_DockerError(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png")
+	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err == nil {
 		t.Fatal("DetectRegions: expected error, got nil")
 	}
@@ -270,7 +270,7 @@ func TestSuryaTool_DetectRegions_InvalidJSON(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png")
+	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err == nil {
 		t.Fatal("DetectRegions: expected error, got nil")
 	}
@@ -288,7 +288,7 @@ func TestSuryaTool_DetectRegions_EmptyRegions(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png")
+	regions, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}

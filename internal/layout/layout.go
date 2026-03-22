@@ -13,7 +13,9 @@ import (
 type Tool interface {
 	// DetectRegions analyzes a page image and returns detected text regions
 	// with bounding boxes and preliminary OCR text.
-	DetectRegions(ctx context.Context, imagePath string) ([]model.Region, error)
+	// params contains tool-specific tuning parameters (e.g. confidence, iou,
+	// image_size for YOLO-based tools). Unknown params are logged and ignored.
+	DetectRegions(ctx context.Context, imagePath string, params map[string]any) ([]model.Region, error)
 
 	// Available reports whether this layout tool is ready to use.
 	// For Docker-based tools, this checks if Docker is running and the
@@ -44,7 +46,7 @@ func NewTool(name string) Tool {
 type NoneTool struct{}
 
 // DetectRegions returns an empty region list.
-func (n NoneTool) DetectRegions(_ context.Context, _ string) ([]model.Region, error) {
+func (n NoneTool) DetectRegions(_ context.Context, _ string, _ map[string]any) ([]model.Region, error) {
 	return nil, nil
 }
 

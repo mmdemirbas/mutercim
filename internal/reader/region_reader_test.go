@@ -32,7 +32,7 @@ type mockLayoutTool struct {
 
 func (m *mockLayoutTool) Name() string                     { return m.name }
 func (m *mockLayoutTool) Available(_ context.Context) bool { return m.available }
-func (m *mockLayoutTool) DetectRegions(_ context.Context, _ string) ([]model.Region, error) {
+func (m *mockLayoutTool) DetectRegions(_ context.Context, _ string, _ map[string]any) ([]model.Region, error) {
 	return m.regions, m.err
 }
 

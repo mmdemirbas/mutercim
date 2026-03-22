@@ -33,6 +33,8 @@ type Region struct {
 	LayoutSource string       `json:"layout_source,omitempty"`
 	TextSource   string       `json:"text_source,omitempty"`
 	Column       *int         `json:"column,omitempty"`
+	Confidence   float64      `json:"confidence,omitempty"` // 0.0-1.0, from layout tool. 0 if not available.
+	RawClass     string       `json:"raw_class,omitempty"`  // original class name from layout tool before type mapping
 }
 
 // BBox represents a bounding box as [x, y, width, height] in pixels.

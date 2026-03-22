@@ -103,7 +103,8 @@ type suryaRegion struct {
 
 // DetectRegions runs the Surya Docker container on the given image and
 // returns detected regions with bounding boxes and preliminary OCR text.
-func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string) ([]model.Region, error) {
+// params is accepted for interface compatibility but Surya does not use it.
+func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, _ map[string]any) ([]model.Region, error) {
 	dir := filepath.Dir(imagePath)
 	base := filepath.Base(imagePath)
 	args := []string{
