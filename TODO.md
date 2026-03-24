@@ -23,6 +23,8 @@
 
 - 'knowledge' should be a property of the 'translate' step (I think).
 
+- Consider 'unoffice' dependency for docx generation
+
 - use cases:
     * image to text
         * (OCR) külliyat-ı faruki

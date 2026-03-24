@@ -9,8 +9,8 @@ cut:
   dpi: 300
 
 layout:
-  tool: doclayout-yolo
   debug: true
+  tool: doclayout-yolo
   #   confidence — minimum detection score to keep (0.0–1.0, default 0.2)
   #     Lower → more detections (finer, possibly noisy)
   #     Higher → fewer detections (only high-certainty regions)
