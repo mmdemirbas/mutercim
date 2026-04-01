@@ -184,7 +184,7 @@ func applyDefaults(cfg *Config) {
 		cfg.Cut.DPI = 300
 	}
 	if len(cfg.Read.Models) == 0 {
-		cfg.Read.Models = []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}
+		cfg.Read.Models = []ModelSpec{{Provider: "gemini", Model: DefaultModel}}
 	}
 	if cfg.Read.Concurrency == 0 {
 		cfg.Read.Concurrency = 1
@@ -192,7 +192,7 @@ func applyDefaults(cfg *Config) {
 	applyRetryDefaults(&cfg.Read.Retry)
 	applyRetryDefaults(&cfg.Solve.Retry)
 	if len(cfg.Translate.Models) == 0 {
-		cfg.Translate.Models = []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}
+		cfg.Translate.Models = []ModelSpec{{Provider: "gemini", Model: DefaultModel}}
 	}
 	if cfg.Translate.ContextWindow == 0 {
 		cfg.Translate.ContextWindow = 2
@@ -305,6 +305,10 @@ func (c *Config) ResolvePath(base, rel string) string {
 	}
 	return filepath.Join(base, rel)
 }
+
+// DefaultModel is the default AI model used for read and translate phases.
+// This is the single source of truth shared with workspace scaffold generation.
+const DefaultModel = "gemini-2.0-flash"
 
 // validLayoutTools is the set of recognized layout.tool values.
 var validLayoutTools = map[string]bool{"": true, "doclayout-yolo": true, "surya": true}

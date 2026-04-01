@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/mmdemirbas/mutercim/internal/config"
 )
 
 // InitOptions configures workspace initialization.
@@ -84,14 +86,14 @@ layout:
 read:
   models:
     - provider: gemini
-      model: gemini-2.0-flash
+      model: %s
   concurrency: 1
 
 translate:
   languages: [%s]
   models:
     - provider: gemini
-      model: gemini-2.0-flash
+      model: %s
   context_window: 2
 
 write:
@@ -99,7 +101,7 @@ write:
   expand_sources: true
 
 knowledge: [./knowledge]
-`, strings.Join(sourceLangs, ", "), strings.Join(targetLangs, ", "))
+`, strings.Join(sourceLangs, ", "), config.DefaultModel, strings.Join(targetLangs, ", "), config.DefaultModel)
 }
 
 const glossaryScaffold = `# Glossary entries for translation knowledge.
