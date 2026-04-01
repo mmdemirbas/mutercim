@@ -309,3 +309,159 @@ func TestApplyDefaults_InputsDefault(t *testing.T) {
 		t.Errorf("Inputs = %v, want [{Path: ./input}]", cfg.Inputs)
 	}
 }
+
+// validBase returns a Config that passes all validations to use as a baseline in subtests.
+func validBase() Config {
+	return Config{
+		Inputs:  []InputSpec{{Path: "./input", Languages: []string{"ar"}}},
+		Layout:  LayoutConfig{Tool: "doclayout-yolo"},
+		OCR:     OCRConfig{Tool: ""},
+		Write:   WriteConfig{Formats: []string{"md"}},
+		Translate: TranslateConfig{ContextWindow: 2},
+	}
+}
+
+func TestValidate_ModelSpecs(t *testing.T) {
+	tests := []struct {
+		name    string
+		mutate  func(cfg *Config)
+		wantErr bool
+	}{
+		{
+			name:    "read model: empty provider",
+			mutate:  func(c *Config) { c.Read.Models = []ModelSpec{{Provider: "", Model: "gemini-2.0-flash"}} },
+			wantErr: true,
+		},
+		{
+			name:    "read model: empty model name",
+			mutate:  func(c *Config) { c.Read.Models = []ModelSpec{{Provider: "gemini", Model: ""}} },
+			wantErr: true,
+		},
+		{
+			name:    "read model: valid",
+			mutate:  func(c *Config) { c.Read.Models = []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}} },
+			wantErr: false,
+		},
+		{
+			name:    "translate model: empty provider",
+			mutate:  func(c *Config) { c.Translate.Models = []ModelSpec{{Provider: "", Model: "gemini-2.0-flash"}} },
+			wantErr: true,
+		},
+		{
+			name:    "translate model: empty model name",
+			mutate:  func(c *Config) { c.Translate.Models = []ModelSpec{{Provider: "gemini", Model: ""}} },
+			wantErr: true,
+		},
+		{
+			name:    "translate model: valid",
+			mutate:  func(c *Config) { c.Translate.Models = []ModelSpec{{Provider: "claude", Model: "claude-sonnet-4-20250514"}} },
+			wantErr: false,
+		},
+		{
+			name:    "no models: passes (applyDefaults fills them in before validate in Load)",
+			mutate:  func(_ *Config) {},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validBase()
+			tt.mutate(&cfg)
+			err := cfg.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidate_LayoutTool(t *testing.T) {
+	tests := []struct {
+		tool    string
+		wantErr bool
+	}{
+		{"", false},
+		{"doclayout-yolo", false},
+		{"surya", false},
+		{"unknown-tool", true},
+		{"Surya", true}, // case-sensitive
+	}
+	for _, tt := range tests {
+		t.Run(tt.tool, func(t *testing.T) {
+			cfg := validBase()
+			cfg.Layout.Tool = tt.tool
+			err := cfg.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("layout.tool=%q: Validate() error = %v, wantErr %v", tt.tool, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidate_OCRTool(t *testing.T) {
+	tests := []struct {
+		tool    string
+		wantErr bool
+	}{
+		{"", false},
+		{"qari", false},
+		{"unknown-ocr", true},
+		{"Qari", true}, // case-sensitive
+	}
+	for _, tt := range tests {
+		t.Run(tt.tool, func(t *testing.T) {
+			cfg := validBase()
+			cfg.OCR.Tool = tt.tool
+			err := cfg.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ocr.tool=%q: Validate() error = %v, wantErr %v", tt.tool, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidate_WriteFormats(t *testing.T) {
+	tests := []struct {
+		formats []string
+		wantErr bool
+	}{
+		{[]string{"md"}, false},
+		{[]string{"latex"}, false},
+		{[]string{"docx"}, false},
+		{[]string{"pdf"}, false},
+		{[]string{"md", "latex", "docx", "pdf"}, false},
+		{[]string{"html"}, true},
+		{[]string{"md", "unknown"}, true},
+		{[]string{"MD"}, true}, // case-sensitive
+	}
+	for _, tt := range tests {
+		t.Run(tt.formats[0], func(t *testing.T) {
+			cfg := validBase()
+			cfg.Write.Formats = tt.formats
+			err := cfg.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("formats=%v: Validate() error = %v, wantErr %v", tt.formats, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidate_ContextWindow(t *testing.T) {
+	tests := []struct {
+		window  int
+		wantErr bool
+	}{
+		{0, false},
+		{2, false},
+		{100, false},
+		{-1, true},
+	}
+	for _, tt := range tests {
+		cfg := validBase()
+		cfg.Translate.ContextWindow = tt.window
+		err := cfg.Validate()
+		if (err != nil) != tt.wantErr {
+			t.Errorf("context_window=%d: Validate() error = %v, wantErr %v", tt.window, err, tt.wantErr)
+		}
+	}
+}

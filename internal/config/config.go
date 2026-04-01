@@ -306,6 +306,15 @@ func (c *Config) ResolvePath(base, rel string) string {
 	return filepath.Join(base, rel)
 }
 
+// validLayoutTools is the set of recognized layout.tool values.
+var validLayoutTools = map[string]bool{"": true, "doclayout-yolo": true, "surya": true}
+
+// validOCRTools is the set of recognized ocr.tool values.
+var validOCRTools = map[string]bool{"": true, "qari": true}
+
+// validWriteFormats is the set of recognized write.formats values.
+var validWriteFormats = map[string]bool{"md": true, "latex": true, "docx": true, "pdf": true}
+
 // Validate checks the config for errors.
 func (c *Config) Validate() error {
 	// Check that at least one input has languages
@@ -330,6 +339,48 @@ func (c *Config) Validate() error {
 				return fmt.Errorf("input %d (%s) pages: %w", i, inp.Path, err)
 			}
 		}
+	}
+
+	// Validate read model specs
+	for i, m := range c.Read.Models {
+		if m.Provider == "" {
+			return fmt.Errorf("read.models[%d].provider is required", i)
+		}
+		if m.Model == "" {
+			return fmt.Errorf("read.models[%d].model is required", i)
+		}
+	}
+
+	// Validate translate model specs
+	for i, m := range c.Translate.Models {
+		if m.Provider == "" {
+			return fmt.Errorf("translate.models[%d].provider is required", i)
+		}
+		if m.Model == "" {
+			return fmt.Errorf("translate.models[%d].model is required", i)
+		}
+	}
+
+	// Validate layout tool
+	if !validLayoutTools[c.Layout.Tool] {
+		return fmt.Errorf("layout.tool %q is not valid (expected: \"\", \"doclayout-yolo\", or \"surya\")", c.Layout.Tool)
+	}
+
+	// Validate OCR tool
+	if !validOCRTools[c.OCR.Tool] {
+		return fmt.Errorf("ocr.tool %q is not valid (expected: \"\" or \"qari\")", c.OCR.Tool)
+	}
+
+	// Validate write formats
+	for _, f := range c.Write.Formats {
+		if !validWriteFormats[f] {
+			return fmt.Errorf("write.formats contains unknown format %q (valid: md, latex, docx, pdf)", f)
+		}
+	}
+
+	// Validate context window
+	if c.Translate.ContextWindow < 0 {
+		return fmt.Errorf("translate.context_window must be >= 0, got %d", c.Translate.ContextWindow)
 	}
 
 	return nil
