@@ -249,44 +249,14 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 			ocrToolName := ocrPage.Tool
 
 			if opts.Display != nil {
-				statusText := fmt.Sprintf("page %d: reading via %s (ocr: %s)", pageNum, currentModel, ocrToolName)
 				opts.Display.SetStatus(display.StatusLine{
-					Text:      statusText,
+					Text:      fmt.Sprintf("page %d: reading via %s (ocr: %s)", pageNum, currentModel, ocrToolName),
 					StartedAt: time.Now(),
 				})
 			}
 
 			logger.Info("reading page", "page", pageNum, "layout", hasLayout, "ocr_source", ocrToolName)
-
-			if hasLayout && len(ocrPage.Regions) > 0 {
-				// Case 1: layout + OCR — build OCR region data with layout bboxes/types
-				ocrRegions := make([]reader.OCRRegionData, 0, len(ocrPage.Regions))
-				// Build a lookup from OCR region results
-				for _, ocrReg := range ocrPage.Regions {
-					// Find matching layout region for bbox and type
-					var bbox model.BBox
-					var regionType string
-					for _, lr := range layoutRegions {
-						if lr.ID == ocrReg.ID {
-							bbox = lr.BBox
-							regionType = lr.Type
-							break
-						}
-					}
-					ocrRegions = append(ocrRegions, reader.OCRRegionData{
-						ID:   ocrReg.ID,
-						Text: ocrReg.Text,
-						BBox: bbox,
-						Type: regionType,
-					})
-				}
-				readResult, err = rdr.ReadRegionPageWithOCR(ctx, pageNum, currentModel,
-					ocrRegions, "", layoutToolName, ocrToolName)
-			} else {
-				// Case 3: OCR text without layout — full text segmentation
-				readResult, err = rdr.ReadRegionPageWithOCR(ctx, pageNum, currentModel,
-					nil, ocrPage.FullText, "", ocrToolName)
-			}
+			readResult, err = dispatchOCRRead(ctx, rdr, pageNum, currentModel, ocrPage, hasLayout, layoutRegions, layoutToolName)
 		} else {
 			// No OCR — use vision LLM path (existing behavior)
 
@@ -418,6 +388,43 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	}
 
 	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
+}
+
+// buildOCRRegions merges OCR region text with layout region metadata (BBox and Type).
+// It matches each OCR region by ID against the layout regions to produce typed, positioned entries.
+func buildOCRRegions(ocrRegions []model.OCRRegion, layoutRegions []model.Region) []reader.OCRRegionData {
+	result := make([]reader.OCRRegionData, 0, len(ocrRegions))
+	for _, ocrReg := range ocrRegions {
+		var bbox model.BBox
+		var regionType string
+		for _, lr := range layoutRegions {
+			if lr.ID == ocrReg.ID {
+				bbox = lr.BBox
+				regionType = lr.Type
+				break
+			}
+		}
+		result = append(result, reader.OCRRegionData{
+			ID:   ocrReg.ID,
+			Text: ocrReg.Text,
+			BBox: bbox,
+			Type: regionType,
+		})
+	}
+	return result
+}
+
+// dispatchOCRRead dispatches an OCR-backed page read.
+// When hasLayout is true and ocrPage has per-region OCR data, it merges region geometry from
+// layoutRegions (Case 1). Otherwise it falls back to full-page text segmentation (Case 3).
+func dispatchOCRRead(ctx context.Context, rdr *reader.Reader, pageNum int, currentModel string,
+	ocrPage *model.OCRPage, hasLayout bool, layoutRegions []model.Region, layoutToolName string) (*reader.ReadResult, error) {
+	ocrToolName := ocrPage.Tool
+	if hasLayout && len(ocrPage.Regions) > 0 {
+		ocrRegions := buildOCRRegions(ocrPage.Regions, layoutRegions)
+		return rdr.ReadRegionPageWithOCR(ctx, pageNum, currentModel, ocrRegions, "", layoutToolName, ocrToolName)
+	}
+	return rdr.ReadRegionPageWithOCR(ctx, pageNum, currentModel, nil, ocrPage.FullText, "", ocrToolName)
 }
 
 func saveRegionPage(dir string, pageNum, totalPages int, page *model.RegionPage) error {

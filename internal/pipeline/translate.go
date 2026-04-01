@@ -204,22 +204,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 			continue
 		}
 
-		// Build context from recent translated pages
-		var contextSummaries []string
-		start := len(recentTranslated) - contextWindow
-		if start < 0 {
-			start = 0
-		}
-		for _, tp := range recentTranslated[start:] {
-			if s := translation.PageSummary(tp); s != "" {
-				contextSummaries = append(contextSummaries, s)
-			}
-		}
-
-		// Also add solver context if available
-		if solved.PreviousPageSummary != "" {
-			contextSummaries = append(contextSummaries, solved.PreviousPageSummary)
-		}
+		contextSummaries := buildTranslateContext(recentTranslated, contextWindow, solved)
 
 		// Translate
 		statusPageNum = pf.pageNum
@@ -338,4 +323,24 @@ func countTranslatedRegionType(regions []model.TranslatedRegion, regionType stri
 		}
 	}
 	return count
+}
+
+// buildTranslateContext assembles the context summaries passed to the translator for a single page.
+// It takes the trailing contextWindow entries from recentTranslated and appends any solver
+// context recorded on the solved page.
+func buildTranslateContext(recentTranslated []*model.TranslatedRegionPage, contextWindow int, solved *model.SolvedRegionPage) []string {
+	var summaries []string
+	start := len(recentTranslated) - contextWindow
+	if start < 0 {
+		start = 0
+	}
+	for _, tp := range recentTranslated[start:] {
+		if s := translation.PageSummary(tp); s != "" {
+			summaries = append(summaries, s)
+		}
+	}
+	if solved.PreviousPageSummary != "" {
+		summaries = append(summaries, solved.PreviousPageSummary)
+	}
+	return summaries
 }

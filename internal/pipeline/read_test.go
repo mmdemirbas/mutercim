@@ -11,6 +11,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/reader"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 )
 
@@ -422,5 +423,62 @@ func TestCountRegionTypes(t *testing.T) {
 	e, f := countRegionTypes(nil)
 	if e != 0 || f != 0 {
 		t.Errorf("empty: entries=%d, footnotes=%d, want 0,0", e, f)
+	}
+}
+
+func TestBuildOCRRegions(t *testing.T) {
+	layout := []model.Region{
+		{ID: "r1", BBox: model.BBox{10, 20, 100, 50}, Type: "entry"},
+		{ID: "r2", BBox: model.BBox{10, 60, 100, 80}, Type: "footnote"},
+	}
+
+	tests := []struct {
+		name       string
+		ocrRegions []model.OCRRegion
+		layout     []model.Region
+		want       []reader.OCRRegionData
+	}{
+		{
+			name:       "empty ocr regions",
+			ocrRegions: nil,
+			layout:     layout,
+			want:       []reader.OCRRegionData{},
+		},
+		{
+			name:       "matching regions populate bbox and type",
+			ocrRegions: []model.OCRRegion{{ID: "r1", Text: "entry text"}, {ID: "r2", Text: "footnote text"}},
+			layout:     layout,
+			want: []reader.OCRRegionData{
+				{ID: "r1", Text: "entry text", BBox: model.BBox{10, 20, 100, 50}, Type: "entry"},
+				{ID: "r2", Text: "footnote text", BBox: model.BBox{10, 60, 100, 80}, Type: "footnote"},
+			},
+		},
+		{
+			name:       "unmatched ocr region gets zero bbox and empty type",
+			ocrRegions: []model.OCRRegion{{ID: "r99", Text: "orphan"}},
+			layout:     layout,
+			want:       []reader.OCRRegionData{{ID: "r99", Text: "orphan", BBox: model.BBox{}, Type: ""}},
+		},
+		{
+			name:       "no layout regions produces empty bbox and type for all",
+			ocrRegions: []model.OCRRegion{{ID: "r1", Text: "text"}},
+			layout:     nil,
+			want:       []reader.OCRRegionData{{ID: "r1", Text: "text", BBox: model.BBox{}, Type: ""}},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := buildOCRRegions(tc.ocrRegions, tc.layout)
+			if len(got) != len(tc.want) {
+				t.Fatalf("len = %d, want %d", len(got), len(tc.want))
+			}
+			for i, g := range got {
+				w := tc.want[i]
+				if g.ID != w.ID || g.Text != w.Text || g.BBox != w.BBox || g.Type != w.Type {
+					t.Errorf("[%d] got %+v, want %+v", i, g, w)
+				}
+			}
+		})
 	}
 }
