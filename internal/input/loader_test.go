@@ -103,7 +103,7 @@ func TestLoadImage(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.png")
 	content := []byte{0x89, 0x50, 0x4E, 0x47}
-	if err := os.WriteFile(path, content, 0644); err != nil {
+	if err := os.WriteFile(path, content, 0600); err != nil {
 		t.Fatalf("write file: %v", err)
 	}
 

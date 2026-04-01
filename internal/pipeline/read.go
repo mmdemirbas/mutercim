@@ -133,7 +133,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	rdr := reader.NewReader(opts.Provider, logger)
 
 	// Ensure output directory exists
-	if err := os.MkdirAll(readDir, 0755); err != nil {
+	if err := os.MkdirAll(readDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create read dir: %w", err)
 	}
 

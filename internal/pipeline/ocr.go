@@ -120,7 +120,7 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 		}
 	}
 
-	if err := os.MkdirAll(ocrDir, 0755); err != nil {
+	if err := os.MkdirAll(ocrDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create ocr dir: %w", err)
 	}
 

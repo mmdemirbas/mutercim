@@ -40,7 +40,7 @@ type Commander interface {
 type execCommander struct{}
 
 func (e execCommander) Run(ctx context.Context, name string, args ...string) ([]byte, error) {
-	return exec.CommandContext(ctx, name, args...).CombinedOutput()
+	return exec.CommandContext(ctx, name, args...).CombinedOutput() //nolint:gosec // G204: name is a docker binary path, args are trusted internal values
 }
 
 // NewSuryaTool creates a SuryaTool with the given Docker image.

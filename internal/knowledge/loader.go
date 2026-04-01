@@ -81,7 +81,7 @@ func loadFromFS(k *Knowledge, fsys fs.FS, root, displayRoot string) error {
 }
 
 func loadFile(k *Knowledge, filePath string) error {
-	data, err := os.ReadFile(filePath)
+	data, err := os.ReadFile(filePath) //nolint:gosec // G304: filePath comes from user config, not untrusted input
 	if err != nil {
 		return err
 	}

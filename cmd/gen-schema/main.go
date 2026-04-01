@@ -24,7 +24,7 @@ func main() {
 	}
 
 	path := filepath.Join(root, "config", "mutercim.schema.json")
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		fmt.Fprintf(os.Stderr, "error writing %s: %v\n", path, err)
 		os.Exit(1)
 	}

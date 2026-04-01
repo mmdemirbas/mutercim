@@ -214,10 +214,10 @@ func TestLoadMultipleYAMLFiles(t *testing.T) {
   - ar: "مكة"
     tr: "Mekke"
 `
-	if err := os.WriteFile(filepath.Join(dir, "terms.yaml"), []byte(yaml1), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "terms.yaml"), []byte(yaml1), 0600); err != nil {
 		t.Fatalf("write yaml1: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "places.yaml"), []byte(yaml2), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "places.yaml"), []byte(yaml2), 0600); err != nil {
 		t.Fatalf("write yaml2: %v", err)
 	}
 
@@ -243,10 +243,10 @@ func TestLoadFromKnowledgeAndMemoryMerge(t *testing.T) {
   - ar: "فقه"
     tr: "fıkıh (memory)"
 `
-	if err := os.WriteFile(filepath.Join(knowledgeDir, "glossary.yaml"), []byte(wsYaml), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(knowledgeDir, "glossary.yaml"), []byte(wsYaml), 0600); err != nil {
 		t.Fatalf("write workspace: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(memoryDir, "glossary.yaml"), []byte(memYaml), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(memoryDir, "glossary.yaml"), []byte(memYaml), 0600); err != nil {
 		t.Fatalf("write memory: %v", err)
 	}
 

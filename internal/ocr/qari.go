@@ -95,7 +95,7 @@ func (q *QariTool) Start(ctx context.Context) error {
 		q.DockerImage,
 	}
 
-	out, err := exec.CommandContext(ctx, "docker", args...).CombinedOutput()
+	out, err := exec.CommandContext(ctx, "docker", args...).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; args are constructed by internal callers
 	if err != nil {
 		slog.Error("docker run qari-ocr failed", "args", args, "output", strings.TrimSpace(string(out)), "error", err)
 		return fmt.Errorf("docker run qari-ocr: %w\noutput: %s", err, string(out))
@@ -361,7 +361,7 @@ func (q *QariTool) containerLogs(ctx context.Context) string {
 
 // addFileField adds a file to a multipart writer.
 func addFileField(writer *multipart.Writer, fieldName, filePath string) error {
-	f, err := os.Open(filePath)
+	f, err := os.Open(filePath) //nolint:gosec // G304: filePath is an internal image path, not user-controlled HTTP input
 	if err != nil {
 		return err
 	}

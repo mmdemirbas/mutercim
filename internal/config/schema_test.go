@@ -15,7 +15,7 @@ func TestGeneratedSchemaMatchesCommitted(t *testing.T) {
 	}
 
 	root := findModuleRoot(t)
-	committed, err := os.ReadFile(filepath.Join(root, "config", "mutercim.schema.json"))
+	committed, err := os.ReadFile(filepath.Join(root, "config", "mutercim.schema.json")) //nolint:gosec // G304: reading known file in repo root, not user input
 	if err != nil {
 		t.Fatalf("read committed schema: %v", err)
 	}

@@ -135,7 +135,7 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 		}
 	}
 
-	if err := os.MkdirAll(layoutDir, 0755); err != nil {
+	if err := os.MkdirAll(layoutDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create layout dir: %w", err)
 	}
 
