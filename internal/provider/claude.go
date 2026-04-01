@@ -94,7 +94,7 @@ func (c *ClaudeProvider) ReadFromImage(ctx context.Context, image []byte, system
 		Body: body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("claude read: %w", err)
+		return "", fmt.Errorf("%s read: %w", c.Name(), err)
 	}
 	return c.extractText(resp)
 }
@@ -124,14 +124,14 @@ func (c *ClaudeProvider) Translate(ctx context.Context, systemPrompt, userPrompt
 		Body: body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("claude translate: %w", err)
+		return "", fmt.Errorf("%s translate: %w", c.Name(), err)
 	}
 	return c.extractText(resp)
 }
 
 func (c *ClaudeProvider) extractText(resp claudeResponse) (string, error) {
 	if len(resp.Content) == 0 {
-		return "", fmt.Errorf("claude: no content in response")
+		return "", fmt.Errorf("%s: no content in response", c.Name())
 	}
 	return resp.Content[0].Text, nil
 }

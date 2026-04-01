@@ -89,7 +89,7 @@ func (g *GeminiProvider) ReadFromImage(ctx context.Context, image []byte, system
 		Body:    body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("gemini read: %w", err)
+		return "", fmt.Errorf("%s read: %w", g.Name(), err)
 	}
 	return g.extractText(resp)
 }
@@ -113,7 +113,7 @@ func (g *GeminiProvider) Translate(ctx context.Context, systemPrompt, userPrompt
 		Body:    body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("gemini translate: %w", err)
+		return "", fmt.Errorf("%s translate: %w", g.Name(), err)
 	}
 	return g.extractText(resp)
 }
@@ -124,10 +124,10 @@ func (g *GeminiProvider) endpoint() string {
 
 func (g *GeminiProvider) extractText(resp geminiResponse) (string, error) {
 	if len(resp.Candidates) == 0 {
-		return "", fmt.Errorf("gemini: no candidates in response")
+		return "", fmt.Errorf("%s: no candidates in response", g.Name())
 	}
 	if len(resp.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("gemini: no parts in response")
+		return "", fmt.Errorf("%s: no parts in response", g.Name())
 	}
 	return resp.Candidates[0].Content.Parts[0].Text, nil
 }

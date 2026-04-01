@@ -72,7 +72,7 @@ func (o *OllamaProvider) ReadFromImage(ctx context.Context, image []byte, system
 		Body:    body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("ollama read: %w", err)
+		return "", fmt.Errorf("%s read: %w", o.Name(), err)
 	}
 	return resp.Message.Content, nil
 }
@@ -95,7 +95,7 @@ func (o *OllamaProvider) Translate(ctx context.Context, systemPrompt, userPrompt
 		Body:    body,
 	})
 	if err != nil {
-		return "", fmt.Errorf("ollama translate: %w", err)
+		return "", fmt.Errorf("%s translate: %w", o.Name(), err)
 	}
 	return resp.Message.Content, nil
 }
