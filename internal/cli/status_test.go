@@ -331,9 +331,14 @@ func TestBuildPhaseRows(t *testing.T) {
 
 	// Create read with 2 JSON files
 	readDir := filepath.Join(dir, "read", stem)
-	os.MkdirAll(readDir, 0755)
-	os.WriteFile(filepath.Join(readDir, "001.json"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(readDir, "002.json"), []byte("{}"), 0644)
+	if err := os.MkdirAll(readDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"001.json", "002.json"} {
+		if err := os.WriteFile(filepath.Join(readDir, name), []byte("{}"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	cfg := &config.Config{
 		Layout:    config.LayoutConfig{Tool: "doclayout-yolo"},

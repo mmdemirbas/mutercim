@@ -142,7 +142,9 @@ func TestParseEnvLines(t *testing.T) {
 func TestLoadEnvFile(t *testing.T) {
 	dir := t.TempDir()
 	envPath := filepath.Join(dir, ".env")
-	os.WriteFile(envPath, []byte("TEST_MUTERCIM_LOAD=hello\n"), 0644)
+	if err := os.WriteFile(envPath, []byte("TEST_MUTERCIM_LOAD=hello\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// Ensure it's not set
 	_ = os.Unsetenv("TEST_MUTERCIM_LOAD")

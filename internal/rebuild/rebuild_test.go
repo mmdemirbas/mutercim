@@ -167,7 +167,9 @@ func TestNeedsRebuild_missing_input(t *testing.T) {
 func TestNewestMtime_single_file(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "file.txt")
-	os.WriteFile(f, []byte("data"), 0644)
+	if err := os.WriteFile(f, []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	mt, err := NewestMtime(f)
 	if err != nil {

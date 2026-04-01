@@ -127,7 +127,9 @@ func TestDirHasEntries(t *testing.T) {
 	}
 
 	// Dir with file
-	os.WriteFile(filepath.Join(emptyDir, "file.txt"), []byte("hi"), 0644)
+	if err := os.WriteFile(filepath.Join(emptyDir, "file.txt"), []byte("hi"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !dirHasEntries(emptyDir) {
 		t.Error("dirHasEntries returns false for dir with file")
 	}
