@@ -167,15 +167,16 @@ func (r *Reader) ReadRegionPageWithOCR(ctx context.Context, pageNum int, modelNa
 	var sysPrompt string
 	var userPrompt string
 
-	if len(ocrRegions) > 0 {
+	switch {
+	case len(ocrRegions) > 0:
 		// Case 1: layout + ocr — best case, text-only LLM
 		sysPrompt = regionSystemPromptWithLayoutAndOCR
 		userPrompt = BuildRegionUserPromptWithLayoutAndOCR(ocrRegions)
-	} else if fullText != "" {
+	case fullText != "":
 		// Case 3: no layout + ocr — text segmentation
 		sysPrompt = regionSystemPromptWithOCROnly
 		userPrompt = BuildRegionUserPromptWithOCROnly(fullText)
-	} else {
+	default:
 		return nil, fmt.Errorf("no OCR data available for page %d", pageNum)
 	}
 

@@ -110,11 +110,12 @@ func BuildRegionUserPrompt(page *model.SolvedRegionPage, glossaryContext []strin
 
 	for _, ir := range ordered {
 		r := ir.region
-		if r.Type == model.RegionTypeSeparator {
+		switch r.Type {
+		case model.RegionTypeSeparator:
 			fmt.Fprintf(&b, "Region %s (separator): [separator line - do not translate]\n", r.ID)
-		} else if r.Type == model.RegionTypePageNumber {
+		case model.RegionTypePageNumber:
 			fmt.Fprintf(&b, "Region %s (page_number): %s [do not translate]\n", r.ID, r.Text)
-		} else {
+		default:
 			fmt.Fprintf(&b, "Region %s (%s): %s\n", r.ID, r.Type, r.Text)
 		}
 	}
