@@ -202,7 +202,7 @@ func (d *TTYDisplay) Finish() {
 		}
 	}
 
-	io.WriteString(d.out, buf.String())
+	_, _ = io.WriteString(d.out, buf.String())
 	d.currentLines = 0
 }
 
@@ -263,7 +263,7 @@ func (d *TTYDisplay) render() {
 	d.currentLines = lines
 
 	// Single atomic write to the terminal
-	io.WriteString(d.out, buf.String())
+	_, _ = io.WriteString(d.out, buf.String())
 }
 
 // renderHeaderTo writes the header to a buffer and returns the line count.

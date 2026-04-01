@@ -65,7 +65,7 @@ func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 		lines++
 	}
 	if lines > 0 {
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 		lines++
 	}
 	return lines

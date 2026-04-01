@@ -156,7 +156,7 @@ func (q *QariTool) IsReady(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return false
@@ -205,7 +205,9 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 		return nil, fmt.Errorf("add regions field: %w", err)
 	}
 
-	writer.Close()
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("close multipart writer: %w", err)
+	}
 
 	url := fmt.Sprintf("http://localhost:%d/ocr/regions", q.port)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
@@ -219,7 +221,7 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 		slog.Error("ocr regions request failed", "image", imagePath, "error", err, "port", q.port)
 		return nil, fmt.Errorf("ocr regions request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -272,7 +274,9 @@ func (q *QariTool) RecognizeFullPage(ctx context.Context, imagePath string) (*Re
 	if err := addFileField(writer, "image", imagePath); err != nil {
 		return nil, fmt.Errorf("add image to request: %w", err)
 	}
-	writer.Close()
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("close multipart writer: %w", err)
+	}
 
 	url := fmt.Sprintf("http://localhost:%d/ocr", q.port)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
@@ -286,7 +290,7 @@ func (q *QariTool) RecognizeFullPage(ctx context.Context, imagePath string) (*Re
 		slog.Error("ocr full page request failed", "image", imagePath, "error", err, "port", q.port)
 		return nil, fmt.Errorf("ocr request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -361,7 +365,7 @@ func addFileField(writer *multipart.Writer, fieldName, filePath string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	part, err := writer.CreateFormFile(fieldName, f.Name())
 	if err != nil {
@@ -378,6 +382,6 @@ func freePort() (int, error) {
 		return 0, err
 	}
 	port := l.Addr().(*net.TCPAddr).Port
-	l.Close()
+	_ = l.Close()
 	return port, nil
 }

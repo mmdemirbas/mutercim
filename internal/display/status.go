@@ -23,7 +23,7 @@ type StatusData struct {
 
 // RenderStatus writes the status dashboard to w.
 func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
 
 	// Header
 	RenderHeader(w, HeaderData{
@@ -37,7 +37,7 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 
 	// Phase rows with per-phase config details
 	for _, row := range data.Phases {
-		fmt.Fprintln(w, RenderProgressLine(row, colors))
+		_, _ = fmt.Fprintln(w, RenderProgressLine(row, colors))
 		if weLine := RenderWarnErrorLine(row.Warnings, row.Failed, colors); weLine != "" {
 			fmt.Fprintln(w, weLine)
 		}

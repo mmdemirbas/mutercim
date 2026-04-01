@@ -98,10 +98,10 @@ func GenerateDebugOverlay(pageImg image.Image, regions []model.Region, readingOr
 	if err != nil {
 		return fmt.Errorf("create debug image: %w", err)
 	}
-	defer os.Remove(tmpPath) // clean up on failure
+	defer func() { _ = os.Remove(tmpPath) }() // clean up on failure
 
 	if err := png.Encode(f, overlay); err != nil {
-		f.Close()
+		_ = f.Close()
 		return fmt.Errorf("encode debug image: %w", err)
 	}
 	if err := f.Close(); err != nil {

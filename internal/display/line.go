@@ -64,7 +64,7 @@ func (d *LineDisplay) Update(result PageResult) {
 	label := formatLineLabel(result.Phase, result.Lang)
 
 	if result.Err != nil {
-		fmt.Fprintf(d.out, "[%s] %s page %d/%d FAILED: %v\n",
+		_, _ = fmt.Fprintf(d.out, "[%s] %s page %d/%d FAILED: %v\n",
 			label, result.Input, result.PageNum, result.Total, result.Err)
 		return
 	}
@@ -89,7 +89,7 @@ func (d *LineDisplay) Update(result PageResult) {
 		detail = " \u2014 " + strings.Join(details, ", ")
 	}
 
-	fmt.Fprintf(d.out, "[%s] %s %d/%d%s\n",
+	_, _ = fmt.Fprintf(d.out, "[%s] %s %d/%d%s\n",
 		label, result.Input, result.Completed, result.Total, detail)
 }
 
@@ -100,7 +100,7 @@ func (d *LineDisplay) FinishPhase(phase Phase, input string, lang string) {
 
 	if idx := d.findPhase(phase, input); idx >= 0 {
 		s := d.phases[idx]
-		fmt.Fprintf(d.out, "[%s] %s done: %d completed, %d failed, %d warnings\n",
+		_, _ = fmt.Fprintf(d.out, "[%s] %s done: %d completed, %d failed, %d warnings\n",
 			formatLineLabel(s.phase, s.lang), s.input, s.completed, s.failed, s.warnings)
 	}
 }
