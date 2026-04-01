@@ -179,8 +179,10 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	failed := 0
 	skipped := 0
 	maxFailPct := cfg.Read.Retry.MaxFailPercent
-	for _, pageNum := range pagesToProcess {
+	for i, pageNum := range pagesToProcess {
 		if ctx.Err() != nil {
+			logger.Info("context cancelled, stopping read phase",
+				"input", stem, "processed", completed+failed, "remaining", len(pagesToProcess)-i)
 			break
 		}
 		// Check error threshold

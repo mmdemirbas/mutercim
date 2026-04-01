@@ -176,8 +176,10 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	skipped := 0
 
 	maxFailPct := opts.Config.Translate.Retry.MaxFailPercent
-	for _, pf := range pages {
+	for i, pf := range pages {
 		if ctx.Err() != nil {
+			logger.Info("context cancelled, stopping translate phase",
+				"input", stem, "lang", targetLang, "processed", completed+failed, "remaining", len(pages)-i)
 			break
 		}
 		// Check error threshold
