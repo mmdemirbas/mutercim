@@ -61,7 +61,9 @@ func NewFailoverChain(providers []Provider, clients []*apiclient.Client, recover
 	}
 }
 
-// Name returns a composite name of all providers in the chain.
+// Name returns the chain's identity string listing all member providers.
+// For display purposes (status lines, logs), prefer ActiveModel() which returns
+// the name of the currently active provider — consistent with single-provider names.
 func (f *FailoverChain) Name() string {
 	names := make([]string, len(f.entries))
 	for i, e := range f.entries {
