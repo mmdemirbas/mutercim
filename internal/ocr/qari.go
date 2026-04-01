@@ -224,7 +224,11 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 		slog.Error("ocr regions request failed", "image", imagePath, "error", err, "port", q.port)
 		return nil, fmt.Errorf("ocr regions request: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("ocr regions: close response body", "err", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -293,7 +297,11 @@ func (q *QariTool) RecognizeFullPage(ctx context.Context, imagePath string) (*Re
 		slog.Error("ocr full page request failed", "image", imagePath, "error", err, "port", q.port)
 		return nil, fmt.Errorf("ocr request: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("ocr full page: close response body", "err", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
