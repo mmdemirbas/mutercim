@@ -221,7 +221,7 @@ func TestSaveRegionPageAtomicWrite(t *testing.T) {
 	}
 
 	// Verify file
-	data, err := os.ReadFile(filepath.Join(dir, "042.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "042.json")) //nolint:gosec // G304: path from t.TempDir(), not user input
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}

@@ -91,7 +91,7 @@ func TestTranslatePipeline(t *testing.T) {
 
 	// Verify translated JSON was created
 	translatedPath := filepath.Join(ws.TranslateDir(), "tr", stem, "001.json")
-	data, err := os.ReadFile(translatedPath)
+	data, err := os.ReadFile(translatedPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read translated output: %v", err)
 	}

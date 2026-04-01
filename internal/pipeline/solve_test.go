@@ -163,7 +163,7 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 	}
 
 	// Output should still contain original content (not re-processed)
-	data, err := os.ReadFile(outputPath)
+	data, err := os.ReadFile(outputPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read output: %v", err)
 	}

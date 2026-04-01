@@ -98,8 +98,12 @@ func TestHasPhaseOutput_translate_multiple_langs(t *testing.T) {
 
 	// Output for one language is sufficient
 	translatedDir := filepath.Join(dir, "translate", "en", "TestBook")
-	os.MkdirAll(translatedDir, 0755)
-	os.WriteFile(filepath.Join(translatedDir, "001.json"), []byte("{}"), 0644)
+	if err := os.MkdirAll(translatedDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(translatedDir, "001.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseTranslate, ws, cfg) {
 		t.Error("hasPhaseOutput(translate) = false when one target lang has output")
 	}
@@ -115,7 +119,9 @@ func TestDirHasEntries(t *testing.T) {
 
 	// Empty dir
 	emptyDir := filepath.Join(dir, "empty")
-	os.MkdirAll(emptyDir, 0755)
+	if err := os.MkdirAll(emptyDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 	if dirHasEntries(emptyDir) {
 		t.Error("dirHasEntries returns true for empty dir")
 	}

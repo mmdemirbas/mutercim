@@ -10,7 +10,9 @@ import (
 func TestLoad_InvalidYAML(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte("invalid: yaml: [broken"), 0644)
+	if err := os.WriteFile(path, []byte("invalid: yaml: [broken"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := Load(path)
 	if err == nil {
@@ -21,7 +23,9 @@ func TestLoad_InvalidYAML(t *testing.T) {
 func TestLoad_EmptyFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte(""), 0644)
+	if err := os.WriteFile(path, []byte(""), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := Load(path)
 	if err == nil {
@@ -39,7 +43,9 @@ func TestLoad_NonexistentFile(t *testing.T) {
 func TestLoad_MinimalValidConfig(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0644)
+	if err := os.WriteFile(path, []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg, err := Load(path)
 	if err != nil {
@@ -53,7 +59,9 @@ func TestLoad_MinimalValidConfig(t *testing.T) {
 func TestLoad_DefaultsApplied(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0644)
+	if err := os.WriteFile(path, []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg, err := Load(path)
 	if err != nil {
@@ -76,7 +84,9 @@ func TestLoad_ValidateCalledWithInvalidPages(t *testing.T) {
     languages: [ar]
     pages: "not-a-range"
 `
-	os.WriteFile(path, []byte(yaml), 0644)
+	if err := os.WriteFile(path, []byte(yaml), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := Load(path)
 	if err == nil {
@@ -96,7 +106,9 @@ func TestLoad_ValidateCalledWithValidPages(t *testing.T) {
     languages: [ar]
     pages: "1-50"
 `
-	os.WriteFile(path, []byte(yaml), 0644)
+	if err := os.WriteFile(path, []byte(yaml), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg, err := Load(path)
 	if err != nil {
@@ -110,7 +122,9 @@ func TestLoad_ValidateCalledWithValidPages(t *testing.T) {
 func TestLoad_MissingLanguages(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(path, []byte("inputs:\n  - path: ./input\n"), 0644)
+	if err := os.WriteFile(path, []byte("inputs:\n  - path: ./input\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := Load(path)
 	if err == nil {

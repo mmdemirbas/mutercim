@@ -111,10 +111,18 @@ func TestClean_never_deletes_input_or_knowledge(t *testing.T) {
 
 	// Create protected directories
 	inputDir := filepath.Join(dir, "input")
-	os.MkdirAll(inputDir, 0755)
-	os.MkdirAll(ws.KnowledgeDir(), 0755)
-	os.WriteFile(filepath.Join(inputDir, "test.pdf"), []byte("pdf"), 0644)
-	os.WriteFile(filepath.Join(ws.KnowledgeDir(), "terms.yaml"), []byte("yaml"), 0644)
+	if err := os.MkdirAll(inputDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(ws.KnowledgeDir(), 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(inputDir, "test.pdf"), []byte("pdf"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ws.KnowledgeDir(), "terms.yaml"), []byte("yaml"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create cleanable directories
 	os.MkdirAll(ws.ReadDir(), 0755)
