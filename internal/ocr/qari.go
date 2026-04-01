@@ -195,7 +195,7 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 	}
 	reqs := make([]regionReq, len(regions))
 	for i, r := range regions {
-		reqs[i] = regionReq{ID: r.ID, BBox: r.BBox}
+		reqs[i] = regionReq(r)
 	}
 	regionsJSON, err := json.Marshal(reqs)
 	if err != nil {
