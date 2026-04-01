@@ -109,7 +109,9 @@ func TestWritePipeline_DocxFailsContinuesOtherFormats(t *testing.T) {
 
 	// Create translated page
 	translatedDir := filepath.Join(dir, "translate", "tr", stem)
-	os.MkdirAll(translatedDir, 0755)
+	if err := os.MkdirAll(translatedDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 	page := &model.TranslatedRegionPage{
 		Version: "2.0", PageNumber: 1, SourceLang: "ar", TargetLang: "tr",
 		Regions: []model.TranslatedRegion{
@@ -159,7 +161,9 @@ func TestWritePipeline_AllFormatsFailReturnsError(t *testing.T) {
 	stem := "testbook"
 
 	translatedDir := filepath.Join(dir, "translate", "tr", stem)
-	os.MkdirAll(translatedDir, 0755)
+	if err := os.MkdirAll(translatedDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 	page := &model.TranslatedRegionPage{
 		Version: "2.0", PageNumber: 1,
 		Regions:      []model.TranslatedRegion{{ID: "r1", Type: model.RegionTypeEntry, TranslatedText: "text"}},

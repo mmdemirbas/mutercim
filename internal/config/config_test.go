@@ -60,7 +60,9 @@ translate:
   languages: [tr]
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(configPath, []byte(yaml), 0644)
+	if err := os.WriteFile(configPath, []byte(yaml), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg, err := Load(configPath)
 	if err != nil {
@@ -136,7 +138,9 @@ inputs:
     languages: [ar]
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(configPath, []byte(yaml), 0644)
+	if err := os.WriteFile(configPath, []byte(yaml), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg, err := Load(configPath)
 	if err != nil {
@@ -167,7 +171,9 @@ inputs:
     languages: [ar]
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(configPath, []byte(yaml), 0644)
+	if err := os.WriteFile(configPath, []byte(yaml), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg, err := Load(configPath)
 	if err != nil {
@@ -211,7 +217,9 @@ translate:
       rpm: 60
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(configPath, []byte(yaml), 0644)
+	if err := os.WriteFile(configPath, []byte(yaml), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg, err := Load(configPath)
 	if err != nil {
@@ -251,7 +259,9 @@ cut:
   dpi: 300
 `
 	configPath := filepath.Join(dir, "mutercim.yaml")
-	os.WriteFile(configPath, []byte(yaml), 0644)
+	if err := os.WriteFile(configPath, []byte(yaml), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg, err := Load(configPath)
 	if err != nil {

@@ -326,7 +326,7 @@ func compileDocx(ctx context.Context, ws *workspace.Workspace, cfg *config.Confi
 }
 
 func loadTranslatedRegionPageForWrite(path string) (*model.TranslatedRegionPage, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: path is internal workspace path, not user HTTP input
 	if err != nil {
 		return nil, err
 	}

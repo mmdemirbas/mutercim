@@ -127,7 +127,9 @@ func TestTranslatePipelineNoSolvedPages(t *testing.T) {
 	dir := t.TempDir()
 
 	// Create solve/ but leave it empty (no subdirs)
-	os.MkdirAll(filepath.Join(dir, "solve"), 0755)
+	if err := os.MkdirAll(filepath.Join(dir, "solve"), 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
