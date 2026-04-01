@@ -80,7 +80,7 @@ func TestGeminiProviderReadFromImage(t *testing.T) {
 			}},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -125,7 +125,7 @@ func TestGeminiProviderTranslate(t *testing.T) {
 			}},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -146,7 +146,7 @@ func TestGeminiProviderEmptyResponse(t *testing.T) {
 			Candidates: []geminiCandidate{},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 

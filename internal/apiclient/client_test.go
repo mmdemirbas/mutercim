@@ -124,7 +124,7 @@ func TestClientDoNonRetryable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(`{"error": "test error"}`))
+				_, _ = w.Write([]byte(`{"error": "test error"}`))
 			}))
 			defer server.Close()
 
@@ -380,7 +380,7 @@ func TestRedactSecrets(t *testing.T) {
 func TestDoOnce_RedactsSecretsInErrorBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error": "invalid API key sk-supersecretkey1234567890"}`))
+		_, _ = w.Write([]byte(`{"error": "invalid API key sk-supersecretkey1234567890"}`))
 	}))
 	defer server.Close()
 

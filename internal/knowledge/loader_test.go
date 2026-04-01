@@ -313,13 +313,17 @@ func TestLoadInvalidSchemaWarnsAndContinues(t *testing.T) {
 	dir := t.TempDir()
 
 	// Valid file
-	os.WriteFile(filepath.Join(dir, "good.yaml"), []byte(`entries:
+	if err := os.WriteFile(filepath.Join(dir, "good.yaml"), []byte(`entries:
   - ar: "فقه"
     tr: "fıkıh"
-`), 0644)
+`), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// Invalid file (not a knowledge schema)
-	os.WriteFile(filepath.Join(dir, "bad.yaml"), []byte(`not_entries: true`), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "bad.yaml"), []byte(`not_entries: true`), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	k, err := Load([]string{dir}, "")
 	if err != nil {

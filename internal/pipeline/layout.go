@@ -296,7 +296,7 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 
 // getImageSize reads image dimensions without fully decoding the image.
 func getImageSize(path string) model.PageSize {
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // G304: path is internal workspace image path, not user HTTP input
 	if err != nil {
 		return model.PageSize{}
 	}
@@ -323,7 +323,7 @@ func generateLayoutDebugImage(imagePath string, regions []model.Region, pageNum 
 		logger.Warn("debug overlay: cannot open page image", "page", pageNum, "error", err)
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	pageImg, _, err := image.Decode(f)
 	if err != nil {

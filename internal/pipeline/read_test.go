@@ -33,7 +33,7 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 	dir := t.TempDir()
 
 	imagesDir := filepath.Join(dir, "cut", stem)
-	if err := os.MkdirAll(imagesDir, 0755); err != nil {
+	if err := os.MkdirAll(imagesDir, 0750); err != nil {
 		t.Fatalf("mkdir images: %v", err)
 	}
 
@@ -246,10 +246,10 @@ func TestReadPipelineMultiInput(t *testing.T) {
 	// Create image directories for two stems
 	for _, stem := range []string{"stem1", "stem2"} {
 		imagesDir := filepath.Join(dir, "cut", stem)
-		if err := os.MkdirAll(imagesDir, 0755); err != nil {
+		if err := os.MkdirAll(imagesDir, 0750); err != nil {
 			t.Fatalf("mkdir images for %s: %v", stem, err)
 		}
-		if err := os.WriteFile(filepath.Join(imagesDir, "001.png"), []byte("fake-image"), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(imagesDir, "001.png"), []byte("fake-image"), 0600); err != nil {
 			t.Fatalf("write image for %s: %v", stem, err)
 		}
 	}

@@ -130,7 +130,7 @@ func TestGenerateDebugOverlay_EmptyRegions(t *testing.T) {
 	}
 
 	// Should still produce a valid PNG (just the original image)
-	f, err := os.Open(outputPath)
+	f, err := os.Open(outputPath) //nolint:gosec // G304: path from t.TempDir(), not user input
 	if err != nil {
 		t.Fatalf("cannot open output: %v", err)
 	}

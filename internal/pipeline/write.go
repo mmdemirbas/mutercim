@@ -236,7 +236,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 	if err := os.MkdirAll(targetDir, 0750); err != nil {
 		return fmt.Errorf("create target output dir: %w", err)
 	}
-	if err := os.MkdirAll(sourceDir, 0755); err != nil {
+	if err := os.MkdirAll(sourceDir, 0750); err != nil {
 		return fmt.Errorf("create source output dir: %w", err)
 	}
 
@@ -266,7 +266,7 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 	title := "book"
 	langDir := filepath.Join(ws.WriteDir(), targetLang)
 	buildDir := filepath.Join(langDir, "latex-build", stem)
-	if err := os.MkdirAll(buildDir, 0755); err != nil {
+	if err := os.MkdirAll(buildDir, 0750); err != nil {
 		return fmt.Errorf("create latex build dir: %w", err)
 	}
 

@@ -36,7 +36,7 @@ func TestClaudeProviderReadFromImage(t *testing.T) {
 			Content: []claudeResponseContent{{Text: `{"page_number": 1}`}},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -56,7 +56,7 @@ func TestClaudeProviderTranslate(t *testing.T) {
 			Content: []claudeResponseContent{{Text: `{"translated_entries": []}`}},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 

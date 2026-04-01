@@ -99,13 +99,19 @@ func TestNeedsRebuild_directory_input(t *testing.T) {
 
 	past := time.Now().Add(-10 * time.Second)
 
-	os.WriteFile(filepath.Join(inputDir, "a.txt"), []byte("a"), 0644)
+	if err := os.WriteFile(filepath.Join(inputDir, "a.txt"), []byte("a"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.Chtimes(filepath.Join(inputDir, "a.txt"), past, past); err != nil {
 		t.Fatal(err)
 	}
-	os.Chtimes(inputDir, past, past)
+	if err := os.Chtimes(inputDir, past, past); err != nil {
+		t.Fatal(err)
+	}
 
-	os.WriteFile(output, []byte("result"), 0644)
+	if err := os.WriteFile(output, []byte("result"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	// output is current time = newer
 
 	if NeedsRebuild(output, inputDir) {
@@ -160,7 +166,9 @@ func TestNewestMtime_single_file(t *testing.T) {
 func TestNewestMtime_empty_dir(t *testing.T) {
 	dir := t.TempDir()
 	sub := filepath.Join(dir, "empty")
-	os.MkdirAll(sub, 0755)
+	if err := os.MkdirAll(sub, 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	mt, err := NewestMtime(sub)
 	if err != nil {
@@ -175,17 +183,25 @@ func TestNewestMtime_empty_dir(t *testing.T) {
 func TestNewestMtime_includes_dir_own_mtime(t *testing.T) {
 	dir := t.TempDir()
 	sub := filepath.Join(dir, "data")
-	os.MkdirAll(sub, 0755)
+	if err := os.MkdirAll(sub, 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create old file
 	past := time.Now().Add(-1 * time.Hour)
 	f := filepath.Join(sub, "old.txt")
-	os.WriteFile(f, []byte("old"), 0644)
-	os.Chtimes(f, past, past)
+	if err := os.WriteFile(f, []byte("old"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(f, past, past); err != nil {
+		t.Fatal(err)
+	}
 
 	// Set dir mtime to recent (simulates file deletion updating dir mtime)
 	recent := time.Now()
-	os.Chtimes(sub, recent, recent)
+	if err := os.Chtimes(sub, recent, recent); err != nil {
+		t.Fatal(err)
+	}
 
 	mt, err := NewestMtime(sub)
 	if err != nil {
@@ -200,15 +216,23 @@ func TestNewestMtime_includes_dir_own_mtime(t *testing.T) {
 func TestNewestMtime_nested_directory(t *testing.T) {
 	dir := t.TempDir()
 	nested := filepath.Join(dir, "a", "b")
-	os.MkdirAll(nested, 0755)
+	if err := os.MkdirAll(nested, 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	past := time.Now().Add(-1 * time.Hour)
-	os.Chtimes(filepath.Join(dir, "a"), past, past)
-	os.Chtimes(nested, past, past)
+	if err := os.Chtimes(filepath.Join(dir, "a"), past, past); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(nested, past, past); err != nil {
+		t.Fatal(err)
+	}
 
 	// Put a newer file deep inside
 	f := filepath.Join(nested, "file.txt")
-	os.WriteFile(f, []byte("data"), 0644)
+	if err := os.WriteFile(f, []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	mt, err := NewestMtime(filepath.Join(dir, "a"))
 	if err != nil {

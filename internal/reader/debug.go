@@ -93,8 +93,8 @@ func GenerateDebugOverlay(pageImg image.Image, regions []model.Region, readingOr
 		return fmt.Errorf("create debug dir: %w", err)
 	}
 
-	tmpPath := outputPath + ".tmp" //nolint:gosec // G304: outputPath is internal workspace path, not user HTTP input
-	f, err := os.Create(tmpPath)
+	tmpPath := outputPath + ".tmp"
+	f, err := os.Create(tmpPath) //nolint:gosec // G304: outputPath is internal workspace path, not user HTTP input
 	if err != nil {
 		return fmt.Errorf("create debug image: %w", err)
 	}

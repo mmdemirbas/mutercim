@@ -29,7 +29,7 @@ func setupSolveWorkspace(t *testing.T, stem string, pages map[int]*model.RegionP
 			t.Fatalf("marshal page %d: %v", pageNum, err)
 		}
 		filename := filepath.Join(readDir, pageName(pageNum))
-		if err := os.WriteFile(filename, data, 0644); err != nil {
+		if err := os.WriteFile(filename, data, 0600); err != nil {
 			t.Fatalf("write page %d: %v", pageNum, err)
 		}
 	}
@@ -138,7 +138,7 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 	}
 	outputPath := filepath.Join(solvedDir, "001.json")
 	originalContent := `{"version":"2.0","page_number":1}`
-	if err := os.WriteFile(outputPath, []byte(originalContent), 0644); err != nil {
+	if err := os.WriteFile(outputPath, []byte(originalContent), 0600); err != nil {
 		t.Fatalf("write existing solved page: %v", err)
 	}
 

@@ -9,7 +9,9 @@ import (
 func TestLoadDefaults(t *testing.T) {
 	// Load with minimal config file (inputs[].languages is required)
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	origDir, _ := os.Getwd()
 	if err := os.Chdir(dir); err != nil {
 		t.Fatal(err)
