@@ -73,8 +73,12 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 
 	// Create translate output
 	translatedDir := filepath.Join(dir, "translate", "tr", "TestBook")
-	os.MkdirAll(translatedDir, 0755)
-	os.WriteFile(filepath.Join(translatedDir, "001.json"), []byte("{}"), 0644)
+	if err := os.MkdirAll(translatedDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(translatedDir, "001.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseTranslate, ws, cfg) {
 		t.Error("hasPhaseOutput(translate) = false after creating translate output")
 	}

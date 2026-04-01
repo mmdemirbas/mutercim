@@ -52,8 +52,12 @@ func TestListImages_SubdirIgnored(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(dir, "subdir"), 0750); err != nil {
 		t.Fatal(err)
 	}
-	os.WriteFile(filepath.Join(dir, "subdir", "001.png"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(dir, "001.png"), []byte("fake"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "subdir", "001.png"), []byte("fake"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "001.png"), []byte("fake"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	images, err := ListImages(dir)
 	if err != nil {
@@ -68,8 +72,12 @@ func TestListImages_LegacyPagePrefix(t *testing.T) {
 	// Backward compat: old pdftoppm output with page- prefix should still work
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "page-001.png"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(dir, "page-002.png"), []byte("fake"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "page-001.png"), []byte("fake"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "page-002.png"), []byte("fake"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	images, err := ListImages(dir)
 	if err != nil {

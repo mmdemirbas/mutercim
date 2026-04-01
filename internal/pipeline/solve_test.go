@@ -96,7 +96,7 @@ func TestSolvePipeline(t *testing.T) {
 
 	// Verify output file was created with SolvedRegionPage format
 	outputPath := filepath.Join(ws.SolveDir(), "testbook", "001.json")
-	data, err := os.ReadFile(outputPath)
+	data, err := os.ReadFile(outputPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read solved output: %v", err)
 	}

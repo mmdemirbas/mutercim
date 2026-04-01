@@ -75,9 +75,15 @@ func TestFilterPagesNoMatch(t *testing.T) {
 func TestDiscoverSubdirs(t *testing.T) {
 	dir := t.TempDir()
 
-	os.MkdirAll(filepath.Join(dir, "Anfas1"), 0755)
-	os.MkdirAll(filepath.Join(dir, "Anfas2"), 0755)
-	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0644)
+	if err := os.MkdirAll(filepath.Join(dir, "Anfas1"), 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "Anfas2"), 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	stems, err := discoverSubdirs(dir)
 	if err != nil {

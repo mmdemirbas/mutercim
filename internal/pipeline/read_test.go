@@ -306,7 +306,7 @@ func TestReadPipelineMultiInput(t *testing.T) {
 	// Verify output files exist with v2.0 format for both stems
 	for _, stem := range []string{"stem1", "stem2"} {
 		outputPath := filepath.Join(ws.ReadDir(), stem, "001.json")
-		data, err := os.ReadFile(outputPath)
+		data, err := os.ReadFile(outputPath) //nolint:gosec // G304: path is internal workspace path
 		if err != nil {
 			t.Fatalf("read output for %s: %v", stem, err)
 		}
@@ -373,7 +373,7 @@ func TestSaveRegionPage(t *testing.T) {
 	}
 
 	path := filepath.Join(dir, "005.json")
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: path is from t.TempDir(), not user input
 	if err != nil {
 		t.Fatalf("read output: %v", err)
 	}
