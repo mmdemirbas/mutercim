@@ -135,7 +135,7 @@ func writeRegionPage(t *testing.T, dir string, pageNum int, page *model.RegionPa
 	if pageNum >= 10 {
 		name = "010.json"
 	}
-	if err := os.WriteFile(filepath.Join(dir, name), data, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, name), data, 0600); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 }

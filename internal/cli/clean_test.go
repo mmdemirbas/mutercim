@@ -146,10 +146,12 @@ func TestClean_log_truncates_not_removes(t *testing.T) {
 
 	// Create log file with content
 	logPath := ws.LogPath()
-	os.WriteFile(logPath, []byte("some log data\nmore lines\n"), 0644)
+	if err := os.WriteFile(logPath, []byte("some log data\nmore lines\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// Verify log file has content
-	data, err := os.ReadFile(logPath)
+	data, err := os.ReadFile(logPath) //nolint:gosec // G304: path from ws.LogPath(), not user input
 	if err != nil {
 		t.Fatalf("read log: %v", err)
 	}

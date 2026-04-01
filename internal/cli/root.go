@@ -281,7 +281,7 @@ func parseLogLevel(s string) slog.Level {
 // loadEnvFile reads a .env or .envrc file and sets environment variables.
 // Does not override variables already set in the environment.
 func loadEnvFile(path string) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: path is a well-known config file, not user HTTP input
 	if err != nil {
 		return // file not found is fine
 	}

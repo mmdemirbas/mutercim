@@ -116,16 +116,28 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 	// Set all inputs to the past so output appears newer
 	past := time.Now().Add(-10 * time.Second)
 	imgPath := filepath.Join(ws.CutDir(), "testinput", "001.png")
-	os.Chtimes(imgPath, past, past)
-	os.MkdirAll(ws.KnowledgeDir(), 0755)
-	os.Chtimes(ws.KnowledgeDir(), past, past)
-	os.Chtimes(ws.ConfigPath(), past, past)
+	if err := os.Chtimes(imgPath, past, past); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(ws.KnowledgeDir(), 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(ws.KnowledgeDir(), past, past); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(ws.ConfigPath(), past, past); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create the output file so skip logic sees it as up-to-date
 	outputDir := filepath.Join(ws.ReadDir(), "testinput")
-	os.MkdirAll(outputDir, 0755)
+	if err := os.MkdirAll(outputDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 	outputPath := filepath.Join(outputDir, "001.json")
-	os.WriteFile(outputPath, []byte(`{"version":"1.0","page_number":1}`), 0644)
+	if err := os.WriteFile(outputPath, []byte(`{"version":"1.0","page_number":1}`), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,

@@ -74,7 +74,9 @@ func TestConvertMarkdownToDocx_ContextCancelled(t *testing.T) {
 
 	dir := t.TempDir()
 	mdPath := filepath.Join(dir, "test.md")
-	os.WriteFile(mdPath, []byte("# Title"), 0644)
+	if err := os.WriteFile(mdPath, []byte("# Title"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	err := ConvertMarkdownToDocx(ctx, mdPath, filepath.Join(dir, "out.docx"), "")
 	if err == nil {

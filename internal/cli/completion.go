@@ -109,7 +109,7 @@ func installCompletion(rootCmd *cobra.Command, shell string) error {
 	switch shell {
 	case "zsh":
 		dir := filepath.Join(home, ".zfunc")
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0750); err != nil {
 			return fmt.Errorf("create %s: %w", dir, err)
 		}
 		destPath = filepath.Join(dir, "_mutercim")
@@ -117,7 +117,7 @@ func installCompletion(rootCmd *cobra.Command, shell string) error {
 
 	case "bash":
 		dir := filepath.Join(home, ".local", "share", "bash-completion", "completions")
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0750); err != nil {
 			return fmt.Errorf("create %s: %w", dir, err)
 		}
 		destPath = filepath.Join(dir, "mutercim")
@@ -125,7 +125,7 @@ func installCompletion(rootCmd *cobra.Command, shell string) error {
 
 	case "fish":
 		dir := filepath.Join(home, ".config", "fish", "completions")
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0750); err != nil {
 			return fmt.Errorf("create %s: %w", dir, err)
 		}
 		destPath = filepath.Join(dir, "mutercim.fish")

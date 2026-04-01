@@ -32,24 +32,36 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 
 	// Create cut output
 	imgDir := filepath.Join(dir, "cut", "TestBook")
-	os.MkdirAll(imgDir, 0755)
-	os.WriteFile(filepath.Join(imgDir, "001.png"), []byte("fake"), 0644)
+	if err := os.MkdirAll(imgDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(imgDir, "001.png"), []byte("fake"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseCut, ws, cfg) {
 		t.Error("hasPhaseOutput(cut) = false after creating cut output")
 	}
 
 	// Create read output
 	readDir := filepath.Join(dir, "read", "TestBook")
-	os.MkdirAll(readDir, 0755)
-	os.WriteFile(filepath.Join(readDir, "001.json"), []byte("{}"), 0644)
+	if err := os.MkdirAll(readDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(readDir, "001.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseRead, ws, cfg) {
 		t.Error("hasPhaseOutput(read) = false after creating read output")
 	}
 
 	// Create solve output
 	solvedDir := filepath.Join(dir, "solve", "TestBook")
-	os.MkdirAll(solvedDir, 0755)
-	os.WriteFile(filepath.Join(solvedDir, "001.json"), []byte("{}"), 0644)
+	if err := os.MkdirAll(solvedDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(solvedDir, "001.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseSolve, ws, cfg) {
 		t.Error("hasPhaseOutput(solve) = false after creating solve output")
 	}

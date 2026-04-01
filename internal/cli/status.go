@@ -360,7 +360,7 @@ func loadRegionPages(dir string) ([]*model.RegionPage, error) {
 		if _, err := fmt.Sscanf(e.Name(), "%03d.json", &num); err != nil {
 			continue
 		}
-		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		data, err := os.ReadFile(filepath.Join(dir, e.Name())) //nolint:gosec // G304: path is internal workspace path, not user HTTP input
 		if err != nil {
 			continue
 		}
