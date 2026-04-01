@@ -23,7 +23,7 @@ type StatusData struct {
 
 // RenderStatus writes the status dashboard to w.
 func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
-	_, _ = fmt.Fprintln(w)
+	warnWrite(fmt.Fprintln(w))
 
 	// Header
 	RenderHeader(w, HeaderData{
@@ -37,35 +37,35 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 
 	// Phase rows with per-phase config details
 	for _, row := range data.Phases {
-		_, _ = fmt.Fprintln(w, RenderProgressLine(row, colors))
+		warnWrite(fmt.Fprintln(w, RenderProgressLine(row, colors)))
 		if weLine := RenderWarnErrorLine(row.Warnings, row.Failed, colors); weLine != "" {
-			_, _ = fmt.Fprintln(w, weLine)
+			warnWrite(fmt.Fprintln(w, weLine))
 		}
 		for _, sub := range RenderSubItems(row.SubItems, colors) {
-			_, _ = fmt.Fprintln(w, sub)
+			warnWrite(fmt.Fprintln(w, sub))
 		}
 	}
-	_, _ = fmt.Fprintln(w)
+	warnWrite(fmt.Fprintln(w))
 
 	// Warnings
 	if len(data.Warnings) > 0 {
-		_, _ = fmt.Fprintf(w, "  %s %s\n", colors.Yellow("\u26a0"), colors.Yellow(fmt.Sprintf("%d warnings", len(data.Warnings))))
+		warnWrite(fmt.Fprintf(w, "  %s %s\n", colors.Yellow("\u26a0"), colors.Yellow(fmt.Sprintf("%d warnings", len(data.Warnings)))))
 		renderMessages(w, data.Warnings, 10, colors.Dim)
-		_, _ = fmt.Fprintln(w)
+		warnWrite(fmt.Fprintln(w))
 	}
 
 	// Errors
 	if len(data.Errors) > 0 {
-		_, _ = fmt.Fprintf(w, "  %s %s\n", colors.Red("\u2717"), colors.Red(fmt.Sprintf("%d errors", len(data.Errors))))
+		warnWrite(fmt.Fprintf(w, "  %s %s\n", colors.Red("\u2717"), colors.Red(fmt.Sprintf("%d errors", len(data.Errors)))))
 		renderMessages(w, data.Errors, 0, colors.Dim) // show all errors
-		_, _ = fmt.Fprintln(w)
+		warnWrite(fmt.Fprintln(w))
 	}
 
 	// Log file info
 	if data.LogPath != "" {
 		size := formatBytes(data.LogSize)
-		_, _ = fmt.Fprintf(w, "  %s %s %s\n", colors.Cyan("Log:"), data.LogPath, colors.Dim("("+size+")"))
-		_, _ = fmt.Fprintln(w)
+		warnWrite(fmt.Fprintf(w, "  %s %s %s\n", colors.Cyan("Log:"), data.LogPath, colors.Dim("("+size+")")))
+		warnWrite(fmt.Fprintln(w))
 	}
 }
 
@@ -80,10 +80,10 @@ func renderMessages(w io.Writer, msgs []string, limit int, colorFn func(string) 
 		remaining = len(msgs) - limit
 	}
 	for _, msg := range show {
-		_, _ = fmt.Fprintf(w, "    %s\n", colorFn(msg))
+		warnWrite(fmt.Fprintf(w, "    %s\n", colorFn(msg)))
 	}
 	if remaining > 0 {
-		_, _ = fmt.Fprintf(w, "    ... and %d more (see reports/)\n", remaining)
+		warnWrite(fmt.Fprintf(w, "    ... and %d more (see reports/)\n", remaining))
 	}
 }
 

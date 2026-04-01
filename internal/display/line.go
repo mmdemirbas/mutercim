@@ -64,8 +64,8 @@ func (d *LineDisplay) Update(result PageResult) {
 	label := formatLineLabel(result.Phase, result.Lang)
 
 	if result.Err != nil {
-		_, _ = fmt.Fprintf(d.out, "[%s] %s page %d/%d FAILED: %v\n",
-			label, result.Input, result.PageNum, result.Total, result.Err)
+		warnWrite(fmt.Fprintf(d.out, "[%s] %s page %d/%d FAILED: %v\n",
+			label, result.Input, result.PageNum, result.Total, result.Err))
 		return
 	}
 
@@ -89,8 +89,8 @@ func (d *LineDisplay) Update(result PageResult) {
 		detail = " \u2014 " + strings.Join(details, ", ")
 	}
 
-	_, _ = fmt.Fprintf(d.out, "[%s] %s %d/%d%s\n",
-		label, result.Input, result.Completed, result.Total, detail)
+	warnWrite(fmt.Fprintf(d.out, "[%s] %s %d/%d%s\n",
+		label, result.Input, result.Completed, result.Total, detail))
 }
 
 // FinishPhase writes a phase completion summary line.
@@ -100,8 +100,8 @@ func (d *LineDisplay) FinishPhase(phase Phase, input string, lang string) {
 
 	if idx := d.findPhase(phase, input); idx >= 0 {
 		s := d.phases[idx]
-		_, _ = fmt.Fprintf(d.out, "[%s] %s done: %d completed, %d failed, %d warnings\n",
-			formatLineLabel(s.phase, s.lang), s.input, s.completed, s.failed, s.warnings)
+		warnWrite(fmt.Fprintf(d.out, "[%s] %s done: %d completed, %d failed, %d warnings\n",
+			formatLineLabel(s.phase, s.lang), s.input, s.completed, s.failed, s.warnings))
 	}
 }
 
@@ -112,8 +112,8 @@ func (d *LineDisplay) Finish() {
 
 	for _, s := range d.phases {
 		if s.completed > 0 || s.failed > 0 {
-			_, _ = fmt.Fprintf(d.out, "[%s] %s: %d/%d completed, %d failed\n",
-				formatLineLabel(s.phase, s.lang), s.input, s.completed, s.total, s.failed)
+			warnWrite(fmt.Fprintf(d.out, "[%s] %s: %d/%d completed, %d failed\n",
+				formatLineLabel(s.phase, s.lang), s.input, s.completed, s.total, s.failed))
 		}
 	}
 }

@@ -3,6 +3,7 @@ package display
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -29,17 +30,25 @@ type HeaderData struct {
 	PhaseConfigs []PhaseConfig // per-phase config summaries
 }
 
+// warnWrite logs a warning if a write to an io.Writer fails.
+// Display writes to stdout/stderr are not critical, but failures must not be silent.
+func warnWrite(_ int, err error) {
+	if err != nil {
+		slog.Warn("display write error", "err", err)
+	}
+}
+
 // RenderHeader writes the header section and returns the number of lines written.
 // Order: log level, output, inputs, knowledge.
 //nolint:cyclop,gocognit // header rendering with many optional fields
 func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 	lines := 0
 	if h.LogLevel != "" && h.LogLevel != "info" {
-		_, _ = fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Log")), h.LogLevel)
+		warnWrite(fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Log")), h.LogLevel))
 		lines++
 	}
 	if h.OutputDir != "" {
-		_, _ = fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir)
+		warnWrite(fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir))
 		lines++
 	}
 	if len(h.Inputs) > 0 {
@@ -57,16 +66,16 @@ func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 					info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
 				}
 			}
-			_, _ = fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", label)), info)
+			warnWrite(fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", label)), info))
 			lines++
 		}
 	}
 	if len(h.Knowledge) > 0 {
-		_, _ = fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", "))
+		warnWrite(fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", ")))
 		lines++
 	}
 	if lines > 0 {
-		_, _ = fmt.Fprintln(w)
+		warnWrite(fmt.Fprintln(w))
 		lines++
 	}
 	return lines
