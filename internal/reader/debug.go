@@ -16,30 +16,25 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
-// regionColor returns a color for the given region type.
+// regionTypeColors maps region types to display colors.
+var regionTypeColors = map[string]color.RGBA{ //nolint:gochecknoglobals
+	model.RegionTypeHeader:       {R: 30, G: 100, B: 255, A: 255},  // blue
+	model.RegionTypeEntry:        {R: 30, G: 200, B: 30, A: 255},   // green
+	model.RegionTypeFootnote:     {R: 255, G: 150, B: 30, A: 255},  // orange
+	model.RegionTypeSeparator:    {R: 230, G: 30, B: 30, A: 255},   // red
+	model.RegionTypePageNumber:   {R: 140, G: 140, B: 140, A: 255}, // gray
+	model.RegionTypeTable:        {R: 160, G: 40, B: 220, A: 255},  // purple
+	model.RegionTypeImage:        {R: 0, G: 200, B: 220, A: 255},   // cyan
+	model.RegionTypeColumnHeader: {R: 230, G: 200, B: 20, A: 255},  // yellow
+	model.RegionTypeMarginNote:   {R: 240, G: 120, B: 180, A: 255}, // pink
+}
+
+// regionColor returns a display color for the given region type.
 func regionColor(regionType string) color.RGBA {
-	switch regionType {
-	case model.RegionTypeHeader:
-		return color.RGBA{R: 30, G: 100, B: 255, A: 255} // blue
-	case model.RegionTypeEntry:
-		return color.RGBA{R: 30, G: 200, B: 30, A: 255} // green
-	case model.RegionTypeFootnote:
-		return color.RGBA{R: 255, G: 150, B: 30, A: 255} // orange
-	case model.RegionTypeSeparator:
-		return color.RGBA{R: 230, G: 30, B: 30, A: 255} // red
-	case model.RegionTypePageNumber:
-		return color.RGBA{R: 140, G: 140, B: 140, A: 255} // gray
-	case model.RegionTypeTable:
-		return color.RGBA{R: 160, G: 40, B: 220, A: 255} // purple
-	case model.RegionTypeImage:
-		return color.RGBA{R: 0, G: 200, B: 220, A: 255} // cyan
-	case model.RegionTypeColumnHeader:
-		return color.RGBA{R: 230, G: 200, B: 20, A: 255} // yellow
-	case model.RegionTypeMarginNote:
-		return color.RGBA{R: 240, G: 120, B: 180, A: 255} // pink
-	default:
-		return color.RGBA{R: 220, G: 220, B: 220, A: 255} // white/light gray
+	if c, ok := regionTypeColors[regionType]; ok {
+		return c
 	}
+	return color.RGBA{R: 220, G: 220, B: 220, A: 255} // default: light gray
 }
 
 // GenerateDebugOverlay draws layout detection bounding boxes on a page image

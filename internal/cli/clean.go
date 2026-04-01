@@ -18,28 +18,17 @@ var cleanablePhases = []string{"log", "memory", "cut", "layout", "ocr", "read", 
 
 // phaseDir returns the workspace directory for a cleanable phase.
 func phaseDir(ws *workspace.Workspace, phase string) string {
-	switch phase {
-	case "log":
-		return "" // log file handled specially, not a directory
-	case "memory":
-		return ws.MemoryDir()
-	case "cut":
-		return ws.CutDir()
-	case "layout":
-		return ws.LayoutDir()
-	case "ocr":
-		return ws.OcrDir()
-	case "read":
-		return ws.ReadDir()
-	case "solve":
-		return ws.SolveDir()
-	case "translate":
-		return ws.TranslateDir()
-	case "write":
-		return ws.WriteDir()
-	default:
-		return ""
+	dirs := map[string]string{
+		"memory":    ws.MemoryDir(),
+		"cut":       ws.CutDir(),
+		"layout":    ws.LayoutDir(),
+		"ocr":       ws.OcrDir(),
+		"read":      ws.ReadDir(),
+		"solve":     ws.SolveDir(),
+		"translate": ws.TranslateDir(),
+		"write":     ws.WriteDir(),
 	}
+	return dirs[phase] // returns "" for "log" and unknown phases
 }
 
 // expandTargets resolves target arguments into a deduplicated list of phases.
