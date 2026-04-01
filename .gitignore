@@ -1,28 +1,42 @@
 # Build
-build/
-dist/
+/bin/
+/build/
+/dist/
+/out/
+
+# Go
+*.test
+*.out
+*.prof
+cover.out
+
+# Secrets
+.env
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# Secrets
-.env
+*~
+.obsidian/
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# example
+# Logs
+*.log
+*.err
+
+# Syncthing
+.stignore
+.stfolder
+
+# Project-specific
 /example/**
 !/example/_templates
 !/example/knowledge
 !/example/mutercim.yaml
-
-# Logs
-*.log
-cover.out
 quality-findings.md
