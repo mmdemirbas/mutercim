@@ -51,6 +51,7 @@ type regionResp struct {
 // If layoutRegions is non-empty, it uses the local+AI strategy (with-layout prompt);
 // otherwise it uses the AI-only prompt.
 // The layoutToolName parameter records which tool produced the layout regions (empty means ai-only).
+//nolint:funlen // AI region parsing with OCR merge logic
 func (r *Reader) ReadRegionPage(ctx context.Context, image []byte, pageNum int, modelName string, layoutRegions []model.Region, layoutToolName string) (*ReadResult, error) {
 	var sysPrompt string
 	var userPrompt string
@@ -160,6 +161,7 @@ type OCRRegionData struct {
 //
 // Case 1 (layout + ocr): regions have OCR text + layout bboxes/types.
 // Case 3 (no layout + ocr): fullText is the unstructured OCR text.
+//nolint:funlen // AI region parsing with full OCR merge and region matching
 func (r *Reader) ReadRegionPageWithOCR(ctx context.Context, pageNum int, modelName string,
 	ocrRegions []OCRRegionData, fullText string,
 	layoutToolName, ocrToolName string) (*ReadResult, error) {

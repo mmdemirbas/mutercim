@@ -63,6 +63,7 @@ func Solve(ctx context.Context, opts SolveOptions) (PhaseResult, error) {
 	return total, nil
 }
 
+//nolint:cyclop,gocognit,funlen // per-input solve with knowledge resolution and cross-page logic
 func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, stem string) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {

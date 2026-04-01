@@ -33,6 +33,7 @@ func NeedsRebuild(output string, inputs ...string) bool {
 // additions and deletions.
 // Returns zero time and nil if no paths are provided.
 // Returns an error if any path cannot be stat'd.
+//nolint:cyclop,gocognit // recursive directory traversal with mtime comparison
 func NewestMtime(paths ...string) (time.Time, error) {
 	var newest time.Time
 

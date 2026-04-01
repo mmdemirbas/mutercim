@@ -31,6 +31,7 @@ type HeaderData struct {
 
 // RenderHeader writes the header section and returns the number of lines written.
 // Order: log level, output, inputs, knowledge.
+//nolint:cyclop,gocognit // header rendering with many optional fields
 func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 	lines := 0
 	if h.LogLevel != "" && h.LogLevel != "info" {
@@ -204,6 +205,7 @@ func formatDuration(d time.Duration) string {
 
 // RenderProgressLine formats one phase progress line.
 // Both the live dashboard and status command use this for consistent output.
+//nolint:cyclop,gocognit // progress line formatting with many display states
 func RenderProgressLine(row ProgressRow, colors StatusColors) string {
 	label := FormatLabel(row.Phase, row.Lang)
 

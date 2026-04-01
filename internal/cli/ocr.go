@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//nolint:cyclop,gocognit // cobra command with pipeline dispatch and flag wiring
 func newOCRCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ocr",

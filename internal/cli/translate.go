@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//nolint:cyclop,gocognit,funlen // cobra command with pipeline dispatch and flag wiring
 func newTranslateCmd() *cobra.Command {
 	var (
 		translateProvider string

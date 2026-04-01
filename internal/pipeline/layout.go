@@ -103,6 +103,7 @@ type layoutReport struct {
 	ClassDistribution map[string]int `json:"class_distribution"`
 }
 
+//nolint:cyclop,gocognit,funlen // per-input layout with rebuild checking and debug output
 func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, stem string, pages []int) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {

@@ -155,6 +155,7 @@ func (f *FailoverChain) ActiveModel(needsVision bool) string {
 	return ""
 }
 
+//nolint:cyclop,gocognit // failover retry loop with cooldown and error accumulation
 func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn func(Provider) (string, error)) (string, error) {
 	var errs []error
 	for i := range f.entries {

@@ -57,6 +57,7 @@ func (q *QariTool) Name() string { return "qari" }
 
 // Start ensures the Docker image exists and starts the Qari-OCR container.
 // If a container with the same name is already running and healthy, it is reused.
+//nolint:cyclop,gocognit // Docker container lifecycle with health checking
 func (q *QariTool) Start(ctx context.Context) error {
 	// Ensure Docker image exists
 	if q.DockerfileDir != "" {
@@ -173,7 +174,7 @@ func (q *QariTool) IsReady(ctx context.Context) bool {
 
 // RecognizeRegions OCRs cropped regions from a page image via POST /ocr/regions.
 //
-//nolint:cyclop // HTTP multipart construction with multi-step error handling
+//nolint:cyclop,funlen // HTTP multipart construction with multi-step error handling
 func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regions []RegionInput) (*Result, error) {
 	if q.port == 0 {
 		return nil, fmt.Errorf("qari-ocr not started")

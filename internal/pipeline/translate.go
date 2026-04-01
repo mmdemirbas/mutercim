@@ -92,6 +92,7 @@ func Translate(ctx context.Context, opts TranslateOptions) (PhaseResult, error) 
 	return total, nil
 }
 
+//nolint:cyclop,gocognit,funlen // per-input translate with context window and retry logic
 func translateOneInput(ctx context.Context, opts TranslateOptions, translator *translation.Translator, stem, targetLang string, contextWindow int) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {

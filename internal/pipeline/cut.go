@@ -30,6 +30,7 @@ type CutOptions struct {
 
 // Cut runs the page cutting phase: converts PDF inputs to per-page images.
 // For inputs that are already image directories, this is a no-op.
+//nolint:cyclop,gocognit // pipeline phase with multi-input orchestration
 func Cut(ctx context.Context, opts CutOptions) error {
 	logger := opts.Logger
 	if logger == nil {
@@ -68,6 +69,7 @@ func Cut(ctx context.Context, opts CutOptions) error {
 	return nil
 }
 
+//nolint:cyclop,gocognit // per-input cut logic with multiple format paths
 func cutOneInput(ctx context.Context, opts CutOptions, inputPath, stem string, pages []int) error {
 	logger := opts.Logger
 	if logger == nil {

@@ -26,6 +26,7 @@ func isArabicLang(lang string) bool {
 }
 
 // RenderPage renders a single translated region page as LaTeX.
+//nolint:cyclop,gocognit // LaTeX rendering with many region type branches
 func (r *LaTeXRenderer) RenderPage(page *model.TranslatedRegionPage) string {
 	var b strings.Builder
 

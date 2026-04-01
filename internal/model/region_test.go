@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-//nolint:cyclop // large JSON round-trip test with many field assertions
+//nolint:cyclop,funlen // large JSON round-trip test with many field assertions
 func TestRegionPage_JSONRoundTrip(t *testing.T) {
 	col1 := 1
 	col2 := 2

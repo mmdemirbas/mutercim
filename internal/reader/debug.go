@@ -40,6 +40,7 @@ func regionColor(regionType string) color.RGBA {
 // GenerateDebugOverlay draws layout detection bounding boxes on a page image
 // and saves the result as a PNG. readingOrder maps region IDs to their position
 // in the reading order (1-based). If readingOrder is nil, no order numbers are drawn.
+//nolint:cyclop,gocognit // bbox clamping with per-region color, label, and border drawing
 func GenerateDebugOverlay(pageImg image.Image, regions []model.Region, readingOrder map[string]int, outputPath string) error {
 	bounds := pageImg.Bounds()
 	overlay := image.NewRGBA(bounds)

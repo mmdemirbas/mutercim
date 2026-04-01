@@ -92,6 +92,8 @@ func (e *HTTPError) Error() string {
 // Returns the raw response body bytes.
 // Retries on: 429 (rate limit), 500, 502, 503, 529 (overloaded).
 // Does NOT retry on: 400 (bad request), 401 (auth), 403 (forbidden), 404.
+//
+//nolint:cyclop,gocognit // retry loop with status-code branching is inherently complex
 func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 	var lastErr error
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {

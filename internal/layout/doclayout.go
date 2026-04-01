@@ -164,6 +164,7 @@ var docLayoutTypeMap = map[string]string{
 //   - iou (float64): IoU threshold for NMS, default 0.7
 //   - image_size (int): input image size, default 1024
 //   - max_det (int): max detections, default 300
+//nolint:cyclop,gocognit,funlen // JSON detection with coordinate transformation and filtering
 func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) (*DetectResult, error) {
 	// Auto-build Docker image if needed
 	if d.DockerfileDir != "" {

@@ -173,6 +173,7 @@ func TestSuryaTool_Available_Success(t *testing.T) {
 	}
 }
 
+//nolint:cyclop,gocognit // integration test with detailed layout assertions
 func TestSuryaTool_DetectRegions_Success(t *testing.T) {
 	suryaJSON := suryaOutput{
 		Regions: []suryaRegion{

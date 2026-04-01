@@ -120,6 +120,7 @@ func TestDocLayoutTool_Available_Success(t *testing.T) {
 	}
 }
 
+//nolint:cyclop,gocognit // integration test with many detection assertions
 func TestDocLayoutTool_DetectRegions_Success(t *testing.T) {
 	// Simulate post-processed output from the Python entrypoint
 	dlJSON := docLayoutOutput{

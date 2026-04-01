@@ -26,6 +26,7 @@ var (
 )
 
 // NewRootCmd creates the root cobra command.
+//nolint:cyclop,gocognit,funlen // root command wiring with many flags and subcommands
 func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "mutercim",
@@ -294,6 +295,7 @@ func loadEnvFile(path string) {
 
 // parseEnvLines parses KEY=VALUE and export KEY=VALUE lines from env file content.
 // Skips comments and blank lines. Strips surrounding quotes from values.
+//nolint:cyclop,gocognit // env file parsing with quote/comment handling
 func parseEnvLines(content string) map[string]string {
 	result := make(map[string]string)
 	for _, line := range strings.Split(content, "\n") {

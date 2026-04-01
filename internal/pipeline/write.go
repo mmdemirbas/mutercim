@@ -68,6 +68,7 @@ func Write(ctx context.Context, opts WriteOptions) error {
 	return nil
 }
 
+//nolint:cyclop,gocognit,funlen // per-input write with multi-format output generation
 func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang string) error {
 	logger := opts.Logger
 	if logger == nil {

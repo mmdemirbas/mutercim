@@ -86,6 +86,7 @@ func OCR(ctx context.Context, opts OCROptions) (PhaseResult, error) {
 	return total, nil
 }
 
+//nolint:cyclop,gocognit,funlen // per-input OCR with region-level and page-level paths
 func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {

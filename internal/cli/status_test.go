@@ -319,6 +319,7 @@ func TestCollectValidationWarnings_NoReadDir(t *testing.T) {
 	}
 }
 
+//nolint:cyclop,gocognit // integration test with many row assertions
 func TestBuildPhaseRows(t *testing.T) {
 	dir := t.TempDir()
 	ws := &workspace.Workspace{Root: dir}

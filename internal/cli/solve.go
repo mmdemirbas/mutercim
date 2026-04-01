@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//nolint:cyclop,gocognit // cobra command with pipeline dispatch and error handling
 func newSolveCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "solve",

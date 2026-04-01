@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+//nolint:funlen // table-driven test with many .env parsing cases
 func TestParseEnvLines(t *testing.T) {
 	tests := []struct {
 		name    string

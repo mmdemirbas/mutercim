@@ -19,6 +19,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+//nolint:cyclop,gocognit,funlen // full pipeline orchestration in a single cobra command
 func newAllCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:       "all [formats...]",

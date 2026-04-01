@@ -14,6 +14,7 @@ type PageRange struct {
 
 // ParsePageRanges parses a page range string like "1-50", "1,5,10-20", or "all".
 // Returns a slice of PageRange. For "all", returns nil (meaning all pages).
+//nolint:cyclop,gocognit // parsing with multiple range formats and edge cases
 func ParsePageRanges(s string) ([]PageRange, error) {
 	s = strings.TrimSpace(s)
 	if s == "" || strings.EqualFold(s, "all") {

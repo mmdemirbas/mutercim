@@ -167,7 +167,7 @@ func TestValidate_PerInputPages(t *testing.T) {
 	}
 }
 
-//nolint:cyclop // exhaustive field-by-field validation inherently complex
+//nolint:cyclop,gocognit // exhaustive field-by-field validation inherently complex
 func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 	cfg := &Config{}
 	applyDefaults(cfg)

@@ -90,6 +90,7 @@ func buildInputPageMap(cfg *config.Config) map[string][]int {
 	return m
 }
 
+//nolint:cyclop,gocognit,funlen // per-input read with OCR merge, retry, and debug paths
 func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []int) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {

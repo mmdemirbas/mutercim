@@ -24,6 +24,7 @@ func newStatusCmd() *cobra.Command {
 	}
 }
 
+//nolint:cyclop,gocognit // status display with many data sources and formatting
 func runStatus(cmd *cobra.Command, args []string) error {
 	ws, err := workspace.Discover(".")
 	if err != nil {
@@ -107,6 +108,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 }
 
 // buildPhaseRows creates the status table rows by counting files on disk.
+//nolint:cyclop,gocognit,funlen // many phases and languages to enumerate
 func buildPhaseRows(ws *workspace.Workspace, cfg *config.Config, inputs []string, totalImages int) []display.ProgressRow {
 	var rows []display.ProgressRow
 	targetLangs := cfg.Translate.Languages
@@ -257,6 +259,7 @@ func dirHasFiles(dir string) bool {
 }
 
 // discoverInputs finds input stems by scanning workspace subdirectories.
+//nolint:cyclop,gocognit // multi-directory scan with deduplication logic
 func discoverInputs(ws *workspace.Workspace) []string {
 	seen := make(map[string]bool)
 	for _, dir := range []string{ws.CutDir(), ws.LayoutDir(), ws.OcrDir(), ws.ReadDir(), ws.SolveDir()} {
@@ -313,6 +316,7 @@ func countFiles(dir string) int {
 }
 
 // collectValidationWarnings runs structural validation on read pages and returns warnings.
+//nolint:cyclop,gocognit // multi-type validation across many pages
 func collectValidationWarnings(ws *workspace.Workspace, inputs []string) []string {
 	var warnings []string
 	for _, stem := range inputs {

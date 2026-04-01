@@ -206,6 +206,7 @@ func (d *TTYDisplay) Finish() {
 	d.currentLines = 0
 }
 
+//nolint:cyclop,gocognit // full TTY frame rendering with header, progress, and log sections
 func (d *TTYDisplay) render() {
 	// Build the entire frame into a buffer, then write it as a single
 	// operation. This prevents partial writes from corrupting the display
@@ -268,6 +269,7 @@ func (d *TTYDisplay) render() {
 
 // renderHeaderTo writes the header to a buffer and returns the line count.
 // Mirrors RenderHeader but writes to a strings.Builder.
+//nolint:cyclop,gocognit // header rendering with many optional fields
 func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int {
 	lines := 0
 	if h.LogLevel != "" && h.LogLevel != "info" {
@@ -390,6 +392,7 @@ func (ps *phaseState) rate() float64 {
 	return 60.0 / avg.Seconds()
 }
 
+//nolint:cyclop,gocognit // maps many result states to log level and message
 func logEntryFromResult(result PageResult, now time.Time) LogEntry {
 	level := LogNormal
 	var msg string

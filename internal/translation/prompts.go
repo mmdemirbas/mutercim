@@ -71,6 +71,7 @@ func buildLanguageInstruction(sourceLangs []string, targetLang string) string {
 
 // BuildRegionUserPrompt constructs the user prompt with all regions listed.
 // glossaryContext contains pre-formatted glossary lines for the target language.
+//nolint:cyclop,gocognit // prompt construction with many conditional blocks
 func BuildRegionUserPrompt(page *model.SolvedRegionPage, glossaryContext []string, sourceLangs []string, targetLang string) string {
 	var b strings.Builder
 

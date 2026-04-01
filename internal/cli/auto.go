@@ -66,6 +66,8 @@ func dirHasEntries(dir string) bool {
 
 // runPrerequisites runs all pipeline phases needed before targetPhase.
 // It finds the first missing phase and runs from there through targetPhase-1.
+//
+//nolint:cyclop,gocognit,funlen // orchestrates all pipeline phases; complexity is inherent
 func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Workspace, cfg *config.Config, pagesToProcess []int, disp display.Display) error {
 	// Find first missing prerequisite
 	startPhase := targetPhase
