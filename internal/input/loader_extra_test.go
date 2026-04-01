@@ -119,9 +119,15 @@ func TestRenamePdftoppmOutput(t *testing.T) {
 	dir := t.TempDir()
 
 	// Simulate pdftoppm output
-	os.WriteFile(filepath.Join(dir, "page-001.png"), []byte("img1"), 0644)
-	os.WriteFile(filepath.Join(dir, "page-002.png"), []byte("img2"), 0644)
-	os.WriteFile(filepath.Join(dir, "page-010.png"), []byte("img10"), 0644)
+	for _, f := range []struct{ name, data string }{
+		{"page-001.png", "img1"},
+		{"page-002.png", "img2"},
+		{"page-010.png", "img10"},
+	} {
+		if err := os.WriteFile(filepath.Join(dir, f.name), []byte(f.data), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	if err := renamePdftoppmOutput(dir); err != nil {
 		t.Fatalf("renamePdftoppmOutput: %v", err)

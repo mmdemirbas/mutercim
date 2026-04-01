@@ -179,7 +179,7 @@ func TestClean_log_truncates_not_removes(t *testing.T) {
 	_ = f.Close()
 
 	// Verify file still exists but is empty
-	data, err = os.ReadFile(logPath)
+	data, err = os.ReadFile(logPath) //nolint:gosec // G304: path from ws.LogPath(), not user input
 	if err != nil {
 		t.Fatalf("read truncated log: %v", err)
 	}

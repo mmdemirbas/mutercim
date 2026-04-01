@@ -128,7 +128,7 @@ func TestWriteLatex(t *testing.T) {
 
 	// Check .tex was also written to latex-build/<stem> for compilation
 	buildTexPath := filepath.Join(ws.WriteDir(), "tr", "latex-build", "TestBook", "book.tex")
-	buildData, err := os.ReadFile(buildTexPath)
+	buildData, err := os.ReadFile(buildTexPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read latex build: %v", err)
 	}

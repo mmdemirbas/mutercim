@@ -49,13 +49,17 @@ func TestDirHasFiles(t *testing.T) {
 	}
 
 	// Dir with only subdirs
-	os.MkdirAll(filepath.Join(dir, "subdir"), 0755)
+	if err := os.MkdirAll(filepath.Join(dir, "subdir"), 0750); err != nil {
+		t.Fatal(err)
+	}
 	if dirHasFiles(dir) {
 		t.Error("dir with only subdirs should return false")
 	}
 
 	// Dir with file
-	os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "file.txt"), []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !dirHasFiles(dir) {
 		t.Error("dir with file should return true")
 	}
@@ -74,9 +78,14 @@ func TestCountFiles(t *testing.T) {
 		t.Errorf("empty: got %d, want 0", got)
 	}
 
-	os.WriteFile(filepath.Join(dir, "a.png"), []byte("x"), 0644)
-	os.WriteFile(filepath.Join(dir, "b.png"), []byte("x"), 0644)
-	os.MkdirAll(filepath.Join(dir, "subdir"), 0755)
+	for _, name := range []string{"a.png", "b.png"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "subdir"), 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	if got := countFiles(dir); got != 2 {
 		t.Errorf("with files: got %d, want 2", got)
@@ -100,8 +109,12 @@ func TestDiscoverInputs(t *testing.T) {
 	}
 
 	// Create cut/book1 and read/book2
-	os.MkdirAll(filepath.Join(dir, "cut", "book1"), 0755)
-	os.MkdirAll(filepath.Join(dir, "read", "book2"), 0755)
+	if err := os.MkdirAll(filepath.Join(dir, "cut", "book1"), 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "read", "book2"), 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	stems = discoverInputs(ws)
 	if len(stems) != 2 || stems[0] != "book1" || stems[1] != "book2" {
