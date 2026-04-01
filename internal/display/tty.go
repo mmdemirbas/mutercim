@@ -394,14 +394,15 @@ func logEntryFromResult(result PageResult, now time.Time) LogEntry {
 	level := LogNormal
 	var msg string
 
-	if result.Err != nil {
+	switch {
+	case result.Err != nil:
 		level = LogError
 		if result.LayoutError != "" {
 			msg = fmt.Sprintf("page %d \u2014 %s \u2717 fallback \u2014 %v", result.PageNum, result.LayoutTool, result.Err)
 		} else {
 			msg = fmt.Sprintf("page %d \u2014 %v", result.PageNum, result.Err)
 		}
-	} else if result.Phase == PhaseRead && result.LayoutTool != "" {
+	case result.Phase == PhaseRead && result.LayoutTool != "":
 		// Read phase: show layout tool info and region type breakdown
 		var regionParts []string
 		if result.Entries > 0 {
@@ -419,12 +420,13 @@ func logEntryFromResult(result PageResult, now time.Time) LogEntry {
 			regionDetail = fmt.Sprintf("%d regions", totalRegions)
 		}
 
-		if result.LayoutError != "" {
+		switch {
+		case result.LayoutError != "":
 			msg = fmt.Sprintf("page %d \u2014 %s \u2717 fallback", result.PageNum, result.LayoutTool)
 			level = LogWarning
-		} else if result.LayoutTool == "ai-only" {
+		case result.LayoutTool == "ai-only":
 			msg = fmt.Sprintf("page %d \u2014 ai-only", result.PageNum)
-		} else {
+		default:
 			msg = fmt.Sprintf("page %d \u2014 %s %dms", result.PageNum, result.LayoutTool, result.LayoutMs)
 		}
 		if regionDetail != "" {
@@ -433,7 +435,7 @@ func logEntryFromResult(result PageResult, now time.Time) LogEntry {
 		if result.Warnings > 0 {
 			level = LogWarning
 		}
-	} else {
+	default:
 		var details []string
 		if result.Entries > 0 {
 			details = append(details, fmt.Sprintf("%d entries", result.Entries))

@@ -132,15 +132,16 @@ func drawRectBorder(img *image.RGBA, rect image.Rectangle, c color.RGBA, thickne
 // Shows [raw→mapped conf] id format when raw class info is available.
 func formatDebugLabel(region model.Region, readingOrder map[string]int) string {
 	var label string
-	if region.RawClass != "" && region.RawClass != region.Type {
+	switch {
+	case region.RawClass != "" && region.RawClass != region.Type:
 		label = fmt.Sprintf("[%s\u2192%s", region.RawClass, region.Type)
 		if region.Confidence > 0 {
 			label += fmt.Sprintf(" %.2f", region.Confidence)
 		}
 		label += "] " + region.ID
-	} else if region.Confidence > 0 {
+	case region.Confidence > 0:
 		label = fmt.Sprintf("[%s %.2f] %s", region.Type, region.Confidence, region.ID)
-	} else {
+	default:
 		label = fmt.Sprintf("%s %s", region.Type, region.ID)
 	}
 
