@@ -34,6 +34,8 @@ type LayoutOptions struct {
 }
 
 // Layout runs the layout detection phase: detects document regions on page images.
+//
+//nolint:cyclop // pipeline orchestration complexity is inherent
 func Layout(ctx context.Context, opts LayoutOptions) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {

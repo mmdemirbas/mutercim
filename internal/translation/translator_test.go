@@ -22,6 +22,7 @@ func (m *mockProvider) Translate(ctx context.Context, systemPrompt, userPrompt s
 	return m.response, m.err
 }
 
+//nolint:cyclop // integration test with detailed translated page assertions
 func TestTranslatePage(t *testing.T) {
 	response := `{
 		"regions": [

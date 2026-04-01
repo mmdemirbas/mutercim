@@ -148,6 +148,7 @@ func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 	return nil, fmt.Errorf("max retries (%d) exceeded: %w", c.maxRetries, lastErr)
 }
 
+//nolint:cyclop // HTTP request execution with multi-step error handling is inherently branchy
 func (c *Client) doOnce(ctx context.Context, req Request) ([]byte, error) {
 	var bodyReader io.Reader
 	if req.Body != nil {

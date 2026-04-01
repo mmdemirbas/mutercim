@@ -165,6 +165,8 @@ func Load(configPath string) (*Config, error) {
 }
 
 // applyDefaults fills in zero-valued fields with their defaults.
+//
+//nolint:cyclop // sequential defaulting of many independent fields
 func applyDefaults(cfg *Config) {
 	if len(cfg.Translate.Languages) == 0 {
 		cfg.Translate.Languages = []string{"tr"}

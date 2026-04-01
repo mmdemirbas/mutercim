@@ -80,6 +80,7 @@ func detectShell() string {
 	}
 }
 
+//nolint:cyclop // shell-specific branching + OS path handling is inherently branchy
 func installCompletion(rootCmd *cobra.Command, shell string) error {
 	var buf bytes.Buffer
 	var err error

@@ -30,6 +30,7 @@ const (
 )
 
 // hasPhaseOutput checks whether a phase has already produced output.
+//nolint:cyclop // dispatch over phase enum with per-phase special cases
 func hasPhaseOutput(p phase, ws *workspace.Workspace, cfg *config.Config) bool {
 	switch p {
 	case phaseCut:

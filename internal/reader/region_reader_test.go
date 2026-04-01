@@ -22,6 +22,7 @@ func (m *mockProvider) Translate(_ context.Context, _, _ string) (string, error)
 	return m.response, m.err
 }
 
+//nolint:cyclop // integration test with detailed page structure assertions
 func TestReadRegionPage_AIOnly(t *testing.T) {
 	response := `{
 		"regions": [

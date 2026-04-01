@@ -167,6 +167,7 @@ func TestValidate_PerInputPages(t *testing.T) {
 	}
 }
 
+//nolint:cyclop // exhaustive field-by-field validation inherently complex
 func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 	cfg := &Config{}
 	applyDefaults(cfg)
@@ -240,6 +241,7 @@ func TestApplyDefaults_AllFieldsMigrated(t *testing.T) {
 	}
 }
 
+//nolint:cyclop // exhaustive field-by-field validation inherently complex
 func TestApplyDefaults_PreservesExistingValues(t *testing.T) {
 	cfg := &Config{
 		Cut:       CutConfig{DPI: 600},

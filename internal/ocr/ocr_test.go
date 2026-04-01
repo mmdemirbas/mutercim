@@ -264,6 +264,7 @@ func TestQariTool_fullPageOCR(t *testing.T) {
 	}
 }
 
+//nolint:cyclop // integration test with detailed response field validation
 func TestQariTool_recognizeRegions(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/ocr/regions" && r.Method == http.MethodPost {

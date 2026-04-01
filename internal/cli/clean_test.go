@@ -105,6 +105,7 @@ func TestExpandTargets_invalid(t *testing.T) {
 	}
 }
 
+//nolint:cyclop // integration test complexity is inherent
 func TestClean_never_deletes_input_or_knowledge(t *testing.T) {
 	dir := t.TempDir()
 	ws := &workspace.Workspace{Root: dir}

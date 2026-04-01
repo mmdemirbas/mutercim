@@ -460,6 +460,7 @@ func TestSortReadingOrderRTL_SingleRegion(t *testing.T) {
 	}
 }
 
+//nolint:cyclop // detailed response field validation inherently complex
 func TestDocLayoutTool_DetectRegions_WithParams(t *testing.T) {
 	dlJSON := docLayoutOutput{
 		Regions: []docLayoutRegion{

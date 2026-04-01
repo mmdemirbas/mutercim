@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+//nolint:cyclop // large JSON round-trip test with many field assertions
 func TestRegionPage_JSONRoundTrip(t *testing.T) {
 	col1 := 1
 	col2 := 2
@@ -192,6 +193,7 @@ func TestRegionPage_EmptyRegions(t *testing.T) {
 	}
 }
 
+//nolint:cyclop // unmarshal test with many field assertions
 func TestRegionPage_UnmarshalFromJSON(t *testing.T) {
 	// Simulates what we'd get from an AI provider response
 	input := `{

@@ -71,6 +71,7 @@ func regionTranslateResponseJSON() string {
 	return `{"regions":[{"id":"r1","translated_text":"translated header"},{"id":"r2","translated_text":"translated entry"}],"warnings":[]}`
 }
 
+//nolint:cyclop // integration test with detailed result validation
 func TestTranslatePipeline(t *testing.T) {
 	stem := "testbook"
 	pages := map[int]*model.SolvedRegionPage{

@@ -116,6 +116,7 @@ func TestSolvePipeline(t *testing.T) {
 	}
 }
 
+//nolint:cyclop // integration test with detailed result validation
 func TestSolvePipelineSkipsCompleted(t *testing.T) {
 	ws := setupSolveWorkspace(t, "testbook", map[int]*model.RegionPage{
 		1: makeRegionPage(1),

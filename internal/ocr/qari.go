@@ -172,6 +172,8 @@ func (q *QariTool) IsReady(ctx context.Context) bool {
 }
 
 // RecognizeRegions OCRs cropped regions from a page image via POST /ocr/regions.
+//
+//nolint:cyclop // HTTP multipart construction with multi-step error handling
 func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regions []RegionInput) (*Result, error) {
 	if q.port == 0 {
 		return nil, fmt.Errorf("qari-ocr not started")

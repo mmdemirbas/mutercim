@@ -31,6 +31,8 @@ type OCROptions struct {
 
 // OCR runs the OCR phase: extracts text from page images using the configured OCR tool.
 // If layout data exists, it OCRs individual regions; otherwise it OCRs the full page.
+//
+//nolint:cyclop // pipeline orchestration complexity is inherent
 func OCR(ctx context.Context, opts OCROptions) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {

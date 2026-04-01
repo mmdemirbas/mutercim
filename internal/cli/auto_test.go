@@ -23,6 +23,7 @@ func TestHasPhaseOutput_empty_workspace(t *testing.T) {
 	}
 }
 
+//nolint:cyclop // table-driven test complexity is inherent
 func TestHasPhaseOutput_with_data(t *testing.T) {
 	dir := t.TempDir()
 	ws := &workspace.Workspace{Root: dir}

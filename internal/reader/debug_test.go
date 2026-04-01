@@ -11,6 +11,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
+//nolint:cyclop // integration test with many region type assertions
 func TestGenerateDebugOverlay_BasicRegions(t *testing.T) {
 	dir := t.TempDir()
 

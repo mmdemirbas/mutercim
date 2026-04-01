@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+//nolint:cyclop // exhaustive defaults coverage test
 func TestLoadDefaults(t *testing.T) {
 	// Load with minimal config file (inputs[].languages is required)
 	dir := t.TempDir()
@@ -193,6 +194,7 @@ inputs:
 	}
 }
 
+//nolint:cyclop // exhaustive model chain config test
 func TestModelsFailoverChainConfig(t *testing.T) {
 	dir := t.TempDir()
 	yaml := `
