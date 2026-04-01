@@ -296,7 +296,7 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 		// Copy PDF from build dir to language root with title-based name
 		buildPDFPath := filepath.Join(buildDir, "book.pdf")
 		finalPDFPath := filepath.Join(langDir, title+".pdf")
-		pdfData, err := os.ReadFile(buildPDFPath)
+		pdfData, err := os.ReadFile(buildPDFPath) //nolint:gosec // G304: path is internal build dir, not user HTTP input
 		if err != nil {
 			return fmt.Errorf("read compiled PDF: %w", err)
 		}

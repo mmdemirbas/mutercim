@@ -119,7 +119,9 @@ func TestWritePipeline_DocxFailsContinuesOtherFormats(t *testing.T) {
 		ReadingOrder: []string{"r1", "r2"},
 	}
 	data, _ := json.MarshalIndent(page, "", "  ")
-	os.WriteFile(filepath.Join(translatedDir, "001.json"), data, 0644)
+	if err := os.WriteFile(filepath.Join(translatedDir, "001.json"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// Config requesting md + docx (docx will fail because pandoc may not be installed or md not yet written when docx runs first)
 	cfg := &config.Config{
@@ -164,7 +166,9 @@ func TestWritePipeline_AllFormatsFailReturnsError(t *testing.T) {
 		ReadingOrder: []string{"r1"},
 	}
 	data, _ := json.MarshalIndent(page, "", "  ")
-	os.WriteFile(filepath.Join(translatedDir, "001.json"), data, 0644)
+	if err := os.WriteFile(filepath.Join(translatedDir, "001.json"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg := &config.Config{
 		Inputs: []config.InputSpec{{Path: "./input", Languages: []string{"ar"}}},

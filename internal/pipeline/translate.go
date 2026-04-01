@@ -302,7 +302,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 }
 
 func loadSolvedRegionPage(path string) (*model.SolvedRegionPage, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: path is internal workspace path, not user HTTP input
 	if err != nil {
 		return nil, err
 	}

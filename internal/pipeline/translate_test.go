@@ -19,7 +19,7 @@ func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.Sol
 	dir := t.TempDir()
 
 	solvedDir := filepath.Join(dir, "solve", stem)
-	if err := os.MkdirAll(solvedDir, 0755); err != nil {
+	if err := os.MkdirAll(solvedDir, 0750); err != nil {
 		t.Fatalf("mkdir solved: %v", err)
 	}
 

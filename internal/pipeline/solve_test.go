@@ -124,12 +124,24 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 	// Set input mtime to the past so output appears newer
 	past := time.Now().Add(-10 * time.Second)
 	readDir := filepath.Join(ws.ReadDir(), "testbook")
-	os.Chtimes(filepath.Join(readDir, "001.json"), past, past)
-	os.Chtimes(readDir, past, past)
-	os.MkdirAll(ws.KnowledgeDir(), 0755)
-	os.Chtimes(ws.KnowledgeDir(), past, past)
-	os.MkdirAll(ws.MemoryDir(), 0755)
-	os.Chtimes(ws.MemoryDir(), past, past)
+	if err := os.Chtimes(filepath.Join(readDir, "001.json"), past, past); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(readDir, past, past); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(ws.KnowledgeDir(), 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(ws.KnowledgeDir(), past, past); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(ws.MemoryDir(), 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(ws.MemoryDir(), past, past); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create the output file so skip logic sees it as up-to-date
 	solvedDir := filepath.Join(ws.SolveDir(), "testbook")

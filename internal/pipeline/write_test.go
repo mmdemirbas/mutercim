@@ -22,7 +22,7 @@ func setupWriteWorkspace(t *testing.T) (*workspace.Workspace, *config.Config) {
 		"write/tr",
 		"write/ar",
 	} {
-		if err := os.MkdirAll(filepath.Join(dir, d), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(dir, d), 0750); err != nil {
 			t.Fatalf("mkdir %s: %v", d, err)
 		}
 	}

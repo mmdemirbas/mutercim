@@ -44,8 +44,12 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 	}
 
 	// Create a minimal config file so mtime checks can reference it
-	os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("book:\n  title: test\n"), 0600)
-	os.MkdirAll(filepath.Join(dir, "knowledge"), 0750)
+	if err := os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("book:\n  title: test\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "knowledge"), 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
@@ -162,7 +166,9 @@ func TestReadPipelineNoImages(t *testing.T) {
 	dir := t.TempDir()
 
 	// cut/ exists but is empty (no subdirs)
-	os.MkdirAll(filepath.Join(dir, "cut"), 0755)
+	if err := os.MkdirAll(filepath.Join(dir, "cut"), 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{}
