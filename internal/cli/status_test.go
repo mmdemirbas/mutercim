@@ -122,7 +122,9 @@ func TestDiscoverInputs(t *testing.T) {
 	}
 
 	// Duplicate across directories
-	os.MkdirAll(filepath.Join(dir, "solve", "book1"), 0755)
+	if err := os.MkdirAll(filepath.Join(dir, "solve", "book1"), 0750); err != nil {
+		t.Fatal(err)
+	}
 	stems = discoverInputs(ws)
 	if len(stems) != 2 {
 		t.Errorf("deduped: got %v, want 2 unique stems", stems)
@@ -134,7 +136,9 @@ func TestDiscoverInputs_TranslateDir(t *testing.T) {
 	ws := &workspace.Workspace{Root: dir}
 
 	// Create translate/tr/book1
-	os.MkdirAll(filepath.Join(dir, "translate", "tr", "book1"), 0755)
+	if err := os.MkdirAll(filepath.Join(dir, "translate", "tr", "book1"), 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	stems := discoverInputs(ws)
 	if len(stems) != 1 || stems[0] != "book1" {
@@ -220,7 +224,9 @@ func TestCollectValidationWarnings_EmptyText(t *testing.T) {
 	stem := "testbook"
 
 	readDir := filepath.Join(dir, "read", stem)
-	os.MkdirAll(readDir, 0755)
+	if err := os.MkdirAll(readDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	page := &model.RegionPage{
 		Version:    "2.0",

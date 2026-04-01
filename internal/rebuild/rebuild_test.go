@@ -90,7 +90,9 @@ func TestNeedsRebuild_multiple_inputs_one_newer(t *testing.T) {
 	}
 
 	// new file is newer than output
-	os.WriteFile(new, []byte("new"), 0644)
+	if err := os.WriteFile(new, []byte("new"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	if !NeedsRebuild(output, old, new) {
 		t.Error("expected rebuild when one input is newer")
@@ -127,7 +129,9 @@ func TestNeedsRebuild_directory_input(t *testing.T) {
 	}
 
 	// Now add a file — directory mtime should update
-	os.WriteFile(filepath.Join(inputDir, "b.txt"), []byte("b"), 0644)
+	if err := os.WriteFile(filepath.Join(inputDir, "b.txt"), []byte("b"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	if !NeedsRebuild(output, inputDir) {
 		t.Error("expected rebuild after adding file to input directory")
@@ -137,7 +141,9 @@ func TestNeedsRebuild_directory_input(t *testing.T) {
 func TestNeedsRebuild_no_inputs(t *testing.T) {
 	dir := t.TempDir()
 	output := filepath.Join(dir, "output.txt")
-	os.WriteFile(output, []byte("data"), 0644)
+	if err := os.WriteFile(output, []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// No inputs → newest mtime is zero → output is newer → no rebuild
 	if NeedsRebuild(output) {

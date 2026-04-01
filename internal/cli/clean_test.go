@@ -172,7 +172,7 @@ func TestClean_log_truncates_not_removes(t *testing.T) {
 	}
 
 	// Truncate the log file
-	f, err := os.OpenFile(logPath, os.O_TRUNC|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(logPath, os.O_TRUNC|os.O_WRONLY, 0600) //nolint:gosec // G304: path from ws.LogPath(), not user input
 	if err != nil {
 		t.Fatalf("open for truncate: %v", err)
 	}
