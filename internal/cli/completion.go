@@ -132,7 +132,7 @@ func installCompletion(rootCmd *cobra.Command, shell string) error {
 		postInstall = "Completions will be loaded automatically on next shell start."
 	}
 
-	if err := os.WriteFile(destPath, buf.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(destPath, buf.Bytes(), 0600); err != nil {
 		return fmt.Errorf("write %s: %w", destPath, err)
 	}
 

@@ -250,10 +250,16 @@ func TestNewestMtime_multiple_paths(t *testing.T) {
 	f2 := filepath.Join(dir, "new.txt")
 
 	past := time.Now().Add(-1 * time.Hour)
-	os.WriteFile(f1, []byte("old"), 0644)
-	os.Chtimes(f1, past, past)
+	if err := os.WriteFile(f1, []byte("old"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(f1, past, past); err != nil {
+		t.Fatal(err)
+	}
 
-	os.WriteFile(f2, []byte("new"), 0644)
+	if err := os.WriteFile(f2, []byte("new"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	mt, err := NewestMtime(f1, f2)
 	if err != nil {
@@ -293,11 +299,17 @@ func TestNeedsRebuild_nonexistent_input_dir_skipped(t *testing.T) {
 
 	// Create input file in the past
 	past := time.Now().Add(-10 * time.Second)
-	os.WriteFile(inputFile, []byte("data"), 0644)
-	os.Chtimes(inputFile, past, past)
+	if err := os.WriteFile(inputFile, []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(inputFile, past, past); err != nil {
+		t.Fatal(err)
+	}
 
 	// Output is newer
-	os.WriteFile(output, []byte("result"), 0644)
+	if err := os.WriteFile(output, []byte("result"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// A non-existent directory as one of the inputs should NOT force rebuild
 	nonexistent := filepath.Join(dir, "memory-dir-not-created-yet")
@@ -309,7 +321,9 @@ func TestNeedsRebuild_nonexistent_input_dir_skipped(t *testing.T) {
 func TestNewestMtime_nonexistent_path_skipped(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "file.txt")
-	os.WriteFile(f, []byte("data"), 0644)
+	if err := os.WriteFile(f, []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	mt, err := NewestMtime(f, filepath.Join(dir, "nonexistent"))
 	if err != nil {
@@ -331,12 +345,20 @@ func TestNeedsRebuild_dir_mtime_on_deletion(t *testing.T) {
 
 	// Create a file, then create output newer
 	f := filepath.Join(inputDir, "a.txt")
-	os.WriteFile(f, []byte("a"), 0644)
+	if err := os.WriteFile(f, []byte("a"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	past := time.Now().Add(-10 * time.Second)
-	os.Chtimes(f, past, past)
-	os.Chtimes(inputDir, past, past)
+	if err := os.Chtimes(f, past, past); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(inputDir, past, past); err != nil {
+		t.Fatal(err)
+	}
 
-	os.WriteFile(output, []byte("result"), 0644)
+	if err := os.WriteFile(output, []byte("result"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	if NeedsRebuild(output, inputDir) {
 		t.Error("expected no rebuild before deletion")

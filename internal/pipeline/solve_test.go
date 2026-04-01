@@ -19,7 +19,7 @@ func setupSolveWorkspace(t *testing.T, stem string, pages map[int]*model.RegionP
 	dir := t.TempDir()
 
 	readDir := filepath.Join(dir, "read", stem)
-	if err := os.MkdirAll(readDir, 0755); err != nil {
+	if err := os.MkdirAll(readDir, 0750); err != nil {
 		t.Fatalf("mkdir read dir: %v", err)
 	}
 
@@ -133,7 +133,7 @@ func TestSolvePipelineSkipsCompleted(t *testing.T) {
 
 	// Create the output file so skip logic sees it as up-to-date
 	solvedDir := filepath.Join(ws.SolveDir(), "testbook")
-	if err := os.MkdirAll(solvedDir, 0755); err != nil {
+	if err := os.MkdirAll(solvedDir, 0750); err != nil {
 		t.Fatalf("mkdir solved dir: %v", err)
 	}
 	outputPath := filepath.Join(solvedDir, "001.json")
@@ -164,7 +164,7 @@ func TestSolvePipelineNoReadPages(t *testing.T) {
 	dir := t.TempDir()
 
 	// read/ exists but is empty (no subdirs)
-	if err := os.MkdirAll(filepath.Join(dir, "read"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(dir, "read"), 0750); err != nil {
 		t.Fatalf("mkdir read dir: %v", err)
 	}
 

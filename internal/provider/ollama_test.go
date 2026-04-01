@@ -56,7 +56,7 @@ func TestOllamaProviderReadFromImage(t *testing.T) {
 			Message: ollamaMessage{Role: "assistant", Content: `{"page_number": 1}`},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -90,7 +90,7 @@ func TestOllamaProviderTranslate(t *testing.T) {
 			Message: ollamaMessage{Role: "assistant", Content: `{"translated_entries": []}`},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 

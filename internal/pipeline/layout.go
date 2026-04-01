@@ -318,7 +318,7 @@ func saveLayoutReport(dir string, report layoutReport) error {
 
 // generateLayoutDebugImage loads the page image and renders layout overlay.
 func generateLayoutDebugImage(imagePath string, regions []model.Region, pageNum int, debugDir string, logger *slog.Logger) {
-	f, err := os.Open(imagePath)
+	f, err := os.Open(imagePath) //nolint:gosec // G304: imagePath is internal workspace path, not user HTTP input
 	if err != nil {
 		logger.Warn("debug overlay: cannot open page image", "page", pageNum, "error", err)
 		return
@@ -365,7 +365,7 @@ func makeLayoutParams(cfg *config.Config, toolName, stem string) map[string]any 
 
 // loadLayoutPage loads a layout page JSON file.
 func loadLayoutPage(path string) (*model.LayoutPage, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: path is internal workspace path, not user HTTP input
 	if err != nil {
 		return nil, err
 	}

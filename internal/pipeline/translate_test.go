@@ -29,7 +29,7 @@ func setupTranslateWorkspace(t *testing.T, stem string, pages map[int]*model.Sol
 			t.Fatalf("marshal solved page %d: %v", pageNum, err)
 		}
 		filename := filepath.Join(solvedDir, pageName(pageNum))
-		if err := os.WriteFile(filename, data, 0644); err != nil {
+		if err := os.WriteFile(filename, data, 0600); err != nil {
 			t.Fatalf("write solved page %d: %v", pageNum, err)
 		}
 	}

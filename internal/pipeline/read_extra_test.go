@@ -92,8 +92,12 @@ func TestReadPipeline_ForceReprocesses(t *testing.T) {
 	response := `{"regions": [{"id": "r1", "bbox": [0,0,100,100], "text": "new", "type": "entry"}], "reading_order": ["r1"], "warnings": []}`
 
 	outputDir := filepath.Join(ws.ReadDir(), "testinput")
-	os.MkdirAll(outputDir, 0755)
-	os.WriteFile(filepath.Join(outputDir, "001.json"), []byte(`{"version":"1.0"}`), 0644)
+	if err := os.MkdirAll(outputDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(outputDir, "001.json"), []byte(`{"version":"1.0"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	result, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,

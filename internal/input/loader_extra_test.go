@@ -10,8 +10,12 @@ func TestListImages_UppercaseExtension(t *testing.T) {
 	dir := t.TempDir()
 
 	// .PNG (uppercase) should be recognized (case-insensitive extension check)
-	os.WriteFile(filepath.Join(dir, "001.PNG"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(dir, "002.png"), []byte("fake"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "001.PNG"), []byte("fake"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "002.png"), []byte("fake"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	images, err := ListImages(dir)
 	if err != nil {
@@ -27,11 +31,11 @@ func TestListImages_UppercaseExtension(t *testing.T) {
 func TestListImages_MixedExtensions(t *testing.T) {
 	dir := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir, "001.png"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(dir, "002.jpg"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(dir, "003.jpeg"), []byte("fake"), 0644)
-	os.WriteFile(filepath.Join(dir, "004.gif"), []byte("fake"), 0644)  // not supported
-	os.WriteFile(filepath.Join(dir, "005.webp"), []byte("fake"), 0644) // not supported
+	for _, name := range []string{"001.png", "002.jpg", "003.jpeg", "004.gif", "005.webp"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("fake"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	images, err := ListImages(dir)
 	if err != nil {

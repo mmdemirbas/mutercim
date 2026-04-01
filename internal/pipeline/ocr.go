@@ -311,7 +311,7 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 
 // loadOCRPage loads an OCR page JSON file.
 func loadOCRPage(path string) (*model.OCRPage, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: path is internal workspace path, not user HTTP input
 	if err != nil {
 		return nil, err
 	}

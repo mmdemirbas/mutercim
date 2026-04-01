@@ -15,8 +15,12 @@ func TestCutSkipsImageDirectory(t *testing.T) {
 
 	// Input is a directory (not a PDF) — should be a no-op
 	imagesDir := filepath.Join(dir, "input", "scanned")
-	os.MkdirAll(imagesDir, 0755)
-	os.WriteFile(filepath.Join(imagesDir, "001.png"), []byte("fake"), 0644)
+	if err := os.MkdirAll(imagesDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(imagesDir, "001.png"), []byte("fake"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
@@ -92,8 +96,12 @@ func TestCutPerInputPages(t *testing.T) {
 	dir := t.TempDir()
 
 	imagesDir := filepath.Join(dir, "input", "scans")
-	os.MkdirAll(imagesDir, 0755)
-	os.WriteFile(filepath.Join(imagesDir, "001.png"), []byte("fake"), 0644)
+	if err := os.MkdirAll(imagesDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(imagesDir, "001.png"), []byte("fake"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{
