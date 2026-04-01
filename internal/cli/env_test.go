@@ -163,7 +163,9 @@ func TestLoadEnvFile(t *testing.T) {
 func TestLoadEnvFileDoesNotOverride(t *testing.T) {
 	dir := t.TempDir()
 	envPath := filepath.Join(dir, ".env")
-	os.WriteFile(envPath, []byte("TEST_MUTERCIM_NOOVERRIDE=fromfile\n"), 0644)
+	if err := os.WriteFile(envPath, []byte("TEST_MUTERCIM_NOOVERRIDE=fromfile\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// Set it first
 	if err := os.Setenv("TEST_MUTERCIM_NOOVERRIDE", "fromenv"); err != nil {

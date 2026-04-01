@@ -206,8 +206,14 @@ func TestLoadRegionPages_NonexistentDir(t *testing.T) {
 
 func TestLoadRegionPages_SkipsInvalidJSON(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "001.json"), []byte("not json"), 0644)
-	os.WriteFile(filepath.Join(dir, "readme.txt"), []byte("text"), 0644)
+	for _, tc := range []struct{ name, data string }{
+		{"001.json", "not json"},
+		{"readme.txt", "text"},
+	} {
+		if err := os.WriteFile(filepath.Join(dir, tc.name), []byte(tc.data), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	pages, err := loadRegionPages(dir)
 	if err != nil {
