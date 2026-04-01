@@ -45,7 +45,9 @@ func TestListImages_MixedExtensions(t *testing.T) {
 func TestListImages_SubdirIgnored(t *testing.T) {
 	dir := t.TempDir()
 
-	os.MkdirAll(filepath.Join(dir, "subdir"), 0755)
+	if err := os.MkdirAll(filepath.Join(dir, "subdir"), 0750); err != nil {
+		t.Fatal(err)
+	}
 	os.WriteFile(filepath.Join(dir, "subdir", "001.png"), []byte("fake"), 0644)
 	os.WriteFile(filepath.Join(dir, "001.png"), []byte("fake"), 0644)
 

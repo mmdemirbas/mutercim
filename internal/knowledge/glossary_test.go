@@ -154,7 +154,9 @@ func TestLoadAndBuildGlossary(t *testing.T) {
     tr: "hadîs-i şerîf"
     en: "hadith"
 `
-	os.WriteFile(filepath.Join(dir, "glossary.yaml"), []byte(yaml), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "glossary.yaml"), []byte(yaml), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	k, err := Load([]string{dir}, "")
 	if err != nil {

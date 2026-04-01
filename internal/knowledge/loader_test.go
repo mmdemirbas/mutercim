@@ -281,18 +281,24 @@ func TestLoadMixedFileAndDir(t *testing.T) {
 
 	// Create a directory with one entry
 	subDir := filepath.Join(dir, "subdir")
-	os.MkdirAll(subDir, 0755)
-	os.WriteFile(filepath.Join(subDir, "terms.yaml"), []byte(`entries:
+	if err := os.MkdirAll(subDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(subDir, "terms.yaml"), []byte(`entries:
   - ar: "فقه"
     tr: "fıkıh"
-`), 0644)
+`), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create a standalone file with a different entry
 	filePath := filepath.Join(dir, "extra.yaml")
-	os.WriteFile(filePath, []byte(`entries:
+	if err := os.WriteFile(filePath, []byte(`entries:
   - ar: "مكة"
     tr: "Mekke"
-`), 0644)
+`), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	k, err := Load([]string{subDir, filePath}, "")
 	if err != nil {

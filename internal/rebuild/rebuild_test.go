@@ -25,7 +25,9 @@ func TestNeedsRebuild_output_newer(t *testing.T) {
 	os.WriteFile(input, []byte("data"), 0644)
 	// Set input to the past
 	past := time.Now().Add(-10 * time.Second)
-	os.Chtimes(input, past, past)
+	if err := os.Chtimes(input, past, past); err != nil {
+		t.Fatal(err)
+	}
 
 	os.WriteFile(output, []byte("result"), 0644)
 	// Output keeps current time (newer)
@@ -43,7 +45,9 @@ func TestNeedsRebuild_input_newer(t *testing.T) {
 	os.WriteFile(output, []byte("old"), 0644)
 	// Set output to the past
 	past := time.Now().Add(-10 * time.Second)
-	os.Chtimes(output, past, past)
+	if err := os.Chtimes(output, past, past); err != nil {
+		t.Fatal(err)
+	}
 
 	os.WriteFile(input, []byte("new data"), 0644)
 	// Input keeps current time (newer)
@@ -62,7 +66,9 @@ func TestNeedsRebuild_multiple_inputs_one_newer(t *testing.T) {
 	past := time.Now().Add(-10 * time.Second)
 
 	os.WriteFile(old, []byte("old"), 0644)
-	os.Chtimes(old, past, past)
+	if err := os.Chtimes(old, past, past); err != nil {
+		t.Fatal(err)
+	}
 
 	os.WriteFile(output, []byte("result"), 0644)
 	os.Chtimes(output, past.Add(time.Second), past.Add(time.Second))
@@ -78,7 +84,9 @@ func TestNeedsRebuild_multiple_inputs_one_newer(t *testing.T) {
 func TestNeedsRebuild_directory_input(t *testing.T) {
 	dir := t.TempDir()
 	inputDir := filepath.Join(dir, "inputs")
-	os.MkdirAll(inputDir, 0755)
+	if err := os.MkdirAll(inputDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 	output := filepath.Join(dir, "output.txt")
 
 	past := time.Now().Add(-10 * time.Second)
@@ -282,7 +290,9 @@ func TestNewestMtime_nonexistent_path_skipped(t *testing.T) {
 func TestNeedsRebuild_dir_mtime_on_deletion(t *testing.T) {
 	dir := t.TempDir()
 	inputDir := filepath.Join(dir, "inputs")
-	os.MkdirAll(inputDir, 0755)
+	if err := os.MkdirAll(inputDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 	output := filepath.Join(dir, "output.txt")
 
 	// Create a file, then create output newer
@@ -299,7 +309,9 @@ func TestNeedsRebuild_dir_mtime_on_deletion(t *testing.T) {
 	}
 
 	// Delete the file — directory mtime should update
-	os.Remove(f)
+	if err := os.Remove(f); err != nil {
+		t.Fatal(err)
+	}
 
 	if !NeedsRebuild(output, inputDir) {
 		t.Error("expected rebuild after file deletion (dir mtime updated)")

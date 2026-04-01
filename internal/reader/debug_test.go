@@ -55,7 +55,7 @@ func TestGenerateDebugOverlay_BasicRegions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot open output: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	img, err := png.Decode(f)
 	if err != nil {
@@ -107,7 +107,7 @@ func TestGenerateDebugOverlay_ClampsBboxToImageBounds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot open output: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	img, err := png.Decode(f)
 	if err != nil {
@@ -134,7 +134,7 @@ func TestGenerateDebugOverlay_EmptyRegions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot open output: %v", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if _, err := png.Decode(f); err != nil {
 		t.Fatalf("cannot decode output PNG: %v", err)

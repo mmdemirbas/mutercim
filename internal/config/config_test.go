@@ -11,8 +11,10 @@ func TestLoadDefaults(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("inputs:\n  - path: ./input\n    languages: [ar]\n"), 0644)
 	origDir, _ := os.Getwd()
-	os.Chdir(dir)
-	defer os.Chdir(origDir)
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Chdir(origDir) }()
 
 	cfg, err := Load("")
 	if err != nil {

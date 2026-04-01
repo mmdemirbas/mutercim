@@ -90,7 +90,9 @@ func TestDiscover(t *testing.T) {
 	dir := t.TempDir()
 
 	// Init workspace
-	Init(InitOptions{Dir: dir})
+	if _, err := Init(InitOptions{Dir: dir}); err != nil {
+		t.Fatal(err)
+	}
 
 	// Discover from root
 	ws, err := Discover(dir)

@@ -145,7 +145,7 @@ func TestLoadEnvFile(t *testing.T) {
 	os.WriteFile(envPath, []byte("TEST_MUTERCIM_LOAD=hello\n"), 0644)
 
 	// Ensure it's not set
-	os.Unsetenv("TEST_MUTERCIM_LOAD")
+	_ = os.Unsetenv("TEST_MUTERCIM_LOAD")
 
 	loadEnvFile(envPath)
 
@@ -155,7 +155,7 @@ func TestLoadEnvFile(t *testing.T) {
 	}
 
 	// Clean up
-	os.Unsetenv("TEST_MUTERCIM_LOAD")
+	_ = os.Unsetenv("TEST_MUTERCIM_LOAD")
 }
 
 func TestLoadEnvFileDoesNotOverride(t *testing.T) {
@@ -164,8 +164,10 @@ func TestLoadEnvFileDoesNotOverride(t *testing.T) {
 	os.WriteFile(envPath, []byte("TEST_MUTERCIM_NOOVERRIDE=fromfile\n"), 0644)
 
 	// Set it first
-	os.Setenv("TEST_MUTERCIM_NOOVERRIDE", "fromenv")
-	defer os.Unsetenv("TEST_MUTERCIM_NOOVERRIDE")
+	if err := os.Setenv("TEST_MUTERCIM_NOOVERRIDE", "fromenv"); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Unsetenv("TEST_MUTERCIM_NOOVERRIDE") }()
 
 	loadEnvFile(envPath)
 

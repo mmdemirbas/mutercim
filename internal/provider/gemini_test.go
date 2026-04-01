@@ -161,7 +161,7 @@ func TestGeminiProviderEmptyResponse(t *testing.T) {
 func TestGeminiProviderHTTPError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error": "invalid api key"}`))
+		_, _ = w.Write([]byte(`{"error": "invalid api key"}`))
 	}))
 	defer server.Close()
 

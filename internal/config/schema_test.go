@@ -71,7 +71,9 @@ func TestGenerateSchema_InputsRequiredPath(t *testing.T) {
 	}
 
 	var obj map[string]any
-	json.Unmarshal(data, &obj)
+	if err := json.Unmarshal(data, &obj); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
 
 	props := obj["properties"].(map[string]any)
 	inputs := props["inputs"].(map[string]any)

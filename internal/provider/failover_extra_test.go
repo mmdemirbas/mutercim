@@ -130,7 +130,7 @@ func TestFailoverChain_ActiveProvider_NoEligible(t *testing.T) {
 	chain.now = func() time.Time { return now }
 
 	// Exhaust the only provider
-	chain.Translate(context.Background(), "sys", "user")
+	_, _ = chain.Translate(context.Background(), "sys", "user")
 
 	if got := chain.ActiveProvider(false); got != "" {
 		t.Errorf("expected empty string when all exhausted, got %q", got)

@@ -250,7 +250,7 @@ func TestFailoverChain_ActiveProvider(t *testing.T) {
 		t.Errorf("before call: active = %q, want primary", got)
 	}
 
-	chain.Translate(context.Background(), "sys", "user")
+	_, _ = chain.Translate(context.Background(), "sys", "user")
 
 	if got := chain.ActiveProvider(false); got != "secondary" {
 		t.Errorf("after exhaust: active = %q, want secondary", got)

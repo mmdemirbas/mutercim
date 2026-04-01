@@ -145,7 +145,7 @@ func TestQariTool_health(t *testing.T) {
 	// Create a test HTTP server that responds to /health
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
-			json.NewEncoder(w).Encode(map[string]string{"status": "ready", "model": "test"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"status": "ready", "model": "test"})
 			return
 		}
 		http.NotFound(w, r)
@@ -154,7 +154,9 @@ func TestQariTool_health(t *testing.T) {
 
 	// Parse port from test server URL
 	var port int
-	fmt.Sscanf(srv.URL, "http://127.0.0.1:%d", &port)
+	if _, err := fmt.Sscanf(srv.URL, "http://127.0.0.1:%d", &port); err != nil {
+		t.Fatalf("parse port: %v", err)
+	}
 
 	q := &QariTool{
 		port:   port,
@@ -169,12 +171,14 @@ func TestQariTool_health(t *testing.T) {
 func TestQariTool_healthNotReady(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]string{"status": "loading"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "loading"})
 	}))
 	defer srv.Close()
 
 	var port int
-	fmt.Sscanf(srv.URL, "http://127.0.0.1:%d", &port)
+	if _, err := fmt.Sscanf(srv.URL, "http://127.0.0.1:%d", &port); err != nil {
+		t.Fatalf("parse port: %v", err)
+	}
 
 	q := &QariTool{
 		port:   port,
@@ -217,7 +221,7 @@ func TestFreePort(t *testing.T) {
 func TestQariTool_fullPageOCR(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/ocr" && r.Method == http.MethodPost {
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"text":       "extracted text",
 				"model":      "test-model",
 				"elapsed_ms": 1000,
@@ -229,7 +233,9 @@ func TestQariTool_fullPageOCR(t *testing.T) {
 	defer srv.Close()
 
 	var port int
-	fmt.Sscanf(srv.URL, "http://127.0.0.1:%d", &port)
+	if _, err := fmt.Sscanf(srv.URL, "http://127.0.0.1:%d", &port); err != nil {
+		t.Fatalf("parse port: %v", err)
+	}
 
 	q := &QariTool{
 		port:   port,

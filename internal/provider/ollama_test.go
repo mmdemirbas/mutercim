@@ -32,7 +32,7 @@ func TestOllamaProviderReadFromImage(t *testing.T) {
 		}
 
 		var req ollamaChatRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		// Verify message structure
 		if len(req.Messages) < 2 {
@@ -77,7 +77,7 @@ func TestOllamaProviderTranslate(t *testing.T) {
 		}
 
 		var req ollamaChatRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		// Translation should not have images
 		for _, msg := range req.Messages {
