@@ -48,14 +48,18 @@ func TestNeedsRebuild_input_newer(t *testing.T) {
 	input := filepath.Join(dir, "input.txt")
 	output := filepath.Join(dir, "output.txt")
 
-	os.WriteFile(output, []byte("old"), 0644)
+	if err := os.WriteFile(output, []byte("old"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	// Set output to the past
 	past := time.Now().Add(-10 * time.Second)
 	if err := os.Chtimes(output, past, past); err != nil {
 		t.Fatal(err)
 	}
 
-	os.WriteFile(input, []byte("new data"), 0644)
+	if err := os.WriteFile(input, []byte("new data"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	// Input keeps current time (newer)
 
 	if !NeedsRebuild(output, input) {
@@ -71,12 +75,16 @@ func TestNeedsRebuild_multiple_inputs_one_newer(t *testing.T) {
 
 	past := time.Now().Add(-10 * time.Second)
 
-	os.WriteFile(old, []byte("old"), 0644)
+	if err := os.WriteFile(old, []byte("old"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.Chtimes(old, past, past); err != nil {
 		t.Fatal(err)
 	}
 
-	os.WriteFile(output, []byte("result"), 0644)
+	if err := os.WriteFile(output, []byte("result"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.Chtimes(output, past.Add(time.Second), past.Add(time.Second)); err != nil {
 		t.Fatal(err)
 	}

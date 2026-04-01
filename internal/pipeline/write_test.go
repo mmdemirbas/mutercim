@@ -85,7 +85,7 @@ func TestWriteMarkdown(t *testing.T) {
 
 	// Check target language markdown was written
 	trPath := filepath.Join(ws.WriteDir(), "tr", "book.md")
-	data, err := os.ReadFile(trPath)
+	data, err := os.ReadFile(trPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read target markdown: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestWriteMarkdown(t *testing.T) {
 
 	// Check source language markdown was written
 	arPath := filepath.Join(ws.WriteDir(), "ar", "book.md")
-	data, err = os.ReadFile(arPath)
+	data, err = os.ReadFile(arPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read source markdown: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestWriteLatex(t *testing.T) {
 
 	// Check .tex was written to lang root with title-based name
 	texPath := filepath.Join(ws.WriteDir(), "tr", "book.tex")
-	data, err := os.ReadFile(texPath)
+	data, err := os.ReadFile(texPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read latex: %v", err)
 	}

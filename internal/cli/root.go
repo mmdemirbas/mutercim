@@ -57,7 +57,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 					}
 				}
 				if ws.OutputDir != ws.Root {
-					os.MkdirAll(ws.OutputDir, 0755)
+					_ = os.MkdirAll(ws.OutputDir, 0750)
 				}
 
 				// Resolve log level: CLI flag > config > default "info"

@@ -125,8 +125,12 @@ func TestClean_never_deletes_input_or_knowledge(t *testing.T) {
 	}
 
 	// Create cleanable directories
-	os.MkdirAll(ws.ReadDir(), 0755)
-	os.WriteFile(filepath.Join(ws.ReadDir(), "data.json"), []byte("{}"), 0644)
+	if err := os.MkdirAll(ws.ReadDir(), 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ws.ReadDir(), "data.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// "all" should not include input/ or knowledge/
 	phases, err := expandTargets([]string{"all"})

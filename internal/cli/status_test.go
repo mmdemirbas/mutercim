@@ -20,10 +20,14 @@ func TestCountJSONFiles(t *testing.T) {
 	}
 
 	// Mix of JSON and non-JSON files
-	os.WriteFile(filepath.Join(dir, "001.json"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(dir, "002.json"), []byte("{}"), 0644)
-	os.WriteFile(filepath.Join(dir, "readme.txt"), []byte("x"), 0644)
-	os.MkdirAll(filepath.Join(dir, "subdir"), 0755)
+	for _, name := range []string{"001.json", "002.json", "readme.txt"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "subdir"), 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	if got := countJSONFiles(dir); got != 2 {
 		t.Errorf("mixed dir: got %d, want 2", got)
