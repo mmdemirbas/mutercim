@@ -267,7 +267,7 @@ func TestQariTool_fullPageOCR(t *testing.T) {
 func TestQariTool_recognizeRegions(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/ocr/regions" && r.Method == http.MethodPost {
-			json.NewEncoder(w).Encode(map[string]any{
+			_ = json.NewEncoder(w).Encode(map[string]any{
 				"results": []map[string]any{
 					{"id": "r1", "text": "region 1 text", "elapsed_ms": 500},
 					{"id": "r2", "text": "region 2 text", "elapsed_ms": 600},
@@ -282,7 +282,9 @@ func TestQariTool_recognizeRegions(t *testing.T) {
 	defer srv.Close()
 
 	var port int
-	fmt.Sscanf(srv.URL, "http://127.0.0.1:%d", &port)
+	if _, err := fmt.Sscanf(srv.URL, "http://127.0.0.1:%d", &port); err != nil {
+		t.Fatalf("parse port: %v", err)
+	}
 
 	q := &QariTool{
 		port:   port,
@@ -332,5 +334,5 @@ func createTestImage(path string) error {
 		0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, // IEND chunk
 		0x44, 0xAE, 0x42, 0x60, 0x82,
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }

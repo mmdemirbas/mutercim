@@ -85,7 +85,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 		pages = filterPages(pages, opts.Pages)
 	}
 
-	if err := os.MkdirAll(solvedDir, 0755); err != nil {
+	if err := os.MkdirAll(solvedDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create solve dir: %w", err)
 	}
 

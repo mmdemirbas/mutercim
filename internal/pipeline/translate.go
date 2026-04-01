@@ -116,7 +116,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		pages = filterPages(pages, opts.Pages)
 	}
 
-	if err := os.MkdirAll(translatedDir, 0755); err != nil {
+	if err := os.MkdirAll(translatedDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create translated dir: %w", err)
 	}
 

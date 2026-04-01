@@ -144,7 +144,7 @@ func TestClientDo_NonRetryableReturnsImmediately(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		attempts++
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error":"unauthorized"}`))
+		_, _ = w.Write([]byte(`{"error":"unauthorized"}`))
 	}))
 	defer server.Close()
 

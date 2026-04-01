@@ -51,7 +51,7 @@ func TestGenerateDebugOverlay_BasicRegions(t *testing.T) {
 	}
 
 	// Verify it's a valid PNG with expected dimensions
-	f, err := os.Open(outputPath)
+	f, err := os.Open(outputPath) //nolint:gosec // G304: path from t.TempDir(), not user input
 	if err != nil {
 		t.Fatalf("cannot open output: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestGenerateDebugOverlay_ClampsBboxToImageBounds(t *testing.T) {
 	}
 
 	// Just verify it didn't panic and produced a valid file
-	f, err := os.Open(outputPath)
+	f, err := os.Open(outputPath) //nolint:gosec // G304: path from t.TempDir(), not user input
 	if err != nil {
 		t.Fatalf("cannot open output: %v", err)
 	}

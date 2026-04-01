@@ -10,7 +10,9 @@ import (
 func TestNeedsRebuild_output_missing(t *testing.T) {
 	dir := t.TempDir()
 	input := filepath.Join(dir, "input.txt")
-	os.WriteFile(input, []byte("data"), 0644)
+	if err := os.WriteFile(input, []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	if !NeedsRebuild(filepath.Join(dir, "output.txt"), input) {
 		t.Error("expected rebuild when output missing")
@@ -22,14 +24,18 @@ func TestNeedsRebuild_output_newer(t *testing.T) {
 	input := filepath.Join(dir, "input.txt")
 	output := filepath.Join(dir, "output.txt")
 
-	os.WriteFile(input, []byte("data"), 0644)
+	if err := os.WriteFile(input, []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	// Set input to the past
 	past := time.Now().Add(-10 * time.Second)
 	if err := os.Chtimes(input, past, past); err != nil {
 		t.Fatal(err)
 	}
 
-	os.WriteFile(output, []byte("result"), 0644)
+	if err := os.WriteFile(output, []byte("result"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	// Output keeps current time (newer)
 
 	if NeedsRebuild(output, input) {
@@ -71,7 +77,9 @@ func TestNeedsRebuild_multiple_inputs_one_newer(t *testing.T) {
 	}
 
 	os.WriteFile(output, []byte("result"), 0644)
-	os.Chtimes(output, past.Add(time.Second), past.Add(time.Second))
+	if err := os.Chtimes(output, past.Add(time.Second), past.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
 
 	// new file is newer than output
 	os.WriteFile(new, []byte("new"), 0644)
@@ -92,7 +100,9 @@ func TestNeedsRebuild_directory_input(t *testing.T) {
 	past := time.Now().Add(-10 * time.Second)
 
 	os.WriteFile(filepath.Join(inputDir, "a.txt"), []byte("a"), 0644)
-	os.Chtimes(filepath.Join(inputDir, "a.txt"), past, past)
+	if err := os.Chtimes(filepath.Join(inputDir, "a.txt"), past, past); err != nil {
+		t.Fatal(err)
+	}
 	os.Chtimes(inputDir, past, past)
 
 	os.WriteFile(output, []byte("result"), 0644)

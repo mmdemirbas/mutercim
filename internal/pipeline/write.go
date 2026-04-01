@@ -233,7 +233,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 	targetDir := filepath.Join(ws.WriteDir(), targetLang)
 	sourceDir := filepath.Join(ws.WriteDir(), cfg.PrimarySourceLang())
 
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
+	if err := os.MkdirAll(targetDir, 0750); err != nil {
 		return fmt.Errorf("create target output dir: %w", err)
 	}
 	if err := os.MkdirAll(sourceDir, 0755); err != nil {

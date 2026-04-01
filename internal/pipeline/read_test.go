@@ -38,14 +38,14 @@ func setupReadWorkspace(t *testing.T, stem string, pageFiles ...string) (*worksp
 	}
 
 	for _, pf := range pageFiles {
-		if err := os.WriteFile(filepath.Join(imagesDir, pf), []byte("fake-image"), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(imagesDir, pf), []byte("fake-image"), 0600); err != nil {
 			t.Fatalf("write image %s: %v", pf, err)
 		}
 	}
 
 	// Create a minimal config file so mtime checks can reference it
-	os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("book:\n  title: test\n"), 0644)
-	os.MkdirAll(filepath.Join(dir, "knowledge"), 0755)
+	os.WriteFile(filepath.Join(dir, "mutercim.yaml"), []byte("book:\n  title: test\n"), 0600)
+	os.MkdirAll(filepath.Join(dir, "knowledge"), 0750)
 
 	ws := &workspace.Workspace{Root: dir}
 	cfg := &config.Config{

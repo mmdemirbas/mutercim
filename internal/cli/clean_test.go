@@ -162,7 +162,7 @@ func TestClean_log_truncates_not_removes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open for truncate: %v", err)
 	}
-	f.Close()
+	_ = f.Close()
 
 	// Verify file still exists but is empty
 	data, err = os.ReadFile(logPath)

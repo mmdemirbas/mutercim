@@ -300,7 +300,7 @@ func getImageSize(path string) model.PageSize {
 	if err != nil {
 		return model.PageSize{}
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	cfg, _, err := image.DecodeConfig(f)
 	if err != nil {
 		return model.PageSize{}

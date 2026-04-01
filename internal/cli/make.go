@@ -325,5 +325,5 @@ func printPhaseSummary(w io.Writer, colors display.StatusColors, name string, re
 	if result.Failed > 0 {
 		detail += colors.Red(fmt.Sprintf(" (%d failed)", result.Failed))
 	}
-	fmt.Fprintf(w, "  %-12s %s\n", colors.Cyan(name+":"), detail)
+	_, _ = fmt.Fprintf(w, "  %-12s %s\n", colors.Cyan(name+":"), detail)
 }

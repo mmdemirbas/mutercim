@@ -37,7 +37,7 @@ func TestConvertMarkdownToDocx_Success(t *testing.T) {
 	mdPath := filepath.Join(dir, "test.md")
 	docxPath := filepath.Join(dir, "test.docx")
 
-	if err := os.WriteFile(mdPath, []byte("# Title\n\nSome text."), 0644); err != nil {
+	if err := os.WriteFile(mdPath, []byte("# Title\n\nSome text."), 0600); err != nil {
 		t.Fatalf("write md: %v", err)
 	}
 

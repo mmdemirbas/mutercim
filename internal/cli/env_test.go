@@ -213,15 +213,17 @@ func TestResolveAPIKey(t *testing.T) {
 	}
 
 	// Missing key
-	os.Unsetenv("GEMINI_API_KEY")
+	_ = os.Unsetenv("GEMINI_API_KEY")
 	_, err = resolveAPIKey("gemini")
 	if err == nil {
 		t.Error("expected error for missing GEMINI_API_KEY")
 	}
 
 	// Set key
-	os.Setenv("GEMINI_API_KEY", "test-key")
-	defer os.Unsetenv("GEMINI_API_KEY")
+	if err := os.Setenv("GEMINI_API_KEY", "test-key"); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Unsetenv("GEMINI_API_KEY") }()
 	key, err = resolveAPIKey("gemini")
 	if err != nil || key != "test-key" {
 		t.Errorf("expected 'test-key', got %q, err: %v", key, err)
