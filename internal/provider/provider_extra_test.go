@@ -7,7 +7,7 @@ import (
 )
 
 func TestGeminiEndpoint_SpecialCharsInAPIKey(t *testing.T) {
-	p := &GeminiProvider{
+	p := &GeminiProvider{ //nolint:gosec // G101: fake key for URL-encoding test, not a real credential
 		baseURL: "https://example.com",
 		model:   "gemini-pro",
 		apiKey:  "AIza_secret&key=value#extra",

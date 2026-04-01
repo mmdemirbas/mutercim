@@ -38,7 +38,7 @@ func EnsureImage(ctx context.Context, image, dockerfileDir string) error {
 		// Always run docker build — the layer cache handles skipping unchanged layers.
 		slog.Debug("ensuring docker image", "image", image, "dir", dockerfileDir)
 		start := time.Now()
-		out, err := exec.CommandContext(ctx, "docker", "build", "-t", image, dockerfileDir).CombinedOutput()
+		out, err := exec.CommandContext(ctx, "docker", "build", "-t", image, dockerfileDir).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; image/dir are trusted internal values
 		elapsed := time.Since(start)
 		if err != nil {
 			slog.Error("docker build failed", "image", image, "elapsed_s", int(elapsed.Seconds()), "output", string(out))
@@ -49,7 +49,7 @@ func EnsureImage(ctx context.Context, image, dockerfileDir string) error {
 	}
 
 	// No Dockerfile dir — just check if image exists
-	out, err := exec.CommandContext(ctx, "docker", "image", "inspect", image, "--format", "{{.ID}}").CombinedOutput()
+	out, err := exec.CommandContext(ctx, "docker", "image", "inspect", image, "--format", "{{.ID}}").CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; image is a trusted internal value
 	if err == nil && strings.TrimSpace(string(out)) != "" {
 		return nil
 	}
@@ -73,7 +73,7 @@ func imageShortName(image string) string {
 // Run executes a docker command with the given arguments and returns its combined output.
 // The first element of args should be the docker subcommand (e.g. "run").
 func Run(ctx context.Context, args ...string) ([]byte, error) {
-	return exec.CommandContext(ctx, "docker", args...).CombinedOutput()
+	return exec.CommandContext(ctx, "docker", args...).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; args are constructed by internal callers
 }
 
 // FindDockerDir returns the path to docker/<tool>/ directory if it can be found.

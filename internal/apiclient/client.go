@@ -209,7 +209,7 @@ func (c *Client) calculateBackoff(attempt int, lastErr error) time.Duration {
 	}
 	// Exponential backoff: base * 2^(attempt-1) with jitter (0.5x to 1.5x)
 	backoff := c.baseBackoff * (1 << (attempt - 1))
-	jitter := 0.5 + rand.Float64()
+	jitter := 0.5 + rand.Float64() //nolint:gosec // G404: math/rand is sufficient for retry jitter; crypto/rand is not needed
 	return time.Duration(float64(backoff) * jitter)
 }
 

@@ -66,7 +66,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 				}
 				level := parseLogLevel(logLevel)
 
-				f, err := os.OpenFile(ws.LogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+				f, err := os.OpenFile(ws.LogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 				if err == nil {
 					logFileHandle = f
 					fileLogger = slog.New(newHumanHandler(f, level))
@@ -80,7 +80,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 			}
 			slog.SetDefault(fileLogger)
 
-			slog.Info("─── mutercim started", "command", cmd.Name(), "args", strings.Join(os.Args[1:], " "))
+			slog.Info("─── mutercim started", "command", cmd.Name(), "args", strings.Join(os.Args[1:], " ")) //nolint:gosec // G706: logging CLI args is intentional; log file is user-private
 
 			// Create display (writes progress to stderr)
 			disp := display.New(os.Stderr, nil)

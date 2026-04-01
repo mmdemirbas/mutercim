@@ -12,7 +12,7 @@ func TestListImages(t *testing.T) {
 	// Create test image files with various naming patterns
 	files := []string{"001.png", "002.png", "010.png", "readme.txt"}
 	for _, f := range files {
-		if err := os.WriteFile(filepath.Join(dir, f), []byte("fake"), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, f), []byte("fake"), 0600); err != nil {
 			t.Fatalf("create file %s: %v", f, err)
 		}
 	}
@@ -61,7 +61,7 @@ func TestListImagesJPEG(t *testing.T) {
 
 	files := []string{"001.jpg", "002.jpeg", "003.png"}
 	for _, f := range files {
-		if err := os.WriteFile(filepath.Join(dir, f), []byte("fake"), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, f), []byte("fake"), 0600); err != nil {
 			t.Fatalf("create file %s: %v", f, err)
 		}
 	}

@@ -40,7 +40,7 @@ func TestInit(t *testing.T) {
 	}
 
 	// Verify config content
-	data, err := os.ReadFile(filepath.Join(dir, "mutercim.yaml"))
+	data, err := os.ReadFile(filepath.Join(dir, "mutercim.yaml")) //nolint:gosec // G304: reading from t.TempDir(), not user input
 	if err != nil {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
@@ -72,7 +72,7 @@ func TestInitDefaults(t *testing.T) {
 		t.Fatalf("Init() error = %v", err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "mutercim.yaml"))
+	data, err := os.ReadFile(filepath.Join(dir, "mutercim.yaml")) //nolint:gosec // G304: reading from t.TempDir(), not user input
 	if err != nil {
 		t.Fatalf("ReadFile() error = %v", err)
 	}

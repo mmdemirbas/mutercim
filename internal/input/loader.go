@@ -69,7 +69,7 @@ func parsePageNumber(filename string) int {
 
 // LoadImage reads an image file and returns its bytes.
 func LoadImage(path string) ([]byte, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: path comes from user config, not untrusted HTTP input
 	if err != nil {
 		return nil, fmt.Errorf("read image %s: %w", path, err)
 	}

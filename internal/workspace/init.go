@@ -49,20 +49,20 @@ func Init(opts InitOptions) (*Workspace, error) {
 	}
 
 	for _, d := range dirs {
-		if err := os.MkdirAll(filepath.Join(root, d), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(root, d), 0750); err != nil {
 			return nil, fmt.Errorf("create directory %s: %w", d, err)
 		}
 	}
 
 	// Write config file
 	config := generateConfig(sourceLangs, targetLangs)
-	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(config), 0600); err != nil {
 		return nil, fmt.Errorf("write config: %w", err)
 	}
 
 	// Scaffold example glossary file
 	glossaryPath := filepath.Join(root, "knowledge", "glossary.yaml")
-	if err := os.WriteFile(glossaryPath, []byte(glossaryScaffold), 0644); err != nil {
+	if err := os.WriteFile(glossaryPath, []byte(glossaryScaffold), 0600); err != nil {
 		return nil, fmt.Errorf("write glossary scaffold: %w", err)
 	}
 
