@@ -114,7 +114,7 @@ func removeIfEmpty(dir string) {
 		return
 	}
 	if len(entries) == 0 {
-		os.Remove(dir)
+		_ = os.Remove(dir)
 	}
 }
 
@@ -231,7 +231,7 @@ NEVER deletes: input/, knowledge/, mutercim.yaml, .env`,
 
 			// Remove log file
 			if cleanLog {
-				os.Remove(ws.LogPath())
+				_ = os.Remove(ws.LogPath())
 			}
 
 			// Delete directories

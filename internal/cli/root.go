@@ -94,7 +94,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 			cmd.Root().PersistentPostRunE = func(*cobra.Command, []string) error {
 				stop()
 				if logFileHandle != nil {
-					logFileHandle.Close()
+					_ = logFileHandle.Close()
 				}
 				return nil
 			}
@@ -287,7 +287,7 @@ func loadEnvFile(path string) {
 	}
 	for key, value := range parseEnvLines(string(data)) {
 		if os.Getenv(key) == "" {
-			os.Setenv(key, value)
+			_ = os.Setenv(key, value)
 		}
 	}
 }

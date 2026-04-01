@@ -34,11 +34,11 @@ type HeaderData struct {
 func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 	lines := 0
 	if h.LogLevel != "" && h.LogLevel != "info" {
-		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Log")), h.LogLevel)
+		_, _ = fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Log")), h.LogLevel)
 		lines++
 	}
 	if h.OutputDir != "" {
-		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir)
+		_, _ = fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir)
 		lines++
 	}
 	if len(h.Inputs) > 0 {
@@ -56,12 +56,12 @@ func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 					info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
 				}
 			}
-			fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", label)), info)
+			_, _ = fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", label)), info)
 			lines++
 		}
 	}
 	if len(h.Knowledge) > 0 {
-		fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", "))
+		_, _ = fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", "))
 		lines++
 	}
 	if lines > 0 {

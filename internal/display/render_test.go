@@ -167,9 +167,9 @@ func TestSharedRender_StatusAndLiveProduceSameProgressSection(t *testing.T) {
 	// Simulate status command rendering
 	var statusBuf bytes.Buffer
 	for _, row := range testRows {
-		fmt.Fprintln(&statusBuf, RenderProgressLine(row, colors))
+		_, _ = fmt.Fprintln(&statusBuf, RenderProgressLine(row, colors))
 		if weLine := RenderWarnErrorLine(row.Warnings, row.Failed, colors); weLine != "" {
-			fmt.Fprintln(&statusBuf, weLine)
+			_, _ = fmt.Fprintln(&statusBuf, weLine)
 		}
 	}
 

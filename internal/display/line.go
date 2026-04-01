@@ -112,7 +112,7 @@ func (d *LineDisplay) Finish() {
 
 	for _, s := range d.phases {
 		if s.completed > 0 || s.failed > 0 {
-			fmt.Fprintf(d.out, "[%s] %s: %d/%d completed, %d failed\n",
+			_, _ = fmt.Fprintf(d.out, "[%s] %s: %d/%d completed, %d failed\n",
 				formatLineLabel(s.phase, s.lang), s.input, s.completed, s.total, s.failed)
 		}
 	}

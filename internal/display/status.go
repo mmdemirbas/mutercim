@@ -39,33 +39,33 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 	for _, row := range data.Phases {
 		_, _ = fmt.Fprintln(w, RenderProgressLine(row, colors))
 		if weLine := RenderWarnErrorLine(row.Warnings, row.Failed, colors); weLine != "" {
-			fmt.Fprintln(w, weLine)
+			_, _ = fmt.Fprintln(w, weLine)
 		}
 		for _, sub := range RenderSubItems(row.SubItems, colors) {
-			fmt.Fprintln(w, sub)
+			_, _ = fmt.Fprintln(w, sub)
 		}
 	}
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
 
 	// Warnings
 	if len(data.Warnings) > 0 {
-		fmt.Fprintf(w, "  %s %s\n", colors.Yellow("\u26a0"), colors.Yellow(fmt.Sprintf("%d warnings", len(data.Warnings))))
+		_, _ = fmt.Fprintf(w, "  %s %s\n", colors.Yellow("\u26a0"), colors.Yellow(fmt.Sprintf("%d warnings", len(data.Warnings))))
 		renderMessages(w, data.Warnings, 10, colors.Dim)
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 
 	// Errors
 	if len(data.Errors) > 0 {
-		fmt.Fprintf(w, "  %s %s\n", colors.Red("\u2717"), colors.Red(fmt.Sprintf("%d errors", len(data.Errors))))
+		_, _ = fmt.Fprintf(w, "  %s %s\n", colors.Red("\u2717"), colors.Red(fmt.Sprintf("%d errors", len(data.Errors))))
 		renderMessages(w, data.Errors, 0, colors.Dim) // show all errors
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 
 	// Log file info
 	if data.LogPath != "" {
 		size := formatBytes(data.LogSize)
-		fmt.Fprintf(w, "  %s %s %s\n", colors.Cyan("Log:"), data.LogPath, colors.Dim("("+size+")"))
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintf(w, "  %s %s %s\n", colors.Cyan("Log:"), data.LogPath, colors.Dim("("+size+")"))
+		_, _ = fmt.Fprintln(w)
 	}
 }
 
@@ -80,10 +80,10 @@ func renderMessages(w io.Writer, msgs []string, limit int, colorFn func(string) 
 		remaining = len(msgs) - limit
 	}
 	for _, msg := range show {
-		fmt.Fprintf(w, "    %s\n", colorFn(msg))
+		_, _ = fmt.Fprintf(w, "    %s\n", colorFn(msg))
 	}
 	if remaining > 0 {
-		fmt.Fprintf(w, "    ... and %d more (see reports/)\n", remaining)
+		_, _ = fmt.Fprintf(w, "    ... and %d more (see reports/)\n", remaining)
 	}
 }
 

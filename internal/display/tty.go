@@ -188,7 +188,7 @@ func (d *TTYDisplay) Finish() {
 
 	var buf strings.Builder
 	if d.currentLines > 0 {
-		fmt.Fprintf(&buf, "\033[%dA", d.currentLines)
+		_, _ = fmt.Fprintf(&buf, "\033[%dA", d.currentLines)
 		buf.WriteString("\033[J")
 	}
 
@@ -196,9 +196,9 @@ func (d *TTYDisplay) Finish() {
 	for _, key := range d.phaseOrder {
 		ps := d.phases[key]
 		row := d.buildFinishRow(key, ps)
-		fmt.Fprintln(&buf, RenderProgressLine(row, d.colors))
+		_, _ = fmt.Fprintln(&buf, RenderProgressLine(row, d.colors))
 		if weLine := RenderWarnErrorLine(ps.warnings, ps.failed, d.colors); weLine != "" {
-			fmt.Fprintln(&buf, weLine)
+			_, _ = fmt.Fprintln(&buf, weLine)
 		}
 	}
 
@@ -214,7 +214,7 @@ func (d *TTYDisplay) render() {
 
 	// Clear previous output
 	if d.currentLines > 0 {
-		fmt.Fprintf(&buf, "\033[%dA", d.currentLines)
+		_, _ = fmt.Fprintf(&buf, "\033[%dA", d.currentLines)
 		buf.WriteString("\033[J")
 	}
 
@@ -223,13 +223,13 @@ func (d *TTYDisplay) render() {
 	for _, key := range d.phaseOrder {
 		ps := d.phases[key]
 		row := d.buildLiveRow(key, ps)
-		fmt.Fprintln(&buf, RenderProgressLine(row, d.colors))
+		_, _ = fmt.Fprintln(&buf, RenderProgressLine(row, d.colors))
 		lines++
 
 		// Sub-items (model list, etc.) — show only before phase starts or when finished
 		if ps.completed == 0 && ps.failed == 0 && !ps.finished {
 			for _, sub := range RenderSubItems(row.SubItems, d.colors) {
-				fmt.Fprintln(&buf, sub)
+				_, _ = fmt.Fprintln(&buf, sub)
 				lines++
 			}
 		}
@@ -237,13 +237,13 @@ func (d *TTYDisplay) render() {
 		// Status line under the active (non-finished) phase
 		if !statusRendered && !ps.finished && d.status.Text != "" {
 			elapsed := d.now().Sub(d.status.StartedAt)
-			fmt.Fprintln(&buf, FormatStatusLine(d.status.Text, elapsed, d.status.Countdown, d.colors))
+			_, _ = fmt.Fprintln(&buf, FormatStatusLine(d.status.Text, elapsed, d.status.Countdown, d.colors))
 			lines++
 			statusRendered = true
 		}
 
 		if weLine := RenderWarnErrorLine(ps.warnings, ps.failed, d.colors); weLine != "" {
-			fmt.Fprintln(&buf, weLine)
+			_, _ = fmt.Fprintln(&buf, weLine)
 			lines++
 		}
 	}
@@ -251,11 +251,11 @@ func (d *TTYDisplay) render() {
 	// Log tail
 	entries := d.logBuffer.Entries()
 	if len(entries) > 0 {
-		fmt.Fprintln(&buf)
-		fmt.Fprintln(&buf, "  \u2500\u2500\u2500 recent \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
+		_, _ = fmt.Fprintln(&buf)
+		_, _ = fmt.Fprintln(&buf, "  \u2500\u2500\u2500 recent \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
 		lines += 2
 		for _, e := range entries {
-			fmt.Fprintf(&buf, "  %s\n", FormatLogEntry(e, 80, d.colors))
+			_, _ = fmt.Fprintf(&buf, "  %s\n", FormatLogEntry(e, 80, d.colors))
 			lines++
 		}
 	}
@@ -271,11 +271,11 @@ func (d *TTYDisplay) render() {
 func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int {
 	lines := 0
 	if h.LogLevel != "" && h.LogLevel != "info" {
-		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Log")), h.LogLevel)
+		_, _ = fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Log")), h.LogLevel)
 		lines++
 	}
 	if h.OutputDir != "" {
-		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir)
+		_, _ = fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Output")), h.OutputDir)
 		lines++
 	}
 	if len(h.Inputs) > 0 {
@@ -292,16 +292,16 @@ func renderHeaderTo(buf *strings.Builder, h HeaderData, colors StatusColors) int
 					info += colors.dim(fmt.Sprintf(" (%d pages)", h.InputPages))
 				}
 			}
-			fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", label)), info)
+			_, _ = fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", label)), info)
 			lines++
 		}
 	}
 	if len(h.Knowledge) > 0 {
-		fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", "))
+		_, _ = fmt.Fprintf(buf, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", "))
 		lines++
 	}
 	if lines > 0 {
-		fmt.Fprintln(buf)
+		_, _ = fmt.Fprintln(buf)
 		lines++
 	}
 	return lines
