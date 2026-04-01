@@ -154,7 +154,9 @@ func TestNeedsRebuild_no_inputs(t *testing.T) {
 func TestNeedsRebuild_missing_input(t *testing.T) {
 	dir := t.TempDir()
 	output := filepath.Join(dir, "output.txt")
-	os.WriteFile(output, []byte("data"), 0644)
+	if err := os.WriteFile(output, []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	// Missing input is skipped (not treated as error), output is newer than zero time → no rebuild
 	if NeedsRebuild(output, filepath.Join(dir, "nonexistent")) {

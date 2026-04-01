@@ -254,7 +254,9 @@ func TestCollectValidationWarnings_BadReadingOrder(t *testing.T) {
 	stem := "testbook"
 
 	readDir := filepath.Join(dir, "read", stem)
-	os.MkdirAll(readDir, 0755)
+	if err := os.MkdirAll(readDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	page := &model.RegionPage{
 		Version:    "2.0",
@@ -281,7 +283,9 @@ func TestCollectValidationWarnings_NoWarnings(t *testing.T) {
 	stem := "testbook"
 
 	readDir := filepath.Join(dir, "read", stem)
-	os.MkdirAll(readDir, 0755)
+	if err := os.MkdirAll(readDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 
 	page := &model.RegionPage{
 		Version:    "2.0",
@@ -316,9 +320,13 @@ func TestBuildPhaseRows(t *testing.T) {
 
 	// Create cut output with 3 images
 	cutDir := filepath.Join(dir, "cut", stem)
-	os.MkdirAll(cutDir, 0755)
+	if err := os.MkdirAll(cutDir, 0750); err != nil {
+		t.Fatal(err)
+	}
 	for _, name := range []string{"001.png", "002.png", "003.png"} {
-		os.WriteFile(filepath.Join(cutDir, name), []byte("img"), 0644)
+		if err := os.WriteFile(filepath.Join(cutDir, name), []byte("img"), 0600); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Create read with 2 JSON files

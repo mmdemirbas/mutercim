@@ -14,7 +14,9 @@ func TestListPageFiles(t *testing.T) {
 
 	// Create page files
 	for _, name := range []string{"001.json", "003.json", "010.json", "other.txt"} {
-		os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0644)
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0600); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	pages, err := listPageFiles(dir)
@@ -130,7 +132,9 @@ func TestListPageFiles_LargePageNumbers(t *testing.T) {
 
 	// Create page files with >999 page numbers (mixed padding widths)
 	for _, name := range []string{"0001.json", "0500.json", "1000.json", "1500.json", "9999.json"} {
-		os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0644)
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0600); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	pages, err := listPageFiles(dir)
