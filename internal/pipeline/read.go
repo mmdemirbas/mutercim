@@ -90,7 +90,6 @@ func buildInputPageMap(cfg *config.Config) map[string][]int {
 	return m
 }
 
-//nolint:cyclop,gocognit,funlen // per-input read with OCR merge, retry, and debug paths
 func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []int) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {
@@ -98,14 +97,11 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	}
 
 	ws := opts.Workspace
-	cfg := opts.Config
 
 	imagesDir := filepath.Join(ws.CutDir(), stem)
 	readDir := filepath.Join(ws.ReadDir(), stem)
-	layoutDir := filepath.Join(ws.LayoutDir(), stem)
-	ocrDir := filepath.Join(ws.OcrDir(), stem)
 
-	// List available images
+	// List and map available images
 	images, err := input.ListImages(imagesDir)
 	if err != nil {
 		return PhaseResult{}, fmt.Errorf("list images in %s: %w", imagesDir, err)
@@ -113,16 +109,13 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	if len(images) == 0 {
 		return PhaseResult{}, fmt.Errorf("no images found in %s", imagesDir)
 	}
-
 	logger.Info("found images", "count", len(images), "input", stem)
 
-	// Build page->image map
 	imageMap := make(map[int]string)
 	for _, img := range images {
 		imageMap[img.PageNumber] = img.Path
 	}
 
-	// Determine pages to process
 	pagesToProcess := pages
 	if len(pagesToProcess) == 0 {
 		for _, img := range images {
@@ -130,264 +123,293 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 	}
 
-	// Create reader
-	rdr := reader.NewReader(opts.Provider, logger)
-
-	// Ensure output directory exists
 	if err := os.MkdirAll(readDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create read dir: %w", err)
 	}
 
-	// Start progress display
-	if opts.Display != nil {
-		opts.Display.StartPhase(display.PhaseRead, stem, len(pagesToProcess), "")
+	rc := &readContext{
+		opts:       opts,
+		stem:       stem,
+		readDir:    readDir,
+		layoutDir:  filepath.Join(ws.LayoutDir(), stem),
+		ocrDir:     filepath.Join(ws.OcrDir(), stem),
+		imageMap:   imageMap,
+		totalPages: len(pagesToProcess),
+		rdr:        reader.NewReader(opts.Provider, logger),
+		logger:     logger,
 	}
+	rc.activeModel = rc.buildActiveModelFunc()
+	rc.setupDisplayCallbacks()
 
-	// Set up status callbacks for retry/failover display
-	var statusPageNum int
-	activeModel := func() string {
-		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
-			if m := chain.ActiveModel(true); m != "" {
-				return m
-			}
-		}
-		if len(cfg.Read.Models) > 0 {
-			return cfg.Read.Models[0].Provider + "/" + cfg.Read.Models[0].Model
-		}
-		return opts.Provider.Name()
-	}
-	if opts.Display != nil {
-		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
-			chain.OnFailover = func(from, to string) {
-				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("reading page %d via %s \u2014 failover from %s", statusPageNum, to, from),
-					StartedAt: time.Now(),
-				})
-			}
-			chain.SetRetryCallback(func(attempt, maxRetries, statusCode int, backoff time.Duration) {
-				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("reading page %d \u2014 retry %d/%d (%d)", statusPageNum, attempt, maxRetries, statusCode),
-					StartedAt: time.Now(),
-					Countdown: backoff,
-				})
-			})
-		}
-	}
-
-	// Process pages
-	completed := 0
-	failed := 0
-	skipped := 0
-	maxFailPct := cfg.Read.Retry.MaxFailPercent
-	for i, pageNum := range pagesToProcess {
-		if ctx.Err() != nil {
-			logger.Info("context cancelled, stopping read phase",
-				"input", stem, "processed", completed+failed, "remaining", len(pagesToProcess)-i)
-			break
-		}
-		// Check error threshold
-		result := PhaseResult{Completed: completed, Failed: failed}
-		if result.ExceedsErrorThreshold(maxFailPct) {
-			logger.Error("aborting: failure rate exceeds threshold",
-				"completed", completed, "failed", failed, "threshold", fmt.Sprintf("%d%%", maxFailPct))
-			break
-		}
-		// Skip pages not in the image set
-		imgPath, ok := imageMap[pageNum]
-		if !ok {
-			logger.Warn("no image found for page", "input", stem, "page", pageNum)
-			continue
-		}
-
-		// Check for pre-existing layout data
-		layoutPath := filepath.Join(layoutDir, pageFilename(pageNum, len(pagesToProcess)))
-		var layoutRegions []model.Region
-		var layoutToolName string
-		hasLayout := false
-
-		if layoutPage, err := loadLayoutPage(layoutPath); err == nil {
-			layoutRegions = LayoutRegionsToModelRegions(layoutPage.Regions)
-			layoutToolName = layoutPage.Tool
-			hasLayout = true
-		}
-
-		// Check for pre-existing OCR data
-		ocrPath := filepath.Join(ocrDir, pageFilename(pageNum, len(pagesToProcess)))
-		var ocrPage *model.OCRPage
-		hasOCR := false
-		if op, err := loadOCRPage(ocrPath); err == nil {
-			ocrPage = op
-			hasOCR = true
-		}
-
-		// Skip if output is up-to-date (mtime check)
-		// When OCR is available, read depends on OCR output instead of page images
-		outputPath := filepath.Join(readDir, pageFilename(pageNum, len(pagesToProcess)))
-		var rebuildInputs []string
-		if hasOCR {
-			rebuildInputs = append([]string{ocrPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
-		} else {
-			rebuildInputs = append([]string{imgPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
-		}
-		if hasLayout {
-			rebuildInputs = append(rebuildInputs, layoutPath)
-		}
-		if !opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
-			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pageNum)
-			skipped++
-			continue
-		}
-
-		// Set status before AI call
-		statusPageNum = pageNum
-		currentModel := activeModel()
-
-		var readResult *reader.ReadResult
-
-		if hasOCR {
-			// OCR provides text — use text-only LLM path (no vision needed)
-			ocrToolName := ocrPage.Tool
-
-			if opts.Display != nil {
-				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("page %d: reading via %s (ocr: %s)", pageNum, currentModel, ocrToolName),
-					StartedAt: time.Now(),
-				})
-			}
-
-			logger.Info("reading page", "page", pageNum, "layout", hasLayout, "ocr_source", ocrToolName)
-			readResult, err = dispatchOCRRead(ctx, rdr, pageNum, currentModel, ocrPage, hasLayout, layoutRegions, layoutToolName)
-		} else {
-			// No OCR — use vision LLM path (existing behavior)
-
-			// Load image
-			imageData, err2 := input.LoadImage(imgPath)
-			if err2 != nil {
-				logger.Error("failed to load image", "input", stem, "page", pageNum, "error", err2)
-				failed++
-				if opts.Display != nil {
-					opts.Display.Update(display.PageResult{
-						Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
-						Total: len(pagesToProcess), Completed: completed, Failed: failed, Err: err2,
-					})
-				}
-				continue
-			}
-
-			if opts.Display != nil {
-				statusText := fmt.Sprintf("page %d: reading via %s", pageNum, currentModel)
-				if hasLayout {
-					statusText = fmt.Sprintf("page %d: %s + %s ...", pageNum, layoutToolName, currentModel)
-				}
-				opts.Display.SetStatus(display.StatusLine{
-					Text:      statusText,
-					StartedAt: time.Now(),
-				})
-			}
-
-			logger.Info("reading page", "page", pageNum, "layout", hasLayout)
-
-			readResult, err = rdr.ReadRegionPage(ctx, imageData, pageNum, currentModel, layoutRegions, layoutToolName)
-		}
-
-		// err is set by whichever path was taken
-		if opts.Display != nil {
-			opts.Display.SetStatus(display.StatusLine{}) // clear status
-		}
-		if err != nil {
-			logger.Error("read failed", "input", stem, "page", pageNum, "error", err)
-			failed++
-			if opts.Display != nil {
-				opts.Display.Update(display.PageResult{
-					Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
-					Total: len(pagesToProcess), Completed: completed, Failed: failed, Err: err,
-				})
-			}
-			continue
-		}
-
-		regionPage := readResult.Page
-
-		// Save region page atomically (new v2.0 format)
-		if err := saveRegionPage(readDir, pageNum, len(pagesToProcess), regionPage); err != nil {
-			logger.Error("failed to save read page", "input", stem, "page", pageNum, "error", err)
-			failed++
-			if opts.Display != nil {
-				opts.Display.Update(display.PageResult{
-					Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
-					Total: len(pagesToProcess), Completed: completed, Failed: failed, Err: err,
-				})
-			}
-			continue
-		}
-
-		// Pages with no regions (e.g. JSON extraction failed) count as failed
-		if len(regionPage.Regions) == 0 && len(regionPage.Warnings) > 0 {
-			logger.Warn("page read produced no regions", "input", stem, "page", pageNum, "warnings", regionPage.Warnings)
-			failed++
-			if opts.Display != nil {
-				opts.Display.Update(display.PageResult{
-					Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
-					Total: len(pagesToProcess), Completed: completed, Failed: failed,
-					Err: fmt.Errorf("%s", regionPage.Warnings[0]),
-				})
-			}
-			continue
-		}
-
-		// Count region types for display
-		entryCount, footnoteCount := countRegionTypes(regionPage.Regions)
-
-		completed++
-
-		// Use the model that actually served the request (reflects failover)
-		usedModel := currentModel
-		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
-			if m := chain.LastUsedModel(); m != "" {
-				usedModel = m
-			}
-		}
-
-		logger.Info("page read complete",
-			"input", stem,
-			"page", pageNum,
-			"layout", hasLayout,
-			"model", usedModel,
-			"regions", len(regionPage.Regions),
-			"warnings", len(regionPage.Warnings),
-		)
-
-		if opts.Display != nil {
-			opts.Display.Update(display.PageResult{
-				Phase: display.PhaseRead, Input: stem, PageNum: pageNum,
-				Total: len(pagesToProcess), Completed: completed, Failed: failed,
-				Warnings:      len(regionPage.Warnings),
-				Entries:       entryCount,
-				Footnotes:     footnoteCount,
-				LayoutTool:    layoutToolName,
-				LayoutRegions: len(layoutRegions),
-			})
-		}
-	}
+	rc.processAllPages(ctx, pagesToProcess)
 
 	if opts.Display != nil {
 		opts.Display.FinishPhase(display.PhaseRead, stem, "")
 	}
-	logger.Info("input read complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
+	logger.Info("input read complete", "input", stem, "completed", rc.completed, "failed", rc.failed, "skipped", rc.skipped)
 
-	// Write report
+	writePhaseReport(readDir, rc.completed, rc.failed, rc.skipped, logger)
+	return PhaseResult{Completed: rc.completed, Failed: rc.failed, Skipped: rc.skipped}, nil
+}
+
+// readContext holds per-input state for the read phase page loop.
+type readContext struct {
+	opts       ReadOptions
+	stem       string
+	readDir    string
+	layoutDir  string
+	ocrDir     string
+	imageMap   map[int]string
+	totalPages int
+	rdr        *reader.Reader
+	logger     *slog.Logger
+
+	activeModel   func() string
+	statusPageNum int
+	completed     int
+	failed        int
+	skipped       int
+}
+
+// buildActiveModelFunc returns a function that resolves the currently active model label.
+func (rc *readContext) buildActiveModelFunc() func() string {
+	return func() string {
+		if chain, ok := rc.opts.Provider.(*provider.FailoverChain); ok {
+			if m := chain.ActiveModel(true); m != "" {
+				return m
+			}
+		}
+		if len(rc.opts.Config.Read.Models) > 0 {
+			m := rc.opts.Config.Read.Models[0]
+			return m.Provider + "/" + m.Model
+		}
+		return rc.opts.Provider.Name()
+	}
+}
+
+// setupDisplayCallbacks wires failover and retry callbacks to the display.
+func (rc *readContext) setupDisplayCallbacks() {
+	if rc.opts.Display == nil {
+		return
+	}
+	chain, ok := rc.opts.Provider.(*provider.FailoverChain)
+	if !ok {
+		return
+	}
+	chain.OnFailover = func(from, to string) {
+		rc.opts.Display.SetStatus(display.StatusLine{
+			Text:      fmt.Sprintf("reading page %d via %s \u2014 failover from %s", rc.statusPageNum, to, from),
+			StartedAt: time.Now(),
+		})
+	}
+	chain.SetRetryCallback(func(attempt, maxRetries, statusCode int, backoff time.Duration) {
+		rc.opts.Display.SetStatus(display.StatusLine{
+			Text:      fmt.Sprintf("reading page %d \u2014 retry %d/%d (%d)", rc.statusPageNum, attempt, maxRetries, statusCode),
+			StartedAt: time.Now(),
+			Countdown: backoff,
+		})
+	})
+}
+
+// processAllPages iterates over pages, checking for cancellation and error thresholds.
+func (rc *readContext) processAllPages(ctx context.Context, pages []int) {
+	if rc.opts.Display != nil {
+		rc.opts.Display.StartPhase(display.PhaseRead, rc.stem, len(pages), "")
+	}
+	maxFailPct := rc.opts.Config.Read.Retry.MaxFailPercent
+	for i, pageNum := range pages {
+		if ctx.Err() != nil {
+			rc.logger.Info("context cancelled, stopping read phase",
+				"input", rc.stem, "processed", rc.completed+rc.failed, "remaining", len(pages)-i)
+			return
+		}
+		result := PhaseResult{Completed: rc.completed, Failed: rc.failed}
+		if result.ExceedsErrorThreshold(maxFailPct) {
+			rc.logger.Error("aborting: failure rate exceeds threshold",
+				"completed", rc.completed, "failed", rc.failed, "threshold", fmt.Sprintf("%d%%", maxFailPct))
+			return
+		}
+		rc.processReadPage(ctx, pageNum)
+	}
+}
+
+// processReadPage handles a single page: load prereqs, check rebuild, dispatch AI, save result.
+//
+//nolint:cyclop,gocognit // per-page dispatch with OCR/vision paths and multiple failure modes
+func (rc *readContext) processReadPage(ctx context.Context, pageNum int) {
+	imgPath, ok := rc.imageMap[pageNum]
+	if !ok {
+		rc.logger.Warn("no image found for page", "input", rc.stem, "page", pageNum)
+		return
+	}
+
+	prereqs := rc.loadPagePrereqs(pageNum, imgPath)
+
+	if !rc.opts.Force && !rebuild.NeedsRebuild(prereqs.outputPath, prereqs.rebuildInputs...) {
+		rc.logger.Debug("skipping page (up-to-date)", "input", rc.stem, "page", pageNum)
+		rc.skipped++
+		return
+	}
+
+	rc.statusPageNum = pageNum
+	currentModel := rc.activeModel()
+
+	readResult, err := rc.dispatchRead(ctx, pageNum, currentModel, imgPath, prereqs)
+	if rc.opts.Display != nil {
+		rc.opts.Display.SetStatus(display.StatusLine{}) // clear status
+	}
+
+	if err != nil {
+		rc.recordFailure(pageNum, err)
+		return
+	}
+
+	regionPage := readResult.Page
+
+	if err := saveRegionPage(rc.readDir, pageNum, rc.totalPages, regionPage); err != nil {
+		rc.recordFailure(pageNum, err)
+		return
+	}
+
+	if len(regionPage.Regions) == 0 && len(regionPage.Warnings) > 0 {
+		rc.logger.Warn("page read produced no regions", "input", rc.stem, "page", pageNum, "warnings", regionPage.Warnings)
+		rc.recordFailure(pageNum, fmt.Errorf("%s", regionPage.Warnings[0]))
+		return
+	}
+
+	rc.recordSuccess(pageNum, currentModel, regionPage, prereqs)
+}
+
+// pagePrereqs holds pre-loaded layout and OCR data for a single page.
+type pagePrereqs struct {
+	layoutRegions []model.Region
+	layoutTool    string
+	hasLayout     bool
+	ocrPage       *model.OCRPage
+	hasOCR        bool
+	outputPath    string
+	rebuildInputs []string
+}
+
+// loadPagePrereqs loads layout and OCR data and computes rebuild inputs for a page.
+func (rc *readContext) loadPagePrereqs(pageNum int, imgPath string) pagePrereqs {
+	ws := rc.opts.Workspace
+	cfg := rc.opts.Config
+	filename := pageFilename(pageNum, rc.totalPages)
+
+	var p pagePrereqs
+
+	layoutPath := filepath.Join(rc.layoutDir, filename)
+	if layoutPage, err := loadLayoutPage(layoutPath); err == nil {
+		p.layoutRegions = LayoutRegionsToModelRegions(layoutPage.Regions)
+		p.layoutTool = layoutPage.Tool
+		p.hasLayout = true
+	}
+
+	ocrPath := filepath.Join(rc.ocrDir, filename)
+	if op, err := loadOCRPage(ocrPath); err == nil {
+		p.ocrPage = op
+		p.hasOCR = true
+	}
+
+	p.outputPath = filepath.Join(rc.readDir, filename)
+	if p.hasOCR {
+		p.rebuildInputs = append([]string{ocrPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
+	} else {
+		p.rebuildInputs = append([]string{imgPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
+	}
+	if p.hasLayout {
+		p.rebuildInputs = append(p.rebuildInputs, layoutPath)
+	}
+	return p
+}
+
+// dispatchRead executes the AI read call via either the OCR-text or vision-image path.
+func (rc *readContext) dispatchRead(ctx context.Context, pageNum int, currentModel, imgPath string, p pagePrereqs) (*reader.ReadResult, error) {
+	if p.hasOCR {
+		ocrToolName := p.ocrPage.Tool
+		if rc.opts.Display != nil {
+			rc.opts.Display.SetStatus(display.StatusLine{
+				Text:      fmt.Sprintf("page %d: reading via %s (ocr: %s)", pageNum, currentModel, ocrToolName),
+				StartedAt: time.Now(),
+			})
+		}
+		rc.logger.Info("reading page", "page", pageNum, "layout", p.hasLayout, "ocr_source", ocrToolName)
+		return dispatchOCRRead(ctx, rc.rdr, pageNum, currentModel, p.ocrPage, p.hasLayout, p.layoutRegions, p.layoutTool)
+	}
+
+	imageData, err := input.LoadImage(imgPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if rc.opts.Display != nil {
+		statusText := fmt.Sprintf("page %d: reading via %s", pageNum, currentModel)
+		if p.hasLayout {
+			statusText = fmt.Sprintf("page %d: %s + %s ...", pageNum, p.layoutTool, currentModel)
+		}
+		rc.opts.Display.SetStatus(display.StatusLine{
+			Text:      statusText,
+			StartedAt: time.Now(),
+		})
+	}
+
+	rc.logger.Info("reading page", "page", pageNum, "layout", p.hasLayout)
+	return rc.rdr.ReadRegionPage(ctx, imageData, pageNum, currentModel, p.layoutRegions, p.layoutTool)
+}
+
+// recordFailure increments the failure counter and updates the display.
+func (rc *readContext) recordFailure(pageNum int, err error) {
+	rc.logger.Error("read failed", "input", rc.stem, "page", pageNum, "error", err)
+	rc.failed++
+	if rc.opts.Display != nil {
+		rc.opts.Display.Update(display.PageResult{
+			Phase: display.PhaseRead, Input: rc.stem, PageNum: pageNum,
+			Total: rc.totalPages, Completed: rc.completed, Failed: rc.failed, Err: err,
+		})
+	}
+}
+
+// recordSuccess increments the completion counter, logs the result, and updates the display.
+func (rc *readContext) recordSuccess(pageNum int, currentModel string, regionPage *model.RegionPage, p pagePrereqs) {
+	entryCount, footnoteCount := countRegionTypes(regionPage.Regions)
+	rc.completed++
+
+	usedModel := currentModel
+	if chain, ok := rc.opts.Provider.(*provider.FailoverChain); ok {
+		if m := chain.LastUsedModel(); m != "" {
+			usedModel = m
+		}
+	}
+
+	rc.logger.Info("page read complete",
+		"input", rc.stem, "page", pageNum, "layout", p.hasLayout,
+		"model", usedModel, "regions", len(regionPage.Regions), "warnings", len(regionPage.Warnings))
+
+	if rc.opts.Display != nil {
+		rc.opts.Display.Update(display.PageResult{
+			Phase: display.PhaseRead, Input: rc.stem, PageNum: pageNum,
+			Total: rc.totalPages, Completed: rc.completed, Failed: rc.failed,
+			Warnings: len(regionPage.Warnings), Entries: entryCount, Footnotes: footnoteCount,
+			LayoutTool: p.layoutTool, LayoutRegions: len(p.layoutRegions),
+		})
+	}
+}
+
+// writePhaseReport writes a JSON summary of phase results.
+func writePhaseReport(dir string, completed, failed, skipped int, logger *slog.Logger) {
 	report := map[string]any{
 		"pages_completed": completed,
 		"pages_failed":    failed,
 		"pages_skipped":   skipped,
 	}
-	if data, err := json.MarshalIndent(report, "", "  "); err == nil {
-		if err := atomicWriteFile(filepath.Join(readDir, "report.json"), data); err != nil {
-			logger.Warn("failed to write read report", "error", err)
-		}
+	data, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		return
 	}
-
-	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
+	if err := atomicWriteFile(filepath.Join(dir, "report.json"), data); err != nil {
+		logger.Warn("failed to write phase report", "error", err)
+	}
 }
 
 // buildOCRRegions merges OCR region text with layout region metadata (BBox and Type).
