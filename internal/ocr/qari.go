@@ -157,7 +157,11 @@ func (q *QariTool) IsReady(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("health check: close response body", "err", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return false
@@ -376,7 +380,11 @@ func addFileField(writer *multipart.Writer, fieldName, filePath string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = f.Close() }()
+	defer func() {
+		if err := f.Close(); err != nil {
+			slog.Warn("close image file", "path", filePath, "err", err)
+		}
+	}()
 
 	part, err := writer.CreateFormFile(fieldName, f.Name())
 	if err != nil {
@@ -393,6 +401,8 @@ func freePort() (int, error) {
 		return 0, err
 	}
 	port := l.Addr().(*net.TCPAddr).Port
-	_ = l.Close()
+	if err := l.Close(); err != nil {
+		slog.Warn("close listener", "port", port, "err", err)
+	}
 	return port, nil
 }
