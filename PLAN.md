@@ -2,29 +2,20 @@
 
 Unified project plan. Ordered by priority: quality first, features second, release last.
 
-Items marked [done] were resolved in prior commits and are kept for tracking only.
+Items marked [done] were resolved and are kept for tracking only.
 
 ## P0 — Code quality and technical debt
 
-- [ ] **Refactor `readOneInput`** — ~300 lines, cognitive complexity suppressed via nolint; extract
-  `setupDisplayCallbacks()`, `readPageWithOCR()`, `readPageVision()`, `readPageWithRetry()` to
-  reduce loop body to ~30 lines
-- [ ] **Refactor `translateOneInput`** — same pattern; extract display setup and per-page dispatch
-- [ ] **Log cleanup errors in OCR client** — `ocr/qari.go` silently ignores `resp.Body.Close`,
-  `f.Close`, `l.Close` errors; log at warn level
-- [ ] **Rename `model/section.go` to `model/pagerange.go`** — file contains `ParsePageRanges` and
-  `ExpandPages`; "section" concept was removed; rename test file too
-- [ ] **Fix `Validate()` cognitive complexity** — golangci-lint reports 29 (threshold 15); split
-  into `validateInputs()`, `validateModels()`, `validateTools()`
-- [ ] **Fix `TestBuildTranslateContext` length** — golangci-lint reports 86 lines (threshold 80);
-  extract test helper or split sub-tests
-- [ ] **Update DECISIONS.md** — remove or correct stale entries (e.g. "Default: gemini-2.5-flash-lite"
-  should match actual `DefaultModel` constant `gemini-2.0-flash`)
-- [ ] **Standardize log message capitalization** — scan `pipeline/`, `provider/`, `cli/` for
-  uppercase log messages; use lowercase throughout except proper nouns
-- [ ] **Extend config validation** — `Validate()` does not check: non-empty `read.models`, non-empty
-  `translate.models`, non-empty `write.formats`; add these checks
-- [x] ~~Fix unchecked errors in display layer~~ — resolved; I/O writes use `warnWrite()`
+- [x] ~~Refactor `readOneInput`~~ — extracted `readContext` with composable methods
+- [x] ~~Refactor `translateOneInput`~~ — extracted `translateContext` with composable methods
+- [x] ~~Log cleanup errors in OCR client~~ — warn-level logging for Close errors in qari.go
+- [x] ~~Rename `model/section.go` to `model/pagerange.go`~~ — file and test renamed
+- [x] ~~Fix `Validate()` cognitive complexity~~ — split into validateInputs/Models/Tools
+- [x] ~~Fix `TestBuildTranslateContext` length~~ — extracted package-level test helpers
+- [x] ~~Update DECISIONS.md~~ — corrected DefaultModel entry, removed stale references
+- [x] ~~Standardize log message capitalization~~ — already lowercase throughout
+- [x] ~~Extend config validation~~ — non-empty read.models, translate.models, write.formats
+- [x] ~~Fix unchecked errors in display layer~~ — I/O writes use `warnWrite()`
 - [x] ~~Log context cancellation in phase loops~~ — resolved in read.go, translate.go
 - [x] ~~Add nolint comment for math/rand jitter~~ — resolved in client.go
 - [x] ~~Fix inconsistent failover chain Name()~~ — documented; callers directed to `ActiveModel()`
@@ -32,22 +23,17 @@ Items marked [done] were resolved in prior commits and are kept for tracking onl
 
 ## P1 — Testing and CI
 
-- [ ] **Add integration tests for CLI entry points** — `cmd/mutercim` and `cmd/gen-schema` are at
-  0% coverage; test `Execute()` error path and basic output
-- [ ] **Improve coverage: docker package** — 18.4%; test `CheckAvailable`, `EnsureImage` error
-  paths, `FindDockerDir` with `t.TempDir()`
-- [ ] **Improve coverage: cli package** — 27.0%; test `newAllCmd` flag parsing, config override
-  paths, clean command targets
+- [x] ~~Add golangci-lint to CI~~ — added lint step to ci.yml
+- [x] ~~Investigate slow pipeline tests~~ — ~6s actual (was stale cache); 4 Docker-check tests ~1-2s each, acceptable
+- [x] ~~Improve coverage: docker package~~ — 18% → 61% (imageShortName, FindDockerDir, isDockerfileDir)
+- [x] ~~Improve coverage: cli package~~ — added apiKeyEnvVar and formatSize tests
+- [x] ~~Document `_extra_test.go` naming pattern~~ — added to CONTRIBUTING.md
+- [ ] **Add integration tests for CLI entry points** — `cmd/mutercim` and `cmd/gen-schema` at 0%
+  coverage; test `Execute()` error path and basic output
 - [ ] **Improve coverage: ocr package** — 48.4%; test Qari client HTTP paths with
   `httptest.NewServer`, noop tool behavior
 - [ ] **Improve coverage: pipeline package** — 50.6%; test layout/ocr pipeline functions,
-  `readOneInput` dispatch paths, write format error paths
-- [ ] **Add golangci-lint to CI** — `.golangci.yml` exists but `ci.yml` only runs build/vet/test;
-  add a lint step
-- [ ] **Investigate slow pipeline tests** — `pipeline` package takes ~200s; identify which tests are
-  slow and whether they can be parallelized or simplified
-- [ ] **Document `_extra_test.go` naming pattern** — add one paragraph to `CONTRIBUTING.md`
-  explaining intent (separation of table-driven vs. integration/extra tests)
+  dispatch paths, write format error paths
 
 ## P2 — Features
 
@@ -72,10 +58,8 @@ Items marked [done] were resolved in prior commits and are kept for tracking onl
 
 ## P3 — Release preparation
 
-- [ ] **Pre-built binaries** — add goreleaser config: linux/amd64, linux/arm64, darwin/arm64,
-  darwin/amd64, windows/amd64
-- [ ] **Publish Docker images to ghcr.io** — poppler, doclayout-yolo, xelatex, pandoc; fall back
-  to local build if pull fails
+- [x] ~~Pre-built binaries~~ — goreleaser config added (linux/darwin/windows, amd64/arm64)
+- [x] ~~Publish Docker images to ghcr.io~~ — CI workflow + pull-before-build in EnsureImage
 
 ## P4 — Long-term / exploratory
 
