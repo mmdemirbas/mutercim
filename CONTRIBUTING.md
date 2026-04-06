@@ -46,6 +46,14 @@ Key rules:
 - All external tools run in Docker containers (no host-installed pdftoppm, pandoc, etc.)
 - Record architectural decisions in docs/DECISIONS.md
 
+## Test file naming
+
+Standard tests live in `*_test.go` files next to the code they test. Some packages also
+have `*_extra_test.go` files. These contain additional test cases that go beyond basic
+unit tests — typically integration-style scenarios, edge case batteries, or tests that
+exercise cross-cutting behavior. The separation keeps the primary test file focused on
+core functionality and makes it easy to find the extra coverage.
+
 ## Config schema
 
 If you change `internal/config/config.go`, regenerate the JSON schema:
