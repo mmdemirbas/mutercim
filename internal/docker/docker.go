@@ -29,32 +29,75 @@ func CheckAvailable(ctx context.Context) error {
 	return nil
 }
 
-// EnsureImage ensures a Docker image is built and up to date.
-// If dockerfileDir is non-empty, it runs `docker build` (Docker's layer cache
-// makes this near-instant when nothing changed). If dockerfileDir is empty and
-// the image doesn't exist locally, it returns an informative error.
+// RegistryPrefix is the container registry prefix for pre-built images.
+// When non-empty, EnsureImage tries pulling from the registry before building locally.
+var RegistryPrefix = "ghcr.io/mmdemirbas/mutercim"
+
+// EnsureImage ensures a Docker image is available locally.
+//
+// Strategy: check local → try registry pull → build from Dockerfile.
+// If dockerfileDir is empty and both local check and pull fail, returns an error.
 func EnsureImage(ctx context.Context, image, dockerfileDir string) error {
-	if dockerfileDir != "" {
-		// Always run docker build — the layer cache handles skipping unchanged layers.
-		slog.Debug("ensuring docker image", "image", image, "dir", dockerfileDir)
-		start := time.Now()
-		out, err := exec.CommandContext(ctx, "docker", "build", "-t", image, dockerfileDir).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; image/dir are trusted internal values
-		elapsed := time.Since(start)
-		if err != nil {
-			slog.Error("docker build failed", "image", image, "elapsed_s", int(elapsed.Seconds()), "output", string(out))
-			return fmt.Errorf("docker build %s failed: %w\n%s", image, err, truncateOutput(string(out), 2000))
-		}
-		slog.Debug("docker build complete", "image", image, "elapsed_s", int(elapsed.Seconds()))
+	// Check if image already exists locally
+	if imageExistsLocally(ctx, image) {
 		return nil
 	}
 
-	// No Dockerfile dir — just check if image exists
-	out, err := exec.CommandContext(ctx, "docker", "image", "inspect", image, "--format", "{{.ID}}").CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; image is a trusted internal value
-	if err == nil && strings.TrimSpace(string(out)) != "" {
+	// Try pulling from registry
+	if tryPullFromRegistry(ctx, image) {
 		return nil
 	}
+
+	// Fall back to local build
+	if dockerfileDir != "" {
+		return buildImage(ctx, image, dockerfileDir)
+	}
+
 	return fmt.Errorf("docker image %s not found — build it with: docker build -t %s docker/%s/",
 		image, image, imageShortName(image))
+}
+
+// imageExistsLocally checks if a Docker image exists in the local daemon.
+func imageExistsLocally(ctx context.Context, image string) bool {
+	out, err := exec.CommandContext(ctx, "docker", "image", "inspect", image, "--format", "{{.ID}}").CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; image is a trusted internal value
+	return err == nil && strings.TrimSpace(string(out)) != ""
+}
+
+// tryPullFromRegistry attempts to pull a pre-built image from the configured registry.
+// Returns true on success, false on any failure (caller should fall back to local build).
+func tryPullFromRegistry(ctx context.Context, image string) bool {
+	if RegistryPrefix == "" {
+		return false
+	}
+	name := imageShortName(image)
+	if name == "" {
+		return false
+	}
+	remoteImage := RegistryPrefix + "/" + name + ":latest"
+	slog.Info("pulling docker image from registry", "image", remoteImage)
+	out, err := exec.CommandContext(ctx, "docker", "pull", remoteImage).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; remoteImage is constructed from trusted constants
+	if err != nil {
+		slog.Debug("registry pull failed, will build locally", "image", remoteImage, "error", err, "output", strings.TrimSpace(string(out)))
+		return false
+	}
+	// Tag as the local name so downstream code finds it
+	_, _ = exec.CommandContext(ctx, "docker", "tag", remoteImage, image).CombinedOutput() //nolint:gosec // G204: tagging pulled image to local name
+	slog.Info("pulled docker image from registry", "image", remoteImage)
+	return true
+}
+
+// buildImage builds a Docker image from a Dockerfile directory.
+func buildImage(ctx context.Context, image, dockerfileDir string) error {
+	slog.Debug("building docker image", "image", image, "dir", dockerfileDir)
+	start := time.Now()
+	out, err := exec.CommandContext(ctx, "docker", "build", "-t", image, dockerfileDir).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; image/dir are trusted internal values
+	elapsed := time.Since(start)
+	if err != nil {
+		slog.Error("docker build failed", "image", image, "elapsed_s", int(elapsed.Seconds()), "output", string(out))
+		return fmt.Errorf("docker build %s failed: %w\n%s", image, err, truncateOutput(string(out), 2000))
+	}
+	slog.Debug("docker build complete", "image", image, "elapsed_s", int(elapsed.Seconds()))
+	return nil
 }
 
 // imageShortName extracts the short name from an image like "mutercim/poppler:latest" → "poppler".
