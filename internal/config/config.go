@@ -321,7 +321,17 @@ var validWriteFormats = map[string]bool{"md": true, "latex": true, "docx": true,
 
 // Validate checks the config for errors.
 func (c *Config) Validate() error {
-	// Check that at least one input has languages
+	if err := c.validateInputs(); err != nil {
+		return err
+	}
+	if err := c.validateModels(); err != nil {
+		return err
+	}
+	return c.validateTools()
+}
+
+// validateInputs checks input paths, languages, and page ranges.
+func (c *Config) validateInputs() error {
 	hasLanguages := false
 	for _, inp := range c.Inputs {
 		if len(inp.Languages) > 0 {
@@ -333,7 +343,6 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("inputs[].languages is required: at least one input must have source languages")
 	}
 
-	// Check input paths exist and validate per-input pages
 	for i, inp := range c.Inputs {
 		if _, err := os.Stat(inp.Path); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("input %d path %q: %w", i, inp.Path, err)
@@ -344,8 +353,15 @@ func (c *Config) Validate() error {
 			}
 		}
 	}
+	return nil
+}
 
-	// Validate read model specs
+// validateModels checks that read and translate model lists are non-empty
+// and each entry has provider and model fields.
+func (c *Config) validateModels() error {
+	if len(c.Read.Models) == 0 {
+		return fmt.Errorf("read.models is required: configure at least one model for the read phase")
+	}
 	for i, m := range c.Read.Models {
 		if m.Provider == "" {
 			return fmt.Errorf("read.models[%d].provider is required", i)
@@ -355,7 +371,9 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// Validate translate model specs
+	if len(c.Translate.Models) == 0 {
+		return fmt.Errorf("translate.models is required: configure at least one model for the translate phase")
+	}
 	for i, m := range c.Translate.Models {
 		if m.Provider == "" {
 			return fmt.Errorf("translate.models[%d].provider is required", i)
@@ -364,25 +382,28 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("translate.models[%d].model is required", i)
 		}
 	}
+	return nil
+}
 
-	// Validate layout tool
+// validateTools checks layout tool, OCR tool, write formats, and translate settings.
+func (c *Config) validateTools() error {
 	if !validLayoutTools[c.Layout.Tool] {
 		return fmt.Errorf("layout.tool %q is not valid (expected: \"\", \"doclayout-yolo\", or \"surya\")", c.Layout.Tool)
 	}
 
-	// Validate OCR tool
 	if !validOCRTools[c.OCR.Tool] {
 		return fmt.Errorf("ocr.tool %q is not valid (expected: \"\" or \"qari\")", c.OCR.Tool)
 	}
 
-	// Validate write formats
+	if len(c.Write.Formats) == 0 {
+		return fmt.Errorf("write.formats is required: configure at least one output format")
+	}
 	for _, f := range c.Write.Formats {
 		if !validWriteFormats[f] {
 			return fmt.Errorf("write.formats contains unknown format %q (valid: md, latex, docx, pdf)", f)
 		}
 	}
 
-	// Validate context window
 	if c.Translate.ContextWindow < 0 {
 		return fmt.Errorf("translate.context_window must be >= 0, got %d", c.Translate.ContextWindow)
 	}

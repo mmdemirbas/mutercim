@@ -94,9 +94,12 @@ func TestValidate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "config with input languages is valid",
+			name: "minimal valid config",
 			cfg: Config{
-				Inputs: []InputSpec{{Path: "./input", Languages: []string{"ar"}}},
+				Inputs:    []InputSpec{{Path: "./input", Languages: []string{"ar"}}},
+				Read:      ReadConfig{Models: []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}},
+				Translate: TranslateConfig{Models: []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}},
+				Write:     WriteConfig{Formats: []string{"md"}},
 			},
 			wantErr: false,
 		},

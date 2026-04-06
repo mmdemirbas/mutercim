@@ -24,18 +24,16 @@ func TestResolvePath(t *testing.T) {
 }
 
 func TestValidatePerInputPages_Valid(t *testing.T) {
-	cfg := &Config{
-		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "1-5,10", Languages: []string{"ar"}}},
-	}
+	cfg := validBase()
+	cfg.Inputs = []InputSpec{{Path: "./input/book.pdf", Pages: "1-5,10", Languages: []string{"ar"}}}
 	if err := cfg.Validate(); err != nil {
 		t.Errorf("valid per-input pages should not error: %v", err)
 	}
 }
 
 func TestValidatePerInputPages_Invalid(t *testing.T) {
-	cfg := &Config{
-		Inputs: []InputSpec{{Path: "./input/book.pdf", Pages: "abc", Languages: []string{"ar"}}},
-	}
+	cfg := validBase()
+	cfg.Inputs = []InputSpec{{Path: "./input/book.pdf", Pages: "abc", Languages: []string{"ar"}}}
 	if err := cfg.Validate(); err == nil {
 		t.Error("expected error for invalid per-input pages")
 	}
@@ -105,61 +103,50 @@ func TestIsPDFFunction(t *testing.T) {
 func TestValidate_PerInputPages(t *testing.T) {
 	tests := []struct {
 		name    string
-		cfg     Config
+		inputs  []InputSpec
 		wantErr bool
 	}{
 		{
 			name: "valid per-input pages",
-			cfg: Config{
-				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: "1-50", Languages: []string{"ar"}},
-					{Path: "./vol2.pdf", Pages: "10,20-30", Languages: []string{"ar"}},
-				},
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Pages: "1-50", Languages: []string{"ar"}},
+				{Path: "./vol2.pdf", Pages: "10,20-30", Languages: []string{"ar"}},
 			},
-			wantErr: false,
 		},
 		{
 			name: "invalid per-input pages",
-			cfg: Config{
-				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: "abc", Languages: []string{"ar"}},
-				},
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Pages: "abc", Languages: []string{"ar"}},
 			},
 			wantErr: true,
 		},
 		{
 			name: "empty per-input pages is valid",
-			cfg: Config{
-				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: "", Languages: []string{"ar"}},
-				},
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Pages: "", Languages: []string{"ar"}},
 			},
-			wantErr: false,
 		},
 		{
 			name: "mix of valid and invalid per-input pages",
-			cfg: Config{
-				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: "1-10", Languages: []string{"ar"}},
-					{Path: "./vol2.pdf", Pages: "not-a-range", Languages: []string{"ar"}},
-				},
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Pages: "1-10", Languages: []string{"ar"}},
+				{Path: "./vol2.pdf", Pages: "not-a-range", Languages: []string{"ar"}},
 			},
 			wantErr: true,
 		},
 		{
 			name: "valid per-input pages only",
-			cfg: Config{
-				Inputs: []InputSpec{
-					{Path: "./vol1.pdf", Pages: "1-50", Languages: []string{"ar"}},
-				},
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Pages: "1-50", Languages: []string{"ar"}},
 			},
-			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.cfg.Validate()
+			cfg := validBase()
+			cfg.Inputs = tt.inputs
+			err := cfg.Validate()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -313,11 +300,12 @@ func TestApplyDefaults_InputsDefault(t *testing.T) {
 // validBase returns a Config that passes all validations to use as a baseline in subtests.
 func validBase() Config {
 	return Config{
-		Inputs:  []InputSpec{{Path: "./input", Languages: []string{"ar"}}},
-		Layout:  LayoutConfig{Tool: "doclayout-yolo"},
-		OCR:     OCRConfig{Tool: ""},
-		Write:   WriteConfig{Formats: []string{"md"}},
-		Translate: TranslateConfig{ContextWindow: 2},
+		Inputs:    []InputSpec{{Path: "./input", Languages: []string{"ar"}}},
+		Read:      ReadConfig{Models: []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}},
+		Translate: TranslateConfig{Models: []ModelSpec{{Provider: "gemini", Model: "gemini-2.0-flash"}}, ContextWindow: 2},
+		Layout:    LayoutConfig{Tool: "doclayout-yolo"},
+		OCR:       OCRConfig{Tool: ""},
+		Write:     WriteConfig{Formats: []string{"md"}},
 	}
 }
 
@@ -358,9 +346,14 @@ func TestValidate_ModelSpecs(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "no models: passes (applyDefaults fills them in before validate in Load)",
-			mutate:  func(_ *Config) {},
-			wantErr: false,
+			name:    "no read models: fails",
+			mutate:  func(c *Config) { c.Read.Models = nil },
+			wantErr: true,
+		},
+		{
+			name:    "no translate models: fails",
+			mutate:  func(c *Config) { c.Translate.Models = nil },
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -433,9 +426,14 @@ func TestValidate_WriteFormats(t *testing.T) {
 		{[]string{"html"}, true},
 		{[]string{"md", "unknown"}, true},
 		{[]string{"MD"}, true}, // case-sensitive
+		{nil, true},            // empty formats
 	}
 	for _, tt := range tests {
-		t.Run(tt.formats[0], func(t *testing.T) {
+		name := "empty"
+		if len(tt.formats) > 0 {
+			name = tt.formats[0]
+		}
+		t.Run(name, func(t *testing.T) {
 			cfg := validBase()
 			cfg.Write.Formats = tt.formats
 			err := cfg.Validate()
