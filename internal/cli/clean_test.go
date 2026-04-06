@@ -206,3 +206,25 @@ func TestPhaseIndex(t *testing.T) {
 		t.Errorf("phaseIndex(bogus) = %d, want -1", phaseIndex("bogus"))
 	}
 }
+
+func TestFormatSize(t *testing.T) {
+	tests := []struct {
+		bytes int64
+		want  string
+	}{
+		{0, "empty"},
+		{1, "1 B"},
+		{512, "512 B"},
+		{1023, "1023 B"},
+		{1024, "1.0 KB"},
+		{1536, "1.5 KB"},
+		{1024 * 1024, "1.0 MB"},
+		{5 * 1024 * 1024, "5.0 MB"},
+	}
+	for _, tt := range tests {
+		got := formatSize(tt.bytes)
+		if got != tt.want {
+			t.Errorf("formatSize(%d) = %q, want %q", tt.bytes, got, tt.want)
+		}
+	}
+}
