@@ -184,22 +184,23 @@ func TestTranslatePipelineMultiLang(t *testing.T) {
 	}
 }
 
-func TestBuildTranslateContext(t *testing.T) {
-	pageWithHeader := func(header string) *model.TranslatedRegionPage {
-		return &model.TranslatedRegionPage{
-			Regions: []model.TranslatedRegion{
-				{ID: "h1", Type: model.RegionTypeHeader, TranslatedText: header},
-			},
-		}
+func translatedPageWithHeader(header string) *model.TranslatedRegionPage {
+	return &model.TranslatedRegionPage{
+		Regions: []model.TranslatedRegion{
+			{ID: "h1", Type: model.RegionTypeHeader, TranslatedText: header},
+		},
 	}
-	pageNoHeader := func() *model.TranslatedRegionPage {
-		return &model.TranslatedRegionPage{
-			Regions: []model.TranslatedRegion{
-				{ID: "r1", Type: model.RegionTypeEntry, TranslatedText: "entry"},
-			},
-		}
-	}
+}
 
+func translatedPageNoHeader() *model.TranslatedRegionPage {
+	return &model.TranslatedRegionPage{
+		Regions: []model.TranslatedRegion{
+			{ID: "r1", Type: model.RegionTypeEntry, TranslatedText: "entry"},
+		},
+	}
+}
+
+func TestBuildTranslateContext(t *testing.T) {
 	tests := []struct {
 		name           string
 		recent         []*model.TranslatedRegionPage
@@ -223,35 +224,35 @@ func TestBuildTranslateContext(t *testing.T) {
 		},
 		{
 			name:          "recent pages within window",
-			recent:        []*model.TranslatedRegionPage{pageWithHeader("Chapter 1"), pageWithHeader("Chapter 2")},
+			recent:        []*model.TranslatedRegionPage{translatedPageWithHeader("Chapter 1"), translatedPageWithHeader("Chapter 2")},
 			contextWindow: 2,
 			solved:        &model.SolvedRegionPage{},
 			want:          []string{"Chapter 1", "Chapter 2"},
 		},
 		{
 			name:          "context window limits to last N pages",
-			recent:        []*model.TranslatedRegionPage{pageWithHeader("Ch1"), pageWithHeader("Ch2"), pageWithHeader("Ch3")},
+			recent:        []*model.TranslatedRegionPage{translatedPageWithHeader("Ch1"), translatedPageWithHeader("Ch2"), translatedPageWithHeader("Ch3")},
 			contextWindow: 2,
 			solved:        &model.SolvedRegionPage{},
 			want:          []string{"Ch2", "Ch3"},
 		},
 		{
 			name:          "pages without header are excluded",
-			recent:        []*model.TranslatedRegionPage{pageNoHeader(), pageWithHeader("Ch2")},
+			recent:        []*model.TranslatedRegionPage{translatedPageNoHeader(), translatedPageWithHeader("Ch2")},
 			contextWindow: 2,
 			solved:        &model.SolvedRegionPage{},
 			want:          []string{"Ch2"},
 		},
 		{
 			name:          "context window larger than available pages includes all",
-			recent:        []*model.TranslatedRegionPage{pageWithHeader("Ch1")},
+			recent:        []*model.TranslatedRegionPage{translatedPageWithHeader("Ch1")},
 			contextWindow: 5,
 			solved:        &model.SolvedRegionPage{},
 			want:          []string{"Ch1"},
 		},
 		{
 			name:          "recent pages and solver context combined",
-			recent:        []*model.TranslatedRegionPage{pageWithHeader("Ch1")},
+			recent:        []*model.TranslatedRegionPage{translatedPageWithHeader("Ch1")},
 			contextWindow: 2,
 			solved:        &model.SolvedRegionPage{PreviousPageSummary: "prev"},
 			want:          []string{"Ch1", "prev"},
