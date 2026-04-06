@@ -92,7 +92,6 @@ func Translate(ctx context.Context, opts TranslateOptions) (PhaseResult, error) 
 	return total, nil
 }
 
-//nolint:cyclop,gocognit,funlen // per-input translate with context window and retry logic
 func translateOneInput(ctx context.Context, opts TranslateOptions, translator *translation.Translator, stem, targetLang string, contextWindow int) (PhaseResult, error) {
 	logger := opts.Logger
 	if logger == nil {
@@ -100,11 +99,9 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	}
 
 	ws := opts.Workspace
-	cfg := opts.Config
 	solvedDir := filepath.Join(ws.SolveDir(), stem)
 	translatedDir := filepath.Join(ws.TranslateDir(), targetLang, stem)
 
-	// List solved pages
 	pages, err := listPageFiles(solvedDir)
 	if err != nil {
 		return PhaseResult{}, fmt.Errorf("list solved pages: %w", err)
@@ -112,16 +109,13 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	if len(pages) == 0 {
 		return PhaseResult{}, fmt.Errorf("no solved pages in %s", solvedDir)
 	}
-
 	if len(opts.Pages) > 0 {
 		pages = filterPages(pages, opts.Pages)
 	}
-
 	if err := os.MkdirAll(translatedDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create translated dir: %w", err)
 	}
 
-	// Load all solved pages for context window
 	solvedPages := make(map[int]*model.SolvedRegionPage)
 	for _, pf := range pages {
 		page, err := loadSolvedRegionPage(pf.path)
@@ -132,161 +126,197 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		solvedPages[pf.pageNum] = page
 	}
 
-	// Track translated pages for context window
-	var recentTranslated []*model.TranslatedRegionPage
-
-	// Start progress display
-	if opts.Display != nil {
-		opts.Display.StartPhase(display.PhaseTranslate, stem, len(pages), targetLang)
+	tc := &translateContext{
+		opts:          opts,
+		stem:          stem,
+		targetLang:    targetLang,
+		translatedDir: translatedDir,
+		contextWindow: contextWindow,
+		translator:    translator,
+		solvedPages:   solvedPages,
+		totalPages:    len(pages),
+		logger:        logger,
 	}
+	tc.activeModel = tc.buildActiveModelFunc()
+	tc.setupDisplayCallbacks()
 
-	// Set up status callbacks for retry/failover display
-	var statusPageNum int
-	activeModel := func() string {
-		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
-			if m := chain.ActiveModel(false); m != "" {
-				return m
-			}
-		}
-		if len(cfg.Translate.Models) > 0 {
-			return cfg.Translate.Models[0].Provider + "/" + cfg.Translate.Models[0].Model
-		}
-		return opts.Provider.Name()
-	}
-	if opts.Display != nil {
-		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
-			chain.OnFailover = func(from, to string) {
-				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("translating page %d via %s \u2014 failover from %s", statusPageNum, to, from),
-					StartedAt: time.Now(),
-				})
-			}
-			chain.SetRetryCallback(func(attempt, maxRetries, statusCode int, backoff time.Duration) {
-				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("translating page %d \u2014 retry %d/%d (%d)", statusPageNum, attempt, maxRetries, statusCode),
-					StartedAt: time.Now(),
-					Countdown: backoff,
-				})
-			})
-		}
-	}
-
-	completed := 0
-	failed := 0
-	skipped := 0
-
-	maxFailPct := opts.Config.Translate.Retry.MaxFailPercent
-	for i, pf := range pages {
-		if ctx.Err() != nil {
-			logger.Info("context cancelled, stopping translate phase",
-				"input", stem, "lang", targetLang, "processed", completed+failed, "remaining", len(pages)-i)
-			break
-		}
-		// Check error threshold
-		result := PhaseResult{Completed: completed, Failed: failed}
-		if result.ExceedsErrorThreshold(maxFailPct) {
-			logger.Error("aborting: failure rate exceeds threshold",
-				"completed", completed, "failed", failed, "threshold", fmt.Sprintf("%d%%", maxFailPct))
-			break
-		}
-		// Skip if output is up-to-date (mtime check)
-		outputPath := filepath.Join(translatedDir, pageFilename(pf.pageNum, len(pages)))
-		rebuildInputs := append([]string{pf.path, ws.ConfigPath()}, append(opts.Config.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())...)
-		if !opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
-			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
-			skipped++
-			continue
-		}
-
-		solved, ok := solvedPages[pf.pageNum]
-		if !ok {
-			failed++
-			continue
-		}
-
-		contextSummaries := buildTranslateContext(recentTranslated, contextWindow, solved)
-
-		// Translate
-		statusPageNum = pf.pageNum
-		currentModel := activeModel()
-		if opts.Display != nil {
-			opts.Display.SetStatus(display.StatusLine{
-				Text:      fmt.Sprintf("translating page %d via %s", pf.pageNum, currentModel),
-				StartedAt: time.Now(),
-			})
-		}
-		translated, err := translator.TranslatePage(ctx, solved, contextSummaries, currentModel)
-		if opts.Display != nil {
-			opts.Display.SetStatus(display.StatusLine{}) // clear status
-		}
-		if err != nil {
-			logger.Error("translation failed", "input", stem, "page", pf.pageNum, "error", err)
-			failed++
-			if opts.Display != nil {
-				opts.Display.Update(display.PageResult{
-					Phase: display.PhaseTranslate, Input: stem, PageNum: pf.pageNum,
-					Total: len(pages), Completed: completed, Failed: failed,
-					Lang: targetLang, Err: err,
-				})
-			}
-			continue
-		}
-
-		// Save translated JSON atomically
-		if err := saveTranslatedRegionPage(translatedDir, pf.pageNum, len(pages), translated); err != nil {
-			logger.Error("failed to save translated page", "input", stem, "page", pf.pageNum, "error", err)
-			failed++
-			if opts.Display != nil {
-				opts.Display.Update(display.PageResult{
-					Phase: display.PhaseTranslate, Input: stem, PageNum: pf.pageNum,
-					Total: len(pages), Completed: completed, Failed: failed,
-					Lang: targetLang, Err: err,
-				})
-			}
-			continue
-		}
-
-		recentTranslated = append(recentTranslated, translated)
-		if len(recentTranslated) > contextWindow {
-			recentTranslated = recentTranslated[len(recentTranslated)-contextWindow:]
-		}
-		completed++
-		usedModel := currentModel
-		if chain, ok := opts.Provider.(*provider.FailoverChain); ok {
-			if m := chain.LastUsedModel(); m != "" {
-				usedModel = m
-			}
-		}
-		logger.Info("page translated", "input", stem, "page", pf.pageNum, "model", usedModel, "completed", completed)
-		if opts.Display != nil {
-			opts.Display.Update(display.PageResult{
-				Phase: display.PhaseTranslate, Input: stem, PageNum: pf.pageNum,
-				Total: len(pages), Completed: completed, Failed: failed,
-				Lang:    targetLang,
-				Entries: countTranslatedRegionType(translated.Regions, model.RegionTypeEntry),
-			})
-		}
-	}
+	tc.processAllPages(ctx, pages)
 
 	if opts.Display != nil {
 		opts.Display.FinishPhase(display.PhaseTranslate, stem, targetLang)
 	}
-	logger.Info("translation complete", "input", stem, "completed", completed, "failed", failed, "skipped", skipped)
+	logger.Info("translation complete", "input", stem, "completed", tc.completed, "failed", tc.failed, "skipped", tc.skipped)
 
-	// Write report
-	report := map[string]any{
-		"target_lang":     targetLang,
-		"pages_completed": completed,
-		"pages_failed":    failed,
-		"pages_skipped":   skipped,
+	writePhaseReport(translatedDir, tc.completed, tc.failed, tc.skipped, logger)
+	return PhaseResult{Completed: tc.completed, Failed: tc.failed, Skipped: tc.skipped}, nil
+}
+
+// translateContext holds per-input state for the translate phase page loop.
+type translateContext struct {
+	opts          TranslateOptions
+	stem          string
+	targetLang    string
+	translatedDir string
+	contextWindow int
+	translator    *translation.Translator
+	solvedPages   map[int]*model.SolvedRegionPage
+	totalPages    int
+	logger        *slog.Logger
+
+	activeModel      func() string
+	statusPageNum    int
+	recentTranslated []*model.TranslatedRegionPage
+	completed        int
+	failed           int
+	skipped          int
+}
+
+// buildActiveModelFunc returns a function that resolves the currently active model label.
+func (tc *translateContext) buildActiveModelFunc() func() string {
+	return func() string {
+		if chain, ok := tc.opts.Provider.(*provider.FailoverChain); ok {
+			if m := chain.ActiveModel(false); m != "" {
+				return m
+			}
+		}
+		models := tc.opts.Config.Translate.Models
+		if len(models) > 0 {
+			return models[0].Provider + "/" + models[0].Model
+		}
+		return tc.opts.Provider.Name()
 	}
-	if data, err := json.MarshalIndent(report, "", "  "); err == nil {
-		if err := atomicWriteFile(filepath.Join(translatedDir, "report.json"), data); err != nil {
-			logger.Warn("failed to write translate report", "error", err)
+}
+
+// setupDisplayCallbacks wires failover and retry callbacks to the display.
+func (tc *translateContext) setupDisplayCallbacks() {
+	if tc.opts.Display == nil {
+		return
+	}
+	chain, ok := tc.opts.Provider.(*provider.FailoverChain)
+	if !ok {
+		return
+	}
+	chain.OnFailover = func(from, to string) {
+		tc.opts.Display.SetStatus(display.StatusLine{
+			Text:      fmt.Sprintf("translating page %d via %s \u2014 failover from %s", tc.statusPageNum, to, from),
+			StartedAt: time.Now(),
+		})
+	}
+	chain.SetRetryCallback(func(attempt, maxRetries, statusCode int, backoff time.Duration) {
+		tc.opts.Display.SetStatus(display.StatusLine{
+			Text:      fmt.Sprintf("translating page %d \u2014 retry %d/%d (%d)", tc.statusPageNum, attempt, maxRetries, statusCode),
+			StartedAt: time.Now(),
+			Countdown: backoff,
+		})
+	})
+}
+
+// processAllPages iterates over pages, checking for cancellation and error thresholds.
+func (tc *translateContext) processAllPages(ctx context.Context, pages []pageFile) {
+	if tc.opts.Display != nil {
+		tc.opts.Display.StartPhase(display.PhaseTranslate, tc.stem, len(pages), tc.targetLang)
+	}
+	maxFailPct := tc.opts.Config.Translate.Retry.MaxFailPercent
+	for i, pf := range pages {
+		if ctx.Err() != nil {
+			tc.logger.Info("context cancelled, stopping translate phase",
+				"input", tc.stem, "lang", tc.targetLang, "processed", tc.completed+tc.failed, "remaining", len(pages)-i)
+			return
+		}
+		result := PhaseResult{Completed: tc.completed, Failed: tc.failed}
+		if result.ExceedsErrorThreshold(maxFailPct) {
+			tc.logger.Error("aborting: failure rate exceeds threshold",
+				"completed", tc.completed, "failed", tc.failed, "threshold", fmt.Sprintf("%d%%", maxFailPct))
+			return
+		}
+		tc.processTranslatePage(ctx, pf)
+	}
+}
+
+// processTranslatePage handles a single page: rebuild check, translate, save.
+func (tc *translateContext) processTranslatePage(ctx context.Context, pf pageFile) {
+	ws := tc.opts.Workspace
+
+	outputPath := filepath.Join(tc.translatedDir, pageFilename(pf.pageNum, tc.totalPages))
+	rebuildInputs := append([]string{pf.path, ws.ConfigPath()},
+		append(tc.opts.Config.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())...)
+	if !tc.opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
+		tc.logger.Debug("skipping page (up-to-date)", "input", tc.stem, "page", pf.pageNum)
+		tc.skipped++
+		return
+	}
+
+	solved, ok := tc.solvedPages[pf.pageNum]
+	if !ok {
+		tc.failed++
+		return
+	}
+
+	contextSummaries := buildTranslateContext(tc.recentTranslated, tc.contextWindow, solved)
+
+	tc.statusPageNum = pf.pageNum
+	currentModel := tc.activeModel()
+	if tc.opts.Display != nil {
+		tc.opts.Display.SetStatus(display.StatusLine{
+			Text:      fmt.Sprintf("translating page %d via %s", pf.pageNum, currentModel),
+			StartedAt: time.Now(),
+		})
+	}
+	translated, err := tc.translator.TranslatePage(ctx, solved, contextSummaries, currentModel)
+	if tc.opts.Display != nil {
+		tc.opts.Display.SetStatus(display.StatusLine{})
+	}
+
+	if err != nil {
+		tc.recordFailure(pf, err)
+		return
+	}
+
+	if err := saveTranslatedRegionPage(tc.translatedDir, pf.pageNum, tc.totalPages, translated); err != nil {
+		tc.recordFailure(pf, err)
+		return
+	}
+
+	tc.recordSuccess(pf, currentModel, translated)
+}
+
+// recordFailure increments the failure counter and updates the display.
+func (tc *translateContext) recordFailure(pf pageFile, err error) {
+	tc.logger.Error("translation failed", "input", tc.stem, "page", pf.pageNum, "error", err)
+	tc.failed++
+	if tc.opts.Display != nil {
+		tc.opts.Display.Update(display.PageResult{
+			Phase: display.PhaseTranslate, Input: tc.stem, PageNum: pf.pageNum,
+			Total: tc.totalPages, Completed: tc.completed, Failed: tc.failed,
+			Lang: tc.targetLang, Err: err,
+		})
+	}
+}
+
+// recordSuccess updates context window, increments completion, logs, and updates display.
+func (tc *translateContext) recordSuccess(pf pageFile, currentModel string, translated *model.TranslatedRegionPage) {
+	tc.recentTranslated = append(tc.recentTranslated, translated)
+	if len(tc.recentTranslated) > tc.contextWindow {
+		tc.recentTranslated = tc.recentTranslated[len(tc.recentTranslated)-tc.contextWindow:]
+	}
+	tc.completed++
+
+	usedModel := currentModel
+	if chain, ok := tc.opts.Provider.(*provider.FailoverChain); ok {
+		if m := chain.LastUsedModel(); m != "" {
+			usedModel = m
 		}
 	}
+	tc.logger.Info("page translated", "input", tc.stem, "page", pf.pageNum, "model", usedModel, "completed", tc.completed)
 
-	return PhaseResult{Completed: completed, Failed: failed, Skipped: skipped}, nil
+	if tc.opts.Display != nil {
+		tc.opts.Display.Update(display.PageResult{
+			Phase: display.PhaseTranslate, Input: tc.stem, PageNum: pf.pageNum,
+			Total: tc.totalPages, Completed: tc.completed, Failed: tc.failed,
+			Lang:    tc.targetLang,
+			Entries: countTranslatedRegionType(translated.Regions, model.RegionTypeEntry),
+		})
+	}
 }
 
 func loadSolvedRegionPage(path string) (*model.SolvedRegionPage, error) {
