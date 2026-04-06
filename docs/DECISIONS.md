@@ -29,10 +29,10 @@ decisions, design rationale, and historical context.
 - Targets: log, memory, pages, read, solve, translate, write, all
 - "+" suffix cascades downstream: `clean read+` → read/ solve/ translate/ write/
 - Never deletes input/ or knowledge/
-- Prints sizes before deleting, resets progress.json entries for cleaned phases
+- Prints sizes before deleting
 
 ## Gemini Model
-- Default: gemini-2.5-flash-lite (not gemini-2.0-flash)
+- Default: gemini-2.0-flash (shared via `config.DefaultModel` constant)
 - Rate limit: 10 RPM (not 14)
 
 ## Shared Progress Renderer
@@ -197,6 +197,9 @@ decisions, design rationale, and historical context.
 
 ## Config Validation in Load
 - `Load()` now calls `Validate()` before returning — invalid page ranges in config are caught at load time
+- `Validate()` split into `validateInputs()`, `validateModels()`, `validateTools()` for maintainability
+- Non-empty `read.models`, `translate.models`, and `write.formats` are required
+- Provider names are NOT validated in config (would couple config to provider registry)
 
 ## ExpandPages Bounds Check
 - `ExpandPages()` returns `([]int, error)` and caps at 100,000 pages (`MaxExpandedPages`)
