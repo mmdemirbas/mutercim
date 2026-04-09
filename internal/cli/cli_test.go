@@ -2,6 +2,7 @@ package cli
 
 import (
 	"log/slog"
+	"os"
 	"testing"
 )
 
@@ -28,6 +29,29 @@ func TestParseLogLevel(t *testing.T) {
 	}
 }
 
+func TestSanitizeLogValue(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"clean", "read --pages 1-10", "read --pages 1-10"},
+		{"newline injection", "read\nfake log line", "read fake log line"},
+		{"carriage return", "read\rfake", "read fake"},
+		{"control chars", "read\x00\x01\x1b[31m", "read   [31m"},
+		{"tabs preserved", "read\t--pages", "read\t--pages"},
+		{"empty", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := sanitizeLogValue(tt.input)
+			if got != tt.want {
+				t.Errorf("sanitizeLogValue(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNewRootCmd(t *testing.T) {
 	cmd := NewRootCmd()
 	if cmd.Use != "mutercim" {
@@ -43,5 +67,17 @@ func TestNewRootCmd(t *testing.T) {
 		if !names[want] {
 			t.Errorf("missing subcommand %q", want)
 		}
+	}
+}
+
+func TestExecute_InvalidFlag(t *testing.T) {
+	// Override os.Args to simulate an invalid flag
+	origArgs := os.Args
+	defer func() { os.Args = origArgs }()
+	os.Args = []string{"mutercim", "--invalid-flag-xyz"}
+
+	err := Execute()
+	if err == nil {
+		t.Error("Execute() should return error for invalid flag")
 	}
 }
