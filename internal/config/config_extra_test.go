@@ -444,6 +444,129 @@ func TestValidate_WriteFormats(t *testing.T) {
 	}
 }
 
+func TestSourceLanguages(t *testing.T) {
+	tests := []struct {
+		name   string
+		inputs []InputSpec
+		want   []string
+	}{
+		{
+			name:   "no inputs",
+			inputs: nil,
+			want:   nil,
+		},
+		{
+			name:   "single input single language",
+			inputs: []InputSpec{{Path: "./vol1.pdf", Languages: []string{"ar"}}},
+			want:   []string{"ar"},
+		},
+		{
+			name:   "single input multiple languages",
+			inputs: []InputSpec{{Path: "./vol1.pdf", Languages: []string{"ar", "fa"}}},
+			want:   []string{"ar", "fa"},
+		},
+		{
+			name: "multiple inputs with duplicates",
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Languages: []string{"ar", "fa"}},
+				{Path: "./vol2.pdf", Languages: []string{"fa", "he"}},
+			},
+			want: []string{"ar", "fa", "he"},
+		},
+		{
+			name: "input with no languages",
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Languages: nil},
+				{Path: "./vol2.pdf", Languages: []string{"ar"}},
+			},
+			want: []string{"ar"},
+		},
+		{
+			name:   "all inputs with empty languages",
+			inputs: []InputSpec{{Path: "./vol1.pdf", Languages: []string{}}},
+			want:   nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{Inputs: tt.inputs}
+			got := cfg.SourceLanguages()
+			if len(got) != len(tt.want) {
+				t.Fatalf("SourceLanguages() = %v, want %v", got, tt.want)
+			}
+			for i, lang := range got {
+				if lang != tt.want[i] {
+					t.Errorf("SourceLanguages()[%d] = %q, want %q", i, lang, tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestSourceLanguagesForStem(t *testing.T) {
+	tests := []struct {
+		name   string
+		inputs []InputSpec
+		stem   string
+		want   []string
+	}{
+		{
+			name:   "no inputs",
+			inputs: nil,
+			stem:   "vol1",
+			want:   nil,
+		},
+		{
+			name: "matching stem",
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Languages: []string{"ar"}},
+				{Path: "./vol2.pdf", Languages: []string{"fa"}},
+			},
+			stem: "vol2",
+			want: []string{"fa"},
+		},
+		{
+			name: "non-matching stem falls back to first input",
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Languages: []string{"ar"}},
+				{Path: "./vol2.pdf", Languages: []string{"fa"}},
+			},
+			stem: "vol3",
+			want: []string{"ar"},
+		},
+		{
+			name: "directory path stem matches",
+			inputs: []InputSpec{
+				{Path: "/data/books/mushaf.pdf", Languages: []string{"ar", "fa"}},
+			},
+			stem: "mushaf",
+			want: []string{"ar", "fa"},
+		},
+		{
+			name: "first input has no languages",
+			inputs: []InputSpec{
+				{Path: "./vol1.pdf", Languages: nil},
+			},
+			stem: "missing",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{Inputs: tt.inputs}
+			got := cfg.SourceLanguagesForStem(tt.stem)
+			if len(got) != len(tt.want) {
+				t.Fatalf("SourceLanguagesForStem(%q) = %v, want %v", tt.stem, got, tt.want)
+			}
+			for i, lang := range got {
+				if lang != tt.want[i] {
+					t.Errorf("SourceLanguagesForStem(%q)[%d] = %q, want %q", tt.stem, i, lang, tt.want[i])
+				}
+			}
+		})
+	}
+}
+
 func TestValidate_ContextWindow(t *testing.T) {
 	tests := []struct {
 		window  int
