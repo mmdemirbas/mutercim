@@ -389,7 +389,8 @@ func (rc *readContext) recordFailure(pageNum int, err error) {
 
 // recordSuccess increments the completion counter, logs the result, and updates the display.
 func (rc *readContext) recordSuccess(pageNum int, currentModel string, regionPage *model.RegionPage, p pagePrereqs) {
-	entryCount, footnoteCount := countRegionTypes(regionPage.Regions)
+	entryCount := countRegionType(regionPage.Regions, model.RegionTypeEntry)
+	footnoteCount := countRegionType(regionPage.Regions, model.RegionTypeFootnote)
 	rc.completed++
 
 	usedModel := currentModel
@@ -480,15 +481,3 @@ func saveRegionPage(dir string, pageNum, maxPageNum int, page *model.RegionPage)
 	return nil
 }
 
-// countRegionTypes counts entries and footnotes in a list of regions.
-func countRegionTypes(regions []model.Region) (entries, footnotes int) {
-	for _, r := range regions {
-		switch r.Type {
-		case model.RegionTypeEntry:
-			entries++
-		case model.RegionTypeFootnote:
-			footnotes++
-		}
-	}
-	return
-}

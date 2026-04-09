@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
 // PhaseResult contains the outcome counts from running a pipeline phase.
@@ -145,4 +147,15 @@ func maxPageNumber(pages []pageFile) int {
 		return 0
 	}
 	return pages[len(pages)-1].pageNum
+}
+
+// countRegionType counts regions of a specific type.
+func countRegionType(regions []model.Region, regionType string) int {
+	count := 0
+	for _, r := range regions {
+		if r.Type == regionType {
+			count++
+		}
+	}
+	return count
 }

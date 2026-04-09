@@ -34,7 +34,7 @@ type HeaderData struct {
 // Display writes to stdout/stderr are not critical, but failures must not be silent.
 func warnWrite(_ int, err error) {
 	if err != nil {
-		slog.Warn("display write error", "err", err)
+		slog.Warn("display write error", "error", err)
 	}
 }
 

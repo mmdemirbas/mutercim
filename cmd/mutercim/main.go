@@ -1,7 +1,13 @@
 package main
 
-import "github.com/mmdemirbas/mutercim/internal/cli"
+import (
+	"os"
+
+	"github.com/mmdemirbas/mutercim/internal/cli"
+)
 
 func main() {
-	cli.Execute()
+	if err := cli.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

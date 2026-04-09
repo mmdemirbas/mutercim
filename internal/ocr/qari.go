@@ -160,7 +160,7 @@ func (q *QariTool) IsReady(ctx context.Context) bool {
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			slog.Warn("health check: close response body", "err", err)
+			slog.Warn("health check: close response body", "error", err)
 		}
 	}()
 
@@ -231,7 +231,7 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			slog.Warn("ocr regions: close response body", "err", err)
+			slog.Warn("ocr regions: close response body", "error", err)
 		}
 	}()
 
@@ -304,7 +304,7 @@ func (q *QariTool) RecognizeFullPage(ctx context.Context, imagePath string) (*Re
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			slog.Warn("ocr full page: close response body", "err", err)
+			slog.Warn("ocr full page: close response body", "error", err)
 		}
 	}()
 
@@ -383,7 +383,7 @@ func addFileField(writer *multipart.Writer, fieldName, filePath string) error {
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			slog.Warn("close image file", "path", filePath, "err", err)
+			slog.Warn("close image file", "path", filePath, "error", err)
 		}
 	}()
 
@@ -403,7 +403,7 @@ func freePort() (int, error) {
 	}
 	port := l.Addr().(*net.TCPAddr).Port
 	if err := l.Close(); err != nil {
-		slog.Warn("close listener", "port", port, "err", err)
+		slog.Warn("close listener", "port", port, "error", err)
 	}
 	return port, nil
 }

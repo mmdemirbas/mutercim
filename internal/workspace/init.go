@@ -51,21 +51,31 @@ func Init(opts InitOptions) (*Workspace, error) {
 	}
 
 	for _, d := range dirs {
-		if err := os.MkdirAll(filepath.Join(root, d), 0750); err != nil {
+		if err := os.MkdirAll(filepath.Join(root, d), 0o750); err != nil {
 			return nil, fmt.Errorf("create directory %s: %w", d, err)
 		}
 	}
 
-	// Write config file
+	// Write config file atomically (write-to-tmp + rename)
 	config := generateConfig(sourceLangs, targetLangs)
-	if err := os.WriteFile(configPath, []byte(config), 0600); err != nil {
+	tmpConfigPath := configPath + ".tmp"
+	if err := os.WriteFile(tmpConfigPath, []byte(config), 0o600); err != nil {
 		return nil, fmt.Errorf("write config: %w", err)
+	}
+	if err := os.Rename(tmpConfigPath, configPath); err != nil {
+		_ = os.Remove(tmpConfigPath)
+		return nil, fmt.Errorf("rename config: %w", err)
 	}
 
 	// Scaffold example glossary file
 	glossaryPath := filepath.Join(root, "knowledge", "glossary.yaml")
-	if err := os.WriteFile(glossaryPath, []byte(glossaryScaffold), 0600); err != nil {
+	tmpGlossaryPath := glossaryPath + ".tmp"
+	if err := os.WriteFile(tmpGlossaryPath, []byte(glossaryScaffold), 0o600); err != nil {
 		return nil, fmt.Errorf("write glossary scaffold: %w", err)
+	}
+	if err := os.Rename(tmpGlossaryPath, glossaryPath); err != nil {
+		_ = os.Remove(tmpGlossaryPath)
+		return nil, fmt.Errorf("rename glossary scaffold: %w", err)
 	}
 
 	return &Workspace{Root: root}, nil

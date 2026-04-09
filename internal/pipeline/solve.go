@@ -208,14 +208,3 @@ func saveSolvedRegionPage(dir string, pageNum, maxPageNum int, page *model.Solve
 	}
 	return nil
 }
-
-// countRegionType counts regions of a specific type.
-func countRegionType(regions []model.Region, regionType string) int {
-	count := 0
-	for _, r := range regions {
-		if r.Type == regionType {
-			count++
-		}
-	}
-	return count
-}

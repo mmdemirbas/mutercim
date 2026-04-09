@@ -136,21 +136,23 @@ func (r *LaTeXRenderer) buildPreamble() string {
 	return b.String()
 }
 
+// latexReplacer escapes special LaTeX characters.
+var latexReplacer = strings.NewReplacer(
+	`\`, `\textbackslash{}`,
+	`{`, `\{`,
+	`}`, `\}`,
+	`&`, `\&`,
+	`%`, `\%`,
+	`$`, `\$`,
+	`#`, `\#`,
+	`_`, `\_`,
+	`~`, `\textasciitilde{}`,
+	`^`, `\textasciicircum{}`,
+)
+
 // latexEscape escapes special LaTeX characters.
 func latexEscape(s string) string {
-	replacer := strings.NewReplacer(
-		`\`, `\textbackslash{}`,
-		`{`, `\{`,
-		`}`, `\}`,
-		`&`, `\&`,
-		`%`, `\%`,
-		`$`, `\$`,
-		`#`, `\#`,
-		`_`, `\_`,
-		`~`, `\textasciitilde{}`,
-		`^`, `\textasciicircum{}`,
-	)
-	return replacer.Replace(s)
+	return latexReplacer.Replace(s)
 }
 
 // CompilePDF compiles a LaTeX file to PDF using Docker.

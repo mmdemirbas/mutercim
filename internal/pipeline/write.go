@@ -246,7 +246,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 	targetBook := mdRenderer.RenderBook(pages)
 	title := stem
 	targetPath := filepath.Join(targetDir, title+".md")
-	if err := atomicWrite(targetPath, []byte(targetBook)); err != nil {
+	if err := atomicWriteFile(targetPath, []byte(targetBook)); err != nil {
 		return fmt.Errorf("write target markdown: %w", err)
 	}
 	logger.Info("wrote target markdown", "path", targetPath)
@@ -255,7 +255,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 	arRenderer := &renderer.ArabicMarkdownRenderer{}
 	sourceBook := arRenderer.RenderBook(pages)
 	sourcePath := filepath.Join(sourceDir, title+".md")
-	if err := atomicWrite(sourcePath, []byte(sourceBook)); err != nil {
+	if err := atomicWriteFile(sourcePath, []byte(sourceBook)); err != nil {
 		return fmt.Errorf("write source markdown: %w", err)
 	}
 	logger.Info("wrote source markdown", "path", sourcePath)
@@ -276,13 +276,13 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 
 	// Write .tex to build directory for compilation
 	buildTexPath := filepath.Join(buildDir, "book.tex")
-	if err := atomicWrite(buildTexPath, []byte(texContent)); err != nil {
+	if err := atomicWriteFile(buildTexPath, []byte(texContent)); err != nil {
 		return fmt.Errorf("write latex: %w", err)
 	}
 
 	// Copy .tex to language root with title-based name
 	finalTexPath := filepath.Join(langDir, title+".tex")
-	if err := atomicWrite(finalTexPath, []byte(texContent)); err != nil {
+	if err := atomicWriteFile(finalTexPath, []byte(texContent)); err != nil {
 		return fmt.Errorf("write latex to lang dir: %w", err)
 	}
 	logger.Info("wrote latex", "path", finalTexPath)
@@ -301,7 +301,7 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 		if err != nil {
 			return fmt.Errorf("read compiled PDF: %w", err)
 		}
-		if err := atomicWrite(finalPDFPath, pdfData); err != nil {
+		if err := atomicWriteFile(finalPDFPath, pdfData); err != nil {
 			return fmt.Errorf("copy PDF to lang dir: %w", err)
 		}
 		logger.Info("wrote PDF", "path", finalPDFPath)
@@ -336,8 +336,4 @@ func loadTranslatedRegionPageForWrite(path string) (*model.TranslatedRegionPage,
 		return nil, err
 	}
 	return &page, nil
-}
-
-func atomicWrite(path string, data []byte) error {
-	return atomicWriteFile(path, data)
 }

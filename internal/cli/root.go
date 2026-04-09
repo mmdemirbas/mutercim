@@ -227,14 +227,16 @@ func applyOutputDir(ws *workspace.Workspace, cfg *config.Config) {
 	}
 }
 
-// Execute runs the root command.
-func Execute() {
+// Execute runs the root command. The caller should handle a non-nil error
+// by printing it and exiting with a non-zero status.
+func Execute() error {
 	rootCmd := NewRootCmd()
 	if err := rootCmd.Execute(); err != nil {
 		colors := display.NewStatusColors(os.Stderr)
 		fmt.Fprintf(os.Stderr, "%s %v\n", colors.Red("Error:"), err)
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
 
 // makeFormatGroupedCommands returns a template function that formats command groups with colors.

@@ -411,7 +411,8 @@ func TestCountRegionTypes(t *testing.T) {
 		{Type: model.RegionTypeEntry},
 	}
 
-	entries, footnotes := countRegionTypes(regions)
+	entries := countRegionType(regions, model.RegionTypeEntry)
+	footnotes := countRegionType(regions, model.RegionTypeFootnote)
 	if entries != 3 {
 		t.Errorf("entries = %d, want 3", entries)
 	}
@@ -420,7 +421,8 @@ func TestCountRegionTypes(t *testing.T) {
 	}
 
 	// Empty list
-	e, f := countRegionTypes(nil)
+	e := countRegionType(nil, model.RegionTypeEntry)
+	f := countRegionType(nil, model.RegionTypeFootnote)
 	if e != 0 || f != 0 {
 		t.Errorf("empty: entries=%d, footnotes=%d, want 0,0", e, f)
 	}
