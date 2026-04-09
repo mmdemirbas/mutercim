@@ -367,6 +367,40 @@ func TestLookupByForm(t *testing.T) {
 	}
 }
 
+func TestLookupByForm_TashkeelVariants(t *testing.T) {
+	k := &Knowledge{
+		Entries: []Entry{
+			{Forms: map[string][]string{
+				"ar": {"حديث"},
+				"tr": {"hadîs-i şerîf"},
+			}},
+		},
+	}
+
+	// Lookup with tashkeel when glossary has plain form
+	e, ok := k.LookupByForm("ar", "حَدِيثٌ")
+	if !ok {
+		t.Fatal("expected tashkeel-stripped fallback to find entry")
+	}
+	if e.Forms["tr"][0] != "hadîs-i şerîf" {
+		t.Errorf("unexpected tr form: %v", e.Forms["tr"])
+	}
+
+	// Lookup plain when glossary has tashkeel
+	k2 := &Knowledge{
+		Entries: []Entry{
+			{Forms: map[string][]string{
+				"ar": {"حَدِيثٌ"},
+				"tr": {"hadîs-i şerîf"},
+			}},
+		},
+	}
+	_, ok = k2.LookupByForm("ar", "حديث")
+	if !ok {
+		t.Fatal("expected tashkeel-stripped fallback to find entry (reverse)")
+	}
+}
+
 func TestMergeEntry_PreservesNote(t *testing.T) {
 	// Base entry has a note; override without note should preserve it
 	base := Entry{
