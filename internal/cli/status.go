@@ -28,8 +28,7 @@ func newStatusCmd() *cobra.Command {
 func runStatus(cmd *cobra.Command, args []string) error {
 	ws, err := workspace.Discover(".")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "No workspace found. Run 'mutercim init' first.")
-		return nil
+		return fmt.Errorf("no workspace found — run 'mutercim init' first")
 	}
 
 	configPath := cfgFile
@@ -229,7 +228,7 @@ func buildPhaseRows(ws *workspace.Workspace, cfg *config.Config, inputs []string
 	return rows
 }
 
-// countJSONFiles counts .json files in a directory.
+// countJSONFiles counts page .json files in a directory, excluding report.json.
 func countJSONFiles(dir string) int {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -237,7 +236,7 @@ func countJSONFiles(dir string) int {
 	}
 	count := 0
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".json") && e.Name() != "report.json" {
 			count++
 		}
 	}

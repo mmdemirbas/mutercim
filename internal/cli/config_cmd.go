@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
+	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -17,7 +18,13 @@ func newConfigCmd() *cobra.Command {
 		Use:   "config",
 		Short: "Show effective configuration (merged config + flags + defaults)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load(cfgFile)
+			configPath := cfgFile
+			if configPath == "" {
+				if ws, err := workspace.Discover("."); err == nil {
+					configPath = ws.ConfigPath()
+				}
+			}
+			cfg, err := config.Load(configPath)
 			if err != nil {
 				return fmt.Errorf("load config: %w", err)
 			}

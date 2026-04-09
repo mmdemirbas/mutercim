@@ -83,7 +83,7 @@ func renderMessages(w io.Writer, msgs []string, limit int, colorFn func(string) 
 		warnWrite(fmt.Fprintf(w, "    %s\n", colorFn(msg)))
 	}
 	if remaining > 0 {
-		warnWrite(fmt.Fprintf(w, "    ... and %d more (see reports/)\n", remaining))
+		warnWrite(fmt.Fprintf(w, "    ... and %d more (see log file)\n", remaining))
 	}
 }
 
