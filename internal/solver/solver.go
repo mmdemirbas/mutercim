@@ -8,14 +8,23 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
+// strippedEntry holds pre-computed tashkeel-stripped forms for a knowledge entry.
+type strippedEntry struct {
+	entryIdx      int
+	strippedForms []string // tashkeel-stripped forms for the source language
+}
+
 // Solver orchestrates the solving of region pages.
 type Solver struct {
-	knowledge  *knowledge.Knowledge
-	sourceLang string
-	logger     *slog.Logger
+	knowledge      *knowledge.Knowledge
+	sourceLang     string
+	logger         *slog.Logger
+	strippedCache  []strippedEntry // pre-computed stripped forms per entry
 }
 
 // NewSolver creates a new Solver.
+// Pre-strips tashkeel on glossary forms once at startup to avoid redundant
+// allocations during per-page processing.
 func NewSolver(k *knowledge.Knowledge, sourceLang string, logger *slog.Logger) *Solver {
 	if logger == nil {
 		logger = slog.Default()
@@ -23,7 +32,22 @@ func NewSolver(k *knowledge.Knowledge, sourceLang string, logger *slog.Logger) *
 	if sourceLang == "" {
 		sourceLang = "ar"
 	}
-	return &Solver{knowledge: k, sourceLang: sourceLang, logger: logger}
+
+	// Pre-compute stripped forms for all entries
+	var cache []strippedEntry
+	for i, entry := range k.Entries {
+		forms, ok := entry.Forms[sourceLang]
+		if !ok {
+			continue
+		}
+		stripped := make([]string, len(forms))
+		for j, form := range forms {
+			stripped[j] = stripTashkeel(form)
+		}
+		cache = append(cache, strippedEntry{entryIdx: i, strippedForms: stripped})
+	}
+
+	return &Solver{knowledge: k, sourceLang: sourceLang, logger: logger, strippedCache: cache}
 }
 
 // SolvePage performs all solving steps on a region page.
@@ -113,6 +137,7 @@ func stripTashkeel(s string) string {
 // buildGlossaryContext finds relevant glossary terms that appear in the page's text.
 // Returns canonical source-language forms for matched entries.
 // Uses tashkeel-stripped matching so vowelized text matches unvowelized glossary entries.
+// Uses pre-computed stripped forms from NewSolver to avoid redundant allocations.
 func (s *Solver) buildGlossaryContext(page *model.RegionPage) []string {
 	var matched []string
 
@@ -121,14 +146,11 @@ func (s *Solver) buildGlossaryContext(page *model.RegionPage) []string {
 			continue
 		}
 		strippedText := stripTashkeel(region.Text)
-		for _, entry := range s.knowledge.Entries {
-			forms, ok := entry.Forms[s.sourceLang]
-			if !ok {
-				continue
-			}
-			for _, form := range forms {
-				if containsText(strippedText, stripTashkeel(form)) {
-					matched = append(matched, forms[0]) // canonical source form
+		for _, se := range s.strippedCache {
+			for _, strippedForm := range se.strippedForms {
+				if containsText(strippedText, strippedForm) {
+					entry := s.knowledge.Entries[se.entryIdx]
+					matched = append(matched, entry.Forms[s.sourceLang][0])
 					break
 				}
 			}

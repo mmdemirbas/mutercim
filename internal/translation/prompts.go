@@ -13,15 +13,9 @@ const translationSystemPrompt = `You are an expert translator of classical schol
 
 TRANSLATION PRINCIPLES:
 1. Translate for MEANING, not word-by-word. The reader should understand the intended message naturally.
-2. Use established scholarly terminology for the target language (see glossary below).
+2. Use established scholarly terminology for the target language.
 3. Translate idioms into their target language equivalents or explain them naturally — never produce a literal translation that would be cryptic.
 4. Preserve the scholarly register and dignity of the text.
-
-GLOSSARY:
-%s
-
-CONTEXT FROM PREVIOUS PAGES:
-%s
 
 INSTRUCTIONS:
 You are translating text regions from a page. Each region has an ID and type.
@@ -43,8 +37,9 @@ Return a JSON object with this exact schema:
 
 Respond with ONLY the JSON object. No markdown formatting, no explanations.`
 
-// BuildSystemPrompt constructs the full translation system prompt with knowledge injected.
-func BuildSystemPrompt(glossary, context string, expandSources bool, sourceLangs []string, targetLang string) string {
+// BuildSystemPrompt constructs the full translation system prompt.
+// Glossary and context are injected per-page in the user prompt, not here.
+func BuildSystemPrompt(expandSources bool, sourceLangs []string, targetLang string) string {
 	langInstr := buildLanguageInstruction(sourceLangs, targetLang)
 
 	expandInstr := fmt.Sprintf("When translating footnotes, expand all source abbreviation codes to their full names in %s.", targetLang)
@@ -52,8 +47,7 @@ func BuildSystemPrompt(glossary, context string, expandSources bool, sourceLangs
 		expandInstr = "Keep source abbreviation codes as-is in footnotes."
 	}
 
-	return fmt.Sprintf(translationSystemPrompt,
-		langInstr, glossary, context, expandInstr)
+	return fmt.Sprintf(translationSystemPrompt, langInstr, expandInstr)
 }
 
 // buildLanguageInstruction creates the source/target language description for the prompt.
@@ -71,8 +65,9 @@ func buildLanguageInstruction(sourceLangs []string, targetLang string) string {
 
 // BuildRegionUserPrompt constructs the user prompt with all regions listed.
 // glossaryContext contains pre-formatted glossary lines for the target language.
+// contextSummaries contains summaries from previous pages for translation continuity.
 //nolint:cyclop,gocognit // prompt construction with many conditional blocks
-func BuildRegionUserPrompt(page *model.SolvedRegionPage, glossaryContext []string, sourceLangs []string, targetLang string) string {
+func BuildRegionUserPrompt(page *model.SolvedRegionPage, glossaryContext []string, contextSummaries []string, sourceLangs []string, targetLang string) string {
 	var b strings.Builder
 
 	primary := "the source language"
@@ -117,7 +112,7 @@ func BuildRegionUserPrompt(page *model.SolvedRegionPage, glossaryContext []strin
 		case model.RegionTypePageNumber:
 			fmt.Fprintf(&b, "Region %s (page_number): %s [do not translate]\n", r.ID, r.Text)
 		default:
-			fmt.Fprintf(&b, "Region %s (%s): %s\n", r.ID, r.Type, r.Text)
+			fmt.Fprintf(&b, "Region %s (%s):\n\"\"\"\n%s\n\"\"\"\n", r.ID, r.Type, r.Text)
 		}
 	}
 
@@ -128,17 +123,22 @@ func BuildRegionUserPrompt(page *model.SolvedRegionPage, glossaryContext []strin
 		}
 	}
 
+	contextSection := BuildContextSection(contextSummaries)
+	if contextSection != "" {
+		fmt.Fprintf(&b, "\nCONTEXT FROM PREVIOUS PAGES:\n%s\n", contextSection)
+	}
 	if page.PreviousPageSummary != "" {
-		fmt.Fprintf(&b, "\nCONTEXT FROM PREVIOUS PAGE:\n%s\n", page.PreviousPageSummary)
+		fmt.Fprintf(&b, "\nPREVIOUS PAGE SUMMARY:\n%s\n", page.PreviousPageSummary)
 	}
 
 	return b.String()
 }
 
 // BuildContextSection builds the context section from previous pages.
+// Returns empty string when no context is available, saving tokens.
 func BuildContextSection(summaries []string) string {
 	if len(summaries) == 0 {
-		return "(No previous context available)"
+		return ""
 	}
 	return strings.Join(summaries, "\n")
 }

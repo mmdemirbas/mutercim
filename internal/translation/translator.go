@@ -26,26 +26,27 @@ type translatedRegionResp struct {
 
 // Translator translates solved region pages using an AI provider.
 type Translator struct {
-	provider      provider.Provider
-	knowledge     *knowledge.Knowledge
-	expandSources bool
-	sourceLangs   []string
-	targetLang    string
-	logger        *slog.Logger
+	provider     provider.Provider
+	knowledge    *knowledge.Knowledge
+	sourceLangs  []string
+	targetLang   string
+	logger       *slog.Logger
+	systemPrompt string // built once at construction, reused for all pages
 }
 
 // NewTranslator creates a new Translator for a specific target language.
+// The system prompt is built once here and reused for all pages.
 func NewTranslator(p provider.Provider, k *knowledge.Knowledge, expandSources bool, sourceLangs []string, targetLang string, logger *slog.Logger) *Translator {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &Translator{
-		provider:      p,
-		knowledge:     k,
-		expandSources: expandSources,
-		sourceLangs:   sourceLangs,
-		targetLang:    targetLang,
-		logger:        logger,
+		provider:     p,
+		knowledge:    k,
+		sourceLangs:  sourceLangs,
+		targetLang:   targetLang,
+		logger:       logger,
+		systemPrompt: BuildSystemPrompt(expandSources, sourceLangs, targetLang),
 	}
 }
 
@@ -53,21 +54,13 @@ func NewTranslator(p provider.Provider, k *knowledge.Knowledge, expandSources bo
 func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedRegionPage, contextSummaries []string, modelName string) (*model.TranslatedRegionPage, error) {
 	sourceLang := primaryLang(t.sourceLangs)
 
-	systemPrompt := BuildSystemPrompt(
-		t.knowledge.BuildGlossary(sourceLang, t.targetLang),
-		BuildContextSection(contextSummaries),
-		t.expandSources,
-		t.sourceLangs,
-		t.targetLang,
-	)
-
 	// Format page-specific glossary context for the target language
 	glossaryContext := t.formatGlossaryContext(page.GlossaryContext, sourceLang)
-	userPrompt := BuildRegionUserPrompt(page, glossaryContext, t.sourceLangs, t.targetLang)
+	userPrompt := BuildRegionUserPrompt(page, glossaryContext, contextSummaries, t.sourceLangs, t.targetLang)
 
 	t.logger.Info("translating page", "page", page.PageNumber)
 
-	rawResponse, err := t.provider.Translate(ctx, systemPrompt, userPrompt)
+	rawResponse, err := t.provider.Translate(ctx, t.systemPrompt, userPrompt)
 	if err != nil {
 		return nil, fmt.Errorf("translate page %d: %w", page.PageNumber, err)
 	}

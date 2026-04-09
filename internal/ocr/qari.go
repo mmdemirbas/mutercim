@@ -113,7 +113,8 @@ func (q *QariTool) Start(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Warn("qari-ocr startup interrupted", "elapsed_s", int(time.Since(start).Seconds()))
+			slog.Warn("qari-ocr startup interrupted, stopping container", "elapsed_s", int(time.Since(start).Seconds()))
+			q.stopContainer(context.Background())
 			return ctx.Err()
 		case <-ticker.C:
 			if q.IsReady(ctx) {

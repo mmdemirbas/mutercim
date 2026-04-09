@@ -11,8 +11,13 @@ import (
 // OpenAI API request/response types.
 
 type openaiRequest struct {
-	Model    string          `json:"model"`
-	Messages []openaiMessage `json:"messages"`
+	Model          string              `json:"model"`
+	Messages       []openaiMessage     `json:"messages"`
+	ResponseFormat *openaiResponseFmt  `json:"response_format,omitempty"`
+}
+
+type openaiResponseFmt struct {
+	Type string `json:"type"`
 }
 
 type openaiMessage struct {
@@ -95,6 +100,7 @@ func (o *OpenAIProvider) ReadFromImage(ctx context.Context, image []byte, system
 				{Type: "text", Text: userPrompt},
 			}},
 		},
+		ResponseFormat: &openaiResponseFmt{Type: "json_object"},
 	}
 
 	resp, err := apiclient.DoJSON[openaiResponse](o.client, ctx, apiclient.Request{
@@ -120,6 +126,7 @@ func (o *OpenAIProvider) Translate(ctx context.Context, systemPrompt, userPrompt
 			{Role: "system", Content: []openaiContent{{Type: "text", Text: systemPrompt}}},
 			{Role: "user", Content: []openaiContent{{Type: "text", Text: userPrompt}}},
 		},
+		ResponseFormat: &openaiResponseFmt{Type: "json_object"},
 	}
 
 	resp, err := apiclient.DoJSON[openaiResponse](o.client, ctx, apiclient.Request{

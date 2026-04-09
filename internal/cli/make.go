@@ -119,15 +119,19 @@ func newAllCmd() *cobra.Command {
 			}
 
 			// Phase 3: OCR
-			var ocrTool ocr.Tool
 			if cfg.OCR.Tool == "" {
 				logger.Info("ocr tool disabled, skipping ocr phase")
 			} else {
 				logger.Info("=== Phase 3: OCR ===")
-				ocrTool = ocr.NewTool(cfg.OCR.Tool)
+				ocrTool := ocr.NewTool(cfg.OCR.Tool)
 				if ocrTool == nil {
 					return fmt.Errorf("unknown OCR tool: %q", cfg.OCR.Tool)
 				}
+				defer func() {
+					if err := ocrTool.Stop(cmd.Context()); err != nil {
+						logger.Warn("failed to stop ocr container", "error", err)
+					}
+				}()
 				if _, err := pipeline.OCR(cmd.Context(), pipeline.OCROptions{
 					Workspace: ws,
 					Config:    cfg,
@@ -230,13 +234,6 @@ func newAllCmd() *cobra.Command {
 				Display:   disp,
 			}); err != nil {
 				return fmt.Errorf("write: %w", err)
-			}
-
-			// Stop OCR container if it was started
-			if ocrTool != nil {
-				if err := ocrTool.Stop(cmd.Context()); err != nil {
-					logger.Warn("failed to stop ocr container", "error", err)
-				}
 			}
 
 			logger.Info("=== All phases complete ===")

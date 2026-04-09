@@ -8,18 +8,9 @@ import (
 )
 
 func TestBuildSystemPrompt(t *testing.T) {
-	prompt := BuildSystemPrompt(
-		"- فقه → fıkıh\n- حديث → hadîs-i şerîf",
-		"Page 1 — intro",
-		true,
-		[]string{"ar"},
-		"tr",
-	)
+	prompt := BuildSystemPrompt(true, []string{"ar"}, "tr")
 
 	for _, want := range []string{
-		"فقه → fıkıh",
-		"hadîs-i şerîf",
-		"Page 1",
 		"expand all source abbreviation codes",
 		"ar",
 		"tr",
@@ -28,10 +19,15 @@ func TestBuildSystemPrompt(t *testing.T) {
 			t.Errorf("prompt should contain %q", want)
 		}
 	}
+
+	// Glossary and context should NOT be in system prompt (they belong in user prompt)
+	if strings.Contains(prompt, "GLOSSARY:") {
+		t.Error("system prompt should not contain GLOSSARY section")
+	}
 }
 
 func TestBuildSystemPromptNoExpand(t *testing.T) {
-	prompt := BuildSystemPrompt("", "", false, []string{"ar"}, "tr")
+	prompt := BuildSystemPrompt(false, []string{"ar"}, "tr")
 	if !strings.Contains(prompt, "Keep source abbreviation codes as-is") {
 		t.Error("expected no-expand instruction")
 	}
@@ -63,8 +59,8 @@ func TestBuildLanguageInstruction(t *testing.T) {
 
 func TestBuildContextSection(t *testing.T) {
 	empty := BuildContextSection(nil)
-	if !strings.Contains(empty, "No previous context") {
-		t.Errorf("expected no-context message, got %q", empty)
+	if empty != "" {
+		t.Errorf("expected empty string for nil summaries, got %q", empty)
 	}
 
 	ctx := BuildContextSection([]string{"Page 1 — intro", "Page 2 — entries"})
@@ -90,13 +86,15 @@ func TestBuildRegionUserPrompt(t *testing.T) {
 	}
 
 	glossaryContext := []string{"حديث → hadîs-i şerîf"}
-	prompt := BuildRegionUserPrompt(page, glossaryContext, []string{"ar"}, "tr")
+	prompt := BuildRegionUserPrompt(page, glossaryContext, nil, []string{"ar"}, "tr")
 
 	for _, want := range []string{
 		"ar",
 		"tr",
-		"Region r1 (header): header text",
-		"Region r2 (entry): entry text",
+		"Region r1 (header):",
+		"header text",
+		"Region r2 (entry):",
+		"entry text",
 		"Region sep1 (separator): [separator line - do not translate]",
 		"Region pn1 (page_number): 42 [do not translate]",
 		"حديث → hadîs-i şerîf",
@@ -120,7 +118,7 @@ func TestBuildRegionUserPrompt_NoGlossary(t *testing.T) {
 		},
 	}
 
-	prompt := BuildRegionUserPrompt(page, nil, []string{"ar"}, "tr")
+	prompt := BuildRegionUserPrompt(page, nil, nil, []string{"ar"}, "tr")
 
 	if strings.Contains(prompt, "GLOSSARY") {
 		t.Error("prompt should not contain GLOSSARY when no terms")
