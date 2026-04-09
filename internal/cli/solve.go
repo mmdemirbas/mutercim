@@ -47,7 +47,7 @@ func newSolveCmd() *cobra.Command {
 			if pageSpec != "" && pageSpec != "all" {
 				ranges, err := model.ParsePageRanges(pageSpec)
 				if err != nil {
-					return fmt.Errorf("parse pages: %w", err)
+					return fmt.Errorf("parse pages %q: %w", pageSpec, err)
 				}
 				pagesToProcess, err = model.ExpandPages(ranges)
 				if err != nil {

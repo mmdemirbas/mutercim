@@ -102,6 +102,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 	}
 
 	logger := slog.Default()
+	fmt.Fprintf(os.Stderr, "auto-running prerequisites: %s -> %s\n", phaseName(startPhase), phaseName(targetPhase-1))
 	logger.Info("auto-running prerequisite phases", "from", phaseName(startPhase), "to", phaseName(targetPhase-1))
 
 	if startPhase <= phaseCut && phaseCut < targetPhase {
