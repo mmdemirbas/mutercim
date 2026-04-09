@@ -2,6 +2,7 @@ package translation
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -97,12 +98,9 @@ func BuildRegionUserPrompt(page *model.SolvedRegionPage, glossaryContext []strin
 		}
 		ordered = append(ordered, indexedRegion{region: r, order: o})
 	}
-	// Sort by order
-	for i := 1; i < len(ordered); i++ {
-		for j := i; j > 0 && ordered[j].order < ordered[j-1].order; j-- {
-			ordered[j], ordered[j-1] = ordered[j-1], ordered[j]
-		}
-	}
+	sort.Slice(ordered, func(i, j int) bool {
+		return ordered[i].order < ordered[j].order
+	})
 
 	for _, ir := range ordered {
 		r := ir.region
