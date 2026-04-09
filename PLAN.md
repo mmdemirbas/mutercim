@@ -4,11 +4,7 @@ Prioritized by impact: wrong output first, then reliability, then everything els
 
 ## P0 — Fix now: silent wrong output or data loss
 
-### Wrong results
-
-| ID | Issue | Location | Status |
-|----|-------|----------|--------|
-| P0-8 | Glossary lookup misses tashkeel variants — stores `forms[0]` but `LookupByForm` uses exact match; model receives incomplete glossary entries | `solver/solver.go:130-134` | |
+All items completed.
 
 ## P1 — Fix soon: reliability and LLM quality
 
@@ -37,7 +33,6 @@ All items completed.
 
 | ID | Issue | Location | Status |
 |----|-------|----------|--------|
-| P2-18 | AI response body never logged on parse failure — page failures not debuggable from logs | `reader/region_reader.go:77-103`, `translation/translator.go:76-83` | |
 | P2-21 | Layout/OCR logs missing `"input"` attribute — multi-input runs cannot identify which input failed | `pipeline/layout.go:247,252,263`, `pipeline/ocr.go:255,260,270` | |
 | P2-22 | Translate success log missing metrics — no region count, elapsed time, or character count | `pipeline/translate.go:310` | |
 | P2-24 | OCR error response body logged without truncation | `ocr/qari.go:239,312` | |
@@ -54,11 +49,9 @@ All items completed.
 
 | ID | Issue | Location | Status |
 |----|-------|----------|--------|
-| P3-1 | Zero coverage: `pipeline/layout.go` — `LayoutRegionsToModelRegions` is pure and trivially testable | `pipeline/layout.go` | |
 | P3-2 | Zero coverage: `pipeline/ocr.go` — test `loadOCRPage` round-trip and skip behavior | `pipeline/ocr.go` | |
 | P3-3 | Zero coverage: `cmd/mutercim`, `cmd/gen-schema` — test `Execute()` error path | `cmd/` | |
 | P3-4 | `time.Sleep` in rate limiter tests — inject clock interface | `apiclient/ratelimit_test.go:41` | |
-| P3-7 | `TestReadPipelineSkipsCompleted` never asserts skip counter | `pipeline/read_test.go` | |
 | P3-9 | Improve coverage: ocr package — 48.4% | `ocr/` | |
 | P3-10 | Improve coverage: pipeline package — 50.6% | `pipeline/` | |
 | P3-12 | Unchecked errors in test code — spread across 15+ test files | various `*_test.go` | |
@@ -94,7 +87,6 @@ All items completed.
 | P4-16 | Resolve knowledge paths once before page loop | `pipeline/translate.go:241`, `read.go:317` | |
 | P4-17 | Compute `buildInputPageMap` once per pipeline run | `pipeline/layout.go:70`, `ocr.go:64`, `read.go:51` | |
 | P4-18 | Stream OCR multipart body via `io.Pipe` — doubles peak memory | `ocr/qari.go:189-216` | |
-| P4-19 | Use `sort.Slice` for region ordering | `translation/prompts.go:106-110` | |
 | P4-20 | Cache `mergeKey` in knowledge entries | `knowledge/loader.go:180-194` | |
 
 ### Complexity (gocognit > 30)
@@ -115,12 +107,6 @@ All items completed.
 | P4-32 | `pipeline/solve.go:66` solveOneInput | 30 |
 | P4-33 | `reader/region_reader.go:54` ReadRegionPage | 88 lines |
 | P4-34 | `reader/region_reader.go:163` ReadRegionPageWithOCR | 90 lines |
-
-### Documentation
-
-| ID | Issue | Location | Status |
-|----|-------|----------|--------|
-| P4-39 | GO-CONVENTIONS.md stale pdftoppm example — pdftoppm now runs in Docker | `docs/GO-CONVENTIONS.md` | |
 
 ## P5 — Features
 
@@ -168,6 +154,7 @@ Items completed and committed.
 | P0-3 | Interrupted cut treated as complete — added report.json completion marker | `9faddd6` |
 | P0-6 | `auto` prerequisite check too weak — check report.json instead of dirHasEntries | `9faddd6` |
 | P0-12 | Docker volume mounts use OS-native paths — added `filepath.ToSlash` | `9faddd6` |
+| P0-8 | Glossary lookup misses tashkeel variants — tashkeel-stripped fallback in LookupByForm | `df0cf52` |
 
 ### P1 — Reliability and LLM quality
 
@@ -209,6 +196,7 @@ Items completed and committed.
 | P2-30 | `status` references nonexistent `reports/` — fixed | `b642238` |
 | P2-31 | Page range error doesn't show provided value — added to message | `ad0eebd` |
 | P2-32 | `--auto` runs prerequisites with no indication — print to stderr | `ad0eebd` |
+| P2-18 | AI response body never logged on parse failure — log preview at Warn level | `6a86b1b` |
 
 ### P3 — Testing and CI/CD
 
@@ -226,6 +214,8 @@ Items completed and committed.
 | P3-22 | `docker-all` task missing `qari-ocr` — added | `abd2c85` |
 | P3-23 | `run` task uses `$@` — use `{{.CLI_ARGS}}` | `abd2c85` |
 | P3-24 | `dist` task missing `-ldflags="-s -w"` — already present | `abd2c85` |
+| P3-1 | Zero coverage: `pipeline/layout.go` — added LayoutRegionsToModelRegions tests | `3e2d174` |
+| P3-7 | `TestReadPipelineSkipsCompleted` never asserts skip counter — added assertion | `3e2d174` |
 
 ### P4 — Code quality, performance, docs
 
@@ -242,3 +232,5 @@ Items completed and committed.
 | P4-36 | README `--auto` description missing `ocr` phase — added | `ceda446` |
 | P4-37 | README missing `completion` command — added | `ceda446` |
 | P4-38 | CLAUDE.md deps list missing `x/image` — added | `ceda446` |
+| P4-19 | Use `sort.Slice` for region ordering — replaced insertion sort | `c16bbde` |
+| P4-39 | GO-CONVENTIONS.md stale pdftoppm example — updated for Docker | `3e2d174` |
