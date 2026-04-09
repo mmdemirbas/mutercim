@@ -1,4 +1,4 @@
-FROM texlive/texlive:latest-minimal
+FROM texlive/texlive:TL2024-historic-minimal
 
 RUN tlmgr install \
     polyglossia \

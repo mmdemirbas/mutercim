@@ -53,10 +53,10 @@ tasks:
   dist:
     desc: Build for all platforms
     cmds:
-      - GOOS=linux GOARCH=amd64 go build -o dist/linux_amd64/mutercim ./cmd/mutercim
-      - GOOS=linux GOARCH=arm64 go build -o dist/linux_arm64/mutercim ./cmd/mutercim
-      - GOOS=windows GOARCH=amd64 go build -o dist/windows_amd64/mutercim ./cmd/mutercim
-      - GOOS=darwin GOARCH=arm64 go build -o dist/darwin_arm64/mutercim ./cmd/mutercim
+      - GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/linux_amd64/mutercim ./cmd/mutercim
+      - GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/linux_arm64/mutercim ./cmd/mutercim
+      - GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/windows_amd64/mutercim ./cmd/mutercim
+      - GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/darwin_arm64/mutercim ./cmd/mutercim
 
   schema:
     desc: Regenerate config/mutercim.schema.json from Go types
@@ -72,7 +72,7 @@ tasks:
 
   docker-all:
     desc: Build all Docker images
-    deps: [ docker-poppler, docker-pandoc, docker-doclayout, docker-surya, docker-xelatex ]
+    deps: [ docker-poppler, docker-pandoc, docker-doclayout, docker-surya, docker-xelatex, docker-qari-ocr ]
 
   docker-poppler:
     desc: Build the Poppler (pdftoppm) Docker image
@@ -99,8 +99,13 @@ tasks:
     cmds:
       - docker build -t mutercim/xelatex docker/xelatex/
 
+  docker-qari-ocr:
+    desc: Build the Qari OCR Docker image
+    cmds:
+      - docker build -t mutercim/qari-ocr docker/qari-ocr/
+
   run:
     desc: Run mutercim passing the arguments
     deps: [ build ]
     cmds:
-      - ./build/mutercim "$@"
+      - ./build/mutercim {{.CLI_ARGS}}

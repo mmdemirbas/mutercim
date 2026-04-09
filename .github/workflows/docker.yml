@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - "docker/**"
+  pull_request:
+    paths:
+      - "docker/**"
   workflow_dispatch:
 
 env:
@@ -42,7 +45,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: docker/${{ matrix.image }}
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:latest
             ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ github.sha }}

@@ -1,1 +1,1 @@
-FROM pandoc/core:latest
+FROM pandoc/core:3.6
