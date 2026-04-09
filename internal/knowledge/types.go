@@ -6,8 +6,9 @@ import "strings"
 // Each entry maps ISO 639-1 language codes to one or more forms.
 // The first form in each list is the canonical/preferred form; the rest are variants.
 type Entry struct {
-	Forms map[string][]string // language code → forms (first is canonical)
-	Note  string              // optional guidance for the AI
+	Forms     map[string][]string // language code → forms (first is canonical)
+	Note      string              // optional guidance for the AI
+	cachedKey string              // computed once by mergeKey, used for dedup during loading
 }
 
 // Knowledge holds all glossary entries from all layers merged together.

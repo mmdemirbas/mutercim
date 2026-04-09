@@ -143,16 +143,17 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 	}
 
 	rc := &readContext{
-		opts:       opts,
-		stem:       stem,
-		readDir:    readDir,
-		layoutDir:  filepath.Join(ws.LayoutDir(), stem),
-		ocrDir:     filepath.Join(ws.OcrDir(), stem),
-		imageMap:   imageMap,
-		totalPages: len(pagesToProcess),
-		maxPageNum: maxPage,
-		rdr:        reader.NewReader(opts.Provider, logger),
-		logger:     logger,
+		opts:           opts,
+		stem:           stem,
+		readDir:        readDir,
+		layoutDir:      filepath.Join(ws.LayoutDir(), stem),
+		ocrDir:         filepath.Join(ws.OcrDir(), stem),
+		imageMap:       imageMap,
+		totalPages:     len(pagesToProcess),
+		maxPageNum:     maxPage,
+		knowledgePaths: opts.Config.ResolveKnowledgePaths(ws.Root),
+		rdr:            reader.NewReader(opts.Provider, logger),
+		logger:         logger,
 	}
 	rc.activeModel = rc.buildActiveModelFunc()
 	rc.setupDisplayCallbacks()
@@ -177,8 +178,9 @@ type readContext struct {
 	ocrDir     string
 	imageMap   map[int]string
 	totalPages int
-	maxPageNum int // max page number across all images, for consistent filenames
-	rdr        *reader.Reader
+	maxPageNum     int // max page number across all images, for consistent filenames
+	knowledgePaths []string // resolved once, reused per page
+	rdr            *reader.Reader
 	logger     *slog.Logger
 
 	activeModel   func() string
@@ -311,7 +313,6 @@ type pagePrereqs struct {
 // loadPagePrereqs loads layout and OCR data and computes rebuild inputs for a page.
 func (rc *readContext) loadPagePrereqs(pageNum int, imgPath string) pagePrereqs {
 	ws := rc.opts.Workspace
-	cfg := rc.opts.Config
 	filename := pageFilename(pageNum, rc.maxPageNum)
 
 	var p pagePrereqs
@@ -331,9 +332,9 @@ func (rc *readContext) loadPagePrereqs(pageNum int, imgPath string) pagePrereqs 
 
 	p.outputPath = filepath.Join(rc.readDir, filename)
 	if p.hasOCR {
-		p.rebuildInputs = append([]string{ocrPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
+		p.rebuildInputs = append([]string{ocrPath, ws.ConfigPath()}, rc.knowledgePaths...)
 	} else {
-		p.rebuildInputs = append([]string{imgPath, ws.ConfigPath()}, cfg.ResolveKnowledgePaths(ws.Root)...)
+		p.rebuildInputs = append([]string{imgPath, ws.ConfigPath()}, rc.knowledgePaths...)
 	}
 	if p.hasLayout {
 		p.rebuildInputs = append(p.rebuildInputs, layoutPath)

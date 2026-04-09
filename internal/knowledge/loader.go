@@ -136,6 +136,7 @@ func parseEntry(raw map[string]interface{}) (Entry, error) {
 		}
 		entry.Forms[key] = forms
 	}
+	entry.cachedKey = computeMergeKey(entry)
 	return entry, nil
 }
 
@@ -160,24 +161,27 @@ func normalizeValue(val interface{}) ([]string, error) {
 
 // mergeEntry adds or overrides an entry in the knowledge base.
 // The merge key is the canonical form (first element) of the alphabetically
-// first language code.
+// first language code. Uses cached key to avoid recomputation.
 func mergeEntry(k *Knowledge, entry Entry) {
-	key := mergeKey(entry)
+	key := entry.cachedKey
 	for i, existing := range k.Entries {
-		if mergeKey(existing) == key {
+		if existing.cachedKey == key {
 			for lang, forms := range entry.Forms {
 				k.Entries[i].Forms[lang] = forms
 			}
 			if entry.Note != "" {
 				k.Entries[i].Note = entry.Note
 			}
+			k.Entries[i].cachedKey = computeMergeKey(k.Entries[i])
 			return
 		}
 	}
 	k.Entries = append(k.Entries, entry)
 }
 
-func mergeKey(e Entry) string {
+// computeMergeKey computes the dedup key for an entry: "lang:canonical_form"
+// using the alphabetically first language code.
+func computeMergeKey(e Entry) string {
 	var langs []string
 	for lang := range e.Forms {
 		langs = append(langs, lang)

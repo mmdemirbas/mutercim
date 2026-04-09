@@ -129,16 +129,17 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	}
 
 	tc := &translateContext{
-		opts:          opts,
-		stem:          stem,
-		targetLang:    targetLang,
-		translatedDir: translatedDir,
-		contextWindow: contextWindow,
-		translator:    translator,
-		solvedPages:   solvedPages,
-		totalPages:    len(pages),
-		maxPageNum:    maxPage,
-		logger:        logger,
+		opts:           opts,
+		stem:           stem,
+		targetLang:     targetLang,
+		translatedDir:  translatedDir,
+		contextWindow:  contextWindow,
+		translator:     translator,
+		solvedPages:    solvedPages,
+		totalPages:     len(pages),
+		maxPageNum:     maxPage,
+		knowledgePaths: opts.Config.ResolveKnowledgePaths(opts.Workspace.Root),
+		logger:         logger,
 	}
 	tc.activeModel = tc.buildActiveModelFunc()
 	tc.setupDisplayCallbacks()
@@ -164,8 +165,9 @@ type translateContext struct {
 	translator    *translation.Translator
 	solvedPages   map[int]*model.SolvedRegionPage
 	totalPages    int
-	maxPageNum    int // max page number across all pages (not just filtered), for consistent filenames
-	logger        *slog.Logger
+	maxPageNum     int // max page number across all pages (not just filtered), for consistent filenames
+	knowledgePaths []string // resolved once, reused per page
+	logger         *slog.Logger
 
 	activeModel      func() string
 	statusPageNum    int
@@ -242,10 +244,9 @@ func (tc *translateContext) processTranslatePage(ctx context.Context, pf pageFil
 	ws := tc.opts.Workspace
 
 	outputPath := filepath.Join(tc.translatedDir, pageFilename(pf.pageNum, tc.maxPageNum))
-	knowledgePaths := tc.opts.Config.ResolveKnowledgePaths(ws.Root)
-	rebuildInputs := make([]string, 0, 2+len(knowledgePaths)+1)
+	rebuildInputs := make([]string, 0, 2+len(tc.knowledgePaths)+1)
 	rebuildInputs = append(rebuildInputs, pf.path, ws.ConfigPath())
-	rebuildInputs = append(rebuildInputs, knowledgePaths...)
+	rebuildInputs = append(rebuildInputs, tc.knowledgePaths...)
 	rebuildInputs = append(rebuildInputs, ws.MemoryDir())
 	if !tc.opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
 		tc.logger.Debug("skipping page (up-to-date)", "input", tc.stem, "page", pf.pageNum)
