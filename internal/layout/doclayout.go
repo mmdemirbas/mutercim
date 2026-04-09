@@ -184,7 +184,7 @@ func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, par
 	base := filepath.Base(imagePath)
 	args := []string{
 		"run", "--rm",
-		"-v", dir + ":/input",
+		"-v", filepath.ToSlash(dir) + ":/input",
 		d.DockerImage,
 	}
 

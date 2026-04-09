@@ -29,26 +29,30 @@ const (
 	phaseWrite     phase = iota
 )
 
-// hasPhaseOutput checks whether a phase has already produced output.
+// hasPhaseOutput checks whether a phase has completed successfully.
+// For phases that write report.json on completion, we check for that marker
+// instead of just checking for any directory entries. This prevents interrupted
+// phases from being treated as complete.
+//
 //nolint:cyclop // dispatch over phase enum with per-phase special cases
 func hasPhaseOutput(p phase, ws *workspace.Workspace, cfg *config.Config) bool {
 	switch p {
 	case phaseCut:
-		return dirHasEntries(ws.CutDir())
+		return hasReport(ws.CutDir())
 	case phaseLayout:
-		return dirHasEntries(ws.LayoutDir())
+		return hasReport(ws.LayoutDir())
 	case phaseOCR:
 		if cfg.OCR.Tool == "" {
 			return true // OCR disabled counts as "output present" — skip it
 		}
-		return dirHasEntries(ws.OcrDir())
+		return hasReport(ws.OcrDir())
 	case phaseRead:
-		return dirHasEntries(ws.ReadDir())
+		return hasReport(ws.ReadDir())
 	case phaseSolve:
-		return dirHasEntries(ws.SolveDir())
+		return hasReport(ws.SolveDir())
 	case phaseTranslate:
 		for _, lang := range cfg.Translate.Languages {
-			if dirHasEntries(filepath.Join(ws.TranslateDir(), lang)) {
+			if hasReport(filepath.Join(ws.TranslateDir(), lang)) {
 				return true
 			}
 		}
@@ -58,10 +62,25 @@ func hasPhaseOutput(p phase, ws *workspace.Workspace, cfg *config.Config) bool {
 	}
 }
 
-// dirHasEntries returns true if the directory exists and has at least one entry.
-func dirHasEntries(dir string) bool {
+// hasReport checks if any subdirectory of dir contains a report.json file,
+// which serves as a completion marker for pipeline phases.
+func hasReport(dir string) bool {
 	entries, err := os.ReadDir(dir)
-	return err == nil && len(entries) > 0
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			if _, err := os.Stat(filepath.Join(dir, e.Name(), "report.json")); err == nil {
+				return true
+			}
+		}
+		// Cut phase writes report.json directly in the images dir (no subdirectory nesting)
+		if !e.IsDir() && e.Name() == "report.json" {
+			return true
+		}
+	}
+	return false
 }
 
 // runPrerequisites runs all pipeline phases needed before targetPhase.

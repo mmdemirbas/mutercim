@@ -27,7 +27,7 @@ func ConvertMarkdownToDocx(ctx context.Context, markdownPath, docxPath, dockerfi
 
 	output, err := docker.Run(ctx,
 		"run", "--rm",
-		"-v", absDir+":/data",
+		"-v", filepath.ToSlash(absDir)+":/data",
 		DefaultPandocImage,
 		"/data/"+mdBase,
 		"-o", "/data/"+docxBase,

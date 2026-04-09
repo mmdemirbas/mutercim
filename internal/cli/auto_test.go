@@ -31,7 +31,7 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 		Translate: config.TranslateConfig{Languages: []string{"tr"}},
 	}
 
-	// Create cut output
+	// Create cut output with completion marker
 	imgDir := filepath.Join(dir, "cut", "TestBook")
 	if err := os.MkdirAll(imgDir, 0750); err != nil {
 		t.Fatal(err)
@@ -39,11 +39,14 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(imgDir, "001.png"), []byte("fake"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(imgDir, "report.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseCut, ws, cfg) {
-		t.Error("hasPhaseOutput(cut) = false after creating cut output")
+		t.Error("hasPhaseOutput(cut) = false after creating cut output with report.json")
 	}
 
-	// Create read output
+	// Create read output with report.json
 	readDir := filepath.Join(dir, "read", "TestBook")
 	if err := os.MkdirAll(readDir, 0750); err != nil {
 		t.Fatal(err)
@@ -51,11 +54,14 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(readDir, "001.json"), []byte("{}"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(readDir, "report.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseRead, ws, cfg) {
-		t.Error("hasPhaseOutput(read) = false after creating read output")
+		t.Error("hasPhaseOutput(read) = false after creating read output with report.json")
 	}
 
-	// Create solve output
+	// Create solve output with report.json
 	solvedDir := filepath.Join(dir, "solve", "TestBook")
 	if err := os.MkdirAll(solvedDir, 0750); err != nil {
 		t.Fatal(err)
@@ -63,8 +69,11 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(solvedDir, "001.json"), []byte("{}"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(solvedDir, "report.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseSolve, ws, cfg) {
-		t.Error("hasPhaseOutput(solve) = false after creating solve output")
+		t.Error("hasPhaseOutput(solve) = false after creating solve output with report.json")
 	}
 
 	// Translate not yet present
@@ -72,7 +81,7 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 		t.Error("hasPhaseOutput(translate) = true before creating translate output")
 	}
 
-	// Create translate output
+	// Create translate output with report.json
 	translatedDir := filepath.Join(dir, "translate", "tr", "TestBook")
 	if err := os.MkdirAll(translatedDir, 0750); err != nil {
 		t.Fatal(err)
@@ -80,8 +89,11 @@ func TestHasPhaseOutput_with_data(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(translatedDir, "001.json"), []byte("{}"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(translatedDir, "report.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseTranslate, ws, cfg) {
-		t.Error("hasPhaseOutput(translate) = false after creating translate output")
+		t.Error("hasPhaseOutput(translate) = false after creating translate output with report.json")
 	}
 }
 
@@ -97,7 +109,7 @@ func TestHasPhaseOutput_translate_multiple_langs(t *testing.T) {
 		t.Error("hasPhaseOutput(translate) = true with no translated output")
 	}
 
-	// Output for one language is sufficient
+	// Output for one language with report.json is sufficient
 	translatedDir := filepath.Join(dir, "translate", "en", "TestBook")
 	if err := os.MkdirAll(translatedDir, 0750); err != nil {
 		t.Fatal(err)
@@ -105,17 +117,20 @@ func TestHasPhaseOutput_translate_multiple_langs(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(translatedDir, "001.json"), []byte("{}"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(translatedDir, "report.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if !hasPhaseOutput(phaseTranslate, ws, cfg) {
-		t.Error("hasPhaseOutput(translate) = false when one target lang has output")
+		t.Error("hasPhaseOutput(translate) = false when one target lang has output with report.json")
 	}
 }
 
-func TestDirHasEntries(t *testing.T) {
+func TestHasReport(t *testing.T) {
 	dir := t.TempDir()
 
 	// Non-existent dir
-	if dirHasEntries(filepath.Join(dir, "nope")) {
-		t.Error("dirHasEntries returns true for non-existent dir")
+	if hasReport(filepath.Join(dir, "nope")) {
+		t.Error("hasReport returns true for non-existent dir")
 	}
 
 	// Empty dir
@@ -123,16 +138,40 @@ func TestDirHasEntries(t *testing.T) {
 	if err := os.MkdirAll(emptyDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	if dirHasEntries(emptyDir) {
-		t.Error("dirHasEntries returns true for empty dir")
+	if hasReport(emptyDir) {
+		t.Error("hasReport returns true for empty dir")
 	}
 
-	// Dir with file
-	if err := os.WriteFile(filepath.Join(emptyDir, "file.txt"), []byte("hi"), 0600); err != nil {
+	// Dir with files but no report.json (simulates interrupted phase)
+	subDir := filepath.Join(emptyDir, "input1")
+	if err := os.MkdirAll(subDir, 0750); err != nil {
 		t.Fatal(err)
 	}
-	if !dirHasEntries(emptyDir) {
-		t.Error("dirHasEntries returns false for dir with file")
+	if err := os.WriteFile(filepath.Join(subDir, "001.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if hasReport(emptyDir) {
+		t.Error("hasReport returns true for dir without report.json")
+	}
+
+	// Dir with report.json in subdirectory (complete phase)
+	if err := os.WriteFile(filepath.Join(subDir, "report.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if !hasReport(emptyDir) {
+		t.Error("hasReport returns false for dir with report.json in subdirectory")
+	}
+
+	// Dir with report.json directly (cut phase pattern)
+	cutDir := filepath.Join(dir, "cut")
+	if err := os.MkdirAll(cutDir, 0750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cutDir, "report.json"), []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if !hasReport(cutDir) {
+		t.Error("hasReport returns false for dir with report.json directly")
 	}
 }
 

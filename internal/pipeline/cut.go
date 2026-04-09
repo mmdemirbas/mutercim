@@ -83,8 +83,10 @@ func cutOneInput(ctx context.Context, opts CutOptions, inputPath, stem string, p
 		return nil
 	}
 
-	// Skip if cut directory is up-to-date (images newer than PDF)
-	if !opts.Force && dirHasEntries(imagesDir) && !rebuild.NeedsRebuild(imagesDir, inputPath) {
+	// Skip if cut directory is up-to-date (report.json present and images newer than PDF).
+	// A missing report.json indicates an interrupted previous cut.
+	reportPath := filepath.Join(imagesDir, "report.json")
+	if !opts.Force && fileExists(reportPath) && !rebuild.NeedsRebuild(imagesDir, inputPath) {
 		logger.Debug("skipping cut (up-to-date)", "input", stem)
 		images, _ := input.ListImages(imagesDir)
 		if opts.Display != nil {
@@ -146,6 +148,9 @@ func cutOneInput(ctx context.Context, opts CutOptions, inputPath, stem string, p
 		})
 		opts.Display.FinishPhase(display.PhaseCut, stem, "")
 	}
+
+	// Write completion marker so interrupted cuts are detected on retry
+	writePhaseReport(imagesDir, imageCount, 0, 0, logger)
 
 	return nil
 }

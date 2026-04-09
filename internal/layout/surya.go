@@ -136,7 +136,7 @@ func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, params 
 	base := filepath.Base(imagePath)
 	args := []string{
 		"run", "--rm",
-		"-v", dir + ":/input:ro",
+		"-v", filepath.ToSlash(dir) + ":/input:ro",
 		s.DockerImage,
 	}
 

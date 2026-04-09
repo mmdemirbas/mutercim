@@ -35,8 +35,8 @@ func ConvertPDFToImages(ctx context.Context, pdfPath, outputDir string, dpi, fir
 
 	args := []string{
 		"run", "--rm",
-		"-v", pdfDir + ":/input:ro",
-		"-v", absOut + ":/output",
+		"-v", filepath.ToSlash(pdfDir) + ":/input:ro",
+		"-v", filepath.ToSlash(absOut) + ":/output",
 		DefaultPopplerImage,
 		"pdftoppm",
 		"-png", "-r", strconv.Itoa(dpi),

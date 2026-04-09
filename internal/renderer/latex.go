@@ -166,7 +166,7 @@ func CompilePDF(ctx context.Context, latexDir, dockerImage, dockerfileDir string
 	}
 
 	output, err := docker.Run(ctx, "run", "--rm",
-		"-v", absDir+":/data",
+		"-v", filepath.ToSlash(absDir)+":/data",
 		dockerImage,
 		"book.tex",
 	)

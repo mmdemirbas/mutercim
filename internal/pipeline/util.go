@@ -115,6 +115,12 @@ func dirHasEntries(dir string) bool {
 	return err == nil && len(entries) > 0
 }
 
+// fileExists returns true if the path exists and is a regular file.
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
+}
+
 // pageFilename returns a zero-padded JSON filename for the given page number.
 // The padding width is determined by the maximum page number (not the count of
 // pages being processed) so that filenames are consistent regardless of
