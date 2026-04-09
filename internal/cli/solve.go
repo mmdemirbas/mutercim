@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/mmdemirbas/mutercim/internal/config"
 	"github.com/mmdemirbas/mutercim/internal/display"
@@ -63,6 +64,7 @@ func newSolveCmd() *cobra.Command {
 			}
 
 			sourceLang := cfg.PrimarySourceLang()
+			logger := slog.Default()
 
 			_, err = pipeline.Solve(cmd.Context(), pipeline.SolveOptions{
 				Workspace:      ws,
@@ -71,6 +73,7 @@ func newSolveCmd() *cobra.Command {
 				SourceLang:     sourceLang,
 				Pages:          pagesToProcess,
 				Force:          force,
+				Logger:         logger,
 				Display:        display.FromContext(cmd.Context()),
 			})
 			return err
