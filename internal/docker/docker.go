@@ -63,6 +63,9 @@ func imageExistsLocally(ctx context.Context, image string) bool {
 	return err == nil && strings.TrimSpace(string(out)) != ""
 }
 
+// dockerOpTimeout is the maximum time allowed for docker pull and build operations.
+const dockerOpTimeout = 10 * time.Minute
+
 // tryPullFromRegistry attempts to pull a pre-built image from the configured registry.
 // Returns true on success, false on any failure (caller should fall back to local build).
 func tryPullFromRegistry(ctx context.Context, image string) bool {
@@ -75,13 +78,15 @@ func tryPullFromRegistry(ctx context.Context, image string) bool {
 	}
 	remoteImage := RegistryPrefix + "/" + name + ":latest"
 	slog.Info("pulling docker image from registry", "image", remoteImage)
-	out, err := exec.CommandContext(ctx, "docker", "pull", remoteImage).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; remoteImage is constructed from trusted constants
+	pullCtx, cancel := context.WithTimeout(ctx, dockerOpTimeout)
+	defer cancel()
+	out, err := exec.CommandContext(pullCtx, "docker", "pull", remoteImage).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; remoteImage is constructed from trusted constants
 	if err != nil {
 		slog.Debug("registry pull failed, will build locally", "image", remoteImage, "error", err, "output", strings.TrimSpace(string(out)))
 		return false
 	}
 	// Tag as the local name so downstream code finds it
-	_, _ = exec.CommandContext(ctx, "docker", "tag", remoteImage, image).CombinedOutput() //nolint:gosec // G204: tagging pulled image to local name
+	_, _ = exec.CommandContext(pullCtx, "docker", "tag", remoteImage, image).CombinedOutput() //nolint:gosec // G204: tagging pulled image to local name
 	slog.Info("pulled docker image from registry", "image", remoteImage)
 	return true
 }
@@ -89,8 +94,10 @@ func tryPullFromRegistry(ctx context.Context, image string) bool {
 // buildImage builds a Docker image from a Dockerfile directory.
 func buildImage(ctx context.Context, image, dockerfileDir string) error {
 	slog.Debug("building docker image", "image", image, "dir", dockerfileDir)
+	buildCtx, cancel := context.WithTimeout(ctx, dockerOpTimeout)
+	defer cancel()
 	start := time.Now()
-	out, err := exec.CommandContext(ctx, "docker", "build", "-t", image, dockerfileDir).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; image/dir are trusted internal values
+	out, err := exec.CommandContext(buildCtx, "docker", "build", "-t", image, dockerfileDir).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; image/dir are trusted internal values
 	elapsed := time.Since(start)
 	if err != nil {
 		slog.Error("docker build failed", "image", image, "elapsed_s", int(elapsed.Seconds()), "output", string(out))

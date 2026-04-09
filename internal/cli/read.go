@@ -76,7 +76,7 @@ func newReadCmd() *cobra.Command {
 			if pageSpec != "" && pageSpec != "all" {
 				ranges, err := model.ParsePageRanges(pageSpec)
 				if err != nil {
-					return fmt.Errorf("parse pages: %w", err)
+					return fmt.Errorf("parse pages %q: %w", pageSpec, err)
 				}
 				pagesToProcess, err = model.ExpandPages(ranges)
 				if err != nil {
@@ -258,6 +258,7 @@ func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig,
 	}
 
 	if len(providers) == 0 {
+		cleanup()
 		return nil, fmt.Errorf("no usable providers: set API keys for at least one configured model (e.g. GEMINI_API_KEY)")
 	}
 
