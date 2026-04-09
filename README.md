@@ -115,12 +115,13 @@ DocLayout-YOLO for layout detection, Markdown + PDF output).
 
 ### Workspace Commands
 
-| Command  | Description                                                     |
-|----------|-----------------------------------------------------------------|
-| `init`   | Initialize a new book workspace in current directory            |
-| `status` | Show processing progress and validation warnings                |
-| `config` | Show effective configuration (merged config + flags + defaults) |
-| `clean`  | Delete generated data for specified phases                      |
+| Command      | Description                                                     |
+|--------------|-----------------------------------------------------------------|
+| `init`       | Initialize a new book workspace in current directory            |
+| `status`     | Show processing progress and validation warnings                |
+| `config`     | Show effective configuration (merged config + flags + defaults) |
+| `clean`      | Delete generated data for specified phases                      |
+| `completion` | Generate shell completion scripts (bash, zsh, fish, powershell) |
 
 ### Common flags
 
@@ -424,7 +425,7 @@ is newer than the output, the page is reprocessed. Otherwise it is skipped. Ther
 Use `--force` to bypass timestamp checks and reprocess everything.
 
 Use `--auto` to automatically run missing prerequisite phases. For example,
-`mutercim translate --auto` will run `cut`, `layout`, `read`, and `solve` first if
+`mutercim translate --auto` will run `cut`, `layout`, `ocr`, `read`, and `solve` first if
 their outputs don't exist.
 
 ## Development

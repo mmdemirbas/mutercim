@@ -51,7 +51,7 @@ Test quality matters:
 - Use `log/slog` for all logging (Go stdlib, no external logging library)
 - Use `errors.New` and `fmt.Errorf` with `%w` for error wrapping — no custom error libraries
 - Use Go stdlib `net/http` for HTTP — no external HTTP client libraries
-- Minimal dependencies: only cobra, viper, yaml.v3
+- Minimal dependencies: only cobra, viper, yaml.v3, x/image
 - All exported types and functions must have doc comments
 - No `init()` functions anywhere
 - No global mutable state

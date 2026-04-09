@@ -19,7 +19,7 @@ func CheckAvailable(ctx context.Context) error {
 	if _, err := exec.LookPath("docker"); err != nil {
 		return fmt.Errorf("docker is required but not available — install Docker and ensure the daemon is running")
 	}
-	out, err := exec.CommandContext(ctx, "docker", "info", "--format", "{{.ServerVersion}}").CombinedOutput()
+	out, err := exec.CommandContext(ctx, "docker", "info", "--format", "{{.ServerVersion}}").CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; args are hardcoded literals
 	if err != nil {
 		return fmt.Errorf("docker daemon is not running — start Docker and try again: %w", err)
 	}
@@ -31,7 +31,7 @@ func CheckAvailable(ctx context.Context) error {
 
 // RegistryPrefix is the container registry prefix for pre-built images.
 // When non-empty, EnsureImage tries pulling from the registry before building locally.
-var RegistryPrefix = "ghcr.io/mmdemirbas/mutercim"
+const RegistryPrefix = "ghcr.io/mmdemirbas/mutercim"
 
 // EnsureImage ensures a Docker image is available locally.
 //

@@ -8,12 +8,12 @@ decisions, design rationale, and historical context.
 - enrich → solve
 - translate → translate
 - compile → write
-- run → make
+- run → make → all
 
 ## Workspace Directory Layout (replaces midstate/ and output/)
-- Removed midstate/ — phase directories are now top-level: pages/, read/, solve/, translate/
+- Removed midstate/ — phase directories are now top-level: cut/, read/, solve/, translate/
 - Removed output/ — renamed to write/
-- Log file moved from workspace root to log/mutercim.log
+- Log file: mutercim.log at workspace root (output base)
 - Auto-extracted knowledge lives in memory/ (no staging/promote workflow)
 - Removed `midstate_dir` and `output` config fields (directories are now fixed)
 - Per-page markdown output removed from translate phase (translations live in translate/)
@@ -26,7 +26,7 @@ decisions, design rationale, and historical context.
 
 ## Clean Command
 - `mutercim clean <targets...>` deletes generated directories and resets progress
-- Targets: log, memory, pages, read, solve, translate, write, all
+- Targets: log, memory, cut, layout, ocr, read, solve, translate, write, all
 - "+" suffix cascades downstream: `clean read+` → read/ solve/ translate/ write/
 - Never deletes input/ or knowledge/
 - Prints sizes before deleting
@@ -53,7 +53,7 @@ decisions, design rationale, and historical context.
 
 ## Pipeline Halt on Zero Results
 - Read, Solve, Translate return `PhaseResult` (Completed/Failed/Skipped counts) alongside error
-- `make` command checks `result.Completed == 0` after each phase and halts with clear log message
+- `all` command checks `result.Completed == 0` after each phase and halts with clear log message
 - Individual CLI commands (read, solve, translate) ignore the result counts
 
 ## URL Redaction
@@ -97,7 +97,7 @@ decisions, design rationale, and historical context.
 - Directory inputs include the directory's own mtime (catches file additions/deletions)
 - Missing output → always rebuild. Missing input → error (treated as rebuild needed).
 - Per-phase dependencies:
-  - pages: input PDF → pages/{input}/ images
+  - cut: input PDF → cut/{input}/ images
   - read: page image + mutercim.yaml + knowledge/ → read/{input}/NNN.json
   - solve: read JSON + knowledge/ + memory/ → solve/{input}/NNN.json
   - translate: solve JSON + mutercim.yaml + knowledge/ + memory/ → translate/{input}/{lang}/NNN.json
@@ -106,7 +106,7 @@ decisions, design rationale, and historical context.
 - progress.json removed entirely — filesystem mtimes are the source of truth
 
 ## On-Demand Output Formats (positional args)
-- `write` and `make` accept positional format arguments: `mutercim write pdf`, `mutercim make md docx`
+- `write` and `all` accept positional format arguments: `mutercim write pdf`, `mutercim all md docx`
 - Positional args override config; `--format` flag is kept as an alternative
 - `tex` is an alias for `latex`; unknown formats are rejected with a clear error
 - Deduplication: `tex latex` resolves to a single `latex`
@@ -115,8 +115,8 @@ decisions, design rationale, and historical context.
 - `--auto` persistent flag on root command, available to all subcommands
 - When set, each phase checks for missing prerequisite output and runs earlier phases automatically
 - Finds first missing phase and runs from there through the target phase's prerequisites
-- Detection: `hasPhaseOutput` checks if midstate directories have entries
-- Phases: pages → read → solve → translate → write (each depends on the previous)
+- Detection: `hasPhaseOutput` checks if phase output directories have entries
+- Phases: cut → layout → ocr → read → solve → translate → write (each depends on the previous)
 
 ## PDF as Output Format (replaces skip_pdf)
 - `pdf` is now a first-class output format (default: `[md, pdf]`)
@@ -129,7 +129,7 @@ decisions, design rationale, and historical context.
 - Tool checks (docker for pdf, pandoc for docx) happen just-in-time per format, not at startup
 - If one format fails, logged as WARN and remaining formats continue
 - Exit error only if ALL requested formats fail; partial success = exit 0
-- Preflight checks removed from cli/write.go and cli/make.go (moved into pipeline)
+- Preflight checks removed from cli/write.go and cli/all.go (moved into pipeline)
 - Summary logged: `wrote: [md latex], failed: [docx (pandoc not found)]`
 
 ## Arabic RTL and Letter Shaping in LaTeX/PDF
@@ -177,7 +177,7 @@ decisions, design rationale, and historical context.
 - Write phase: renders from TranslatedRegionPage — markdown (# header, entries, > footnotes, --- separators), LaTeX (with RTL support)
 - Region types: header, entry, footnote, separator, page_number, column_header, table, image, margin_note, other
 - Two read strategies (auto-selected): "local+ai" (Surya Docker + AI) or "ai-only" (AI detects everything)
-- Config field `read.layout_tool: "surya"` enables Docker-based layout detection
+- Config field `layout.tool: "surya"` enables Docker-based layout detection
 - Translation prompt lists regions in reading order; AI returns [{id, translated_text}] per region
 - Solver validates region structure (empty text, reading order consistency) and injects glossary context
 - Removed: ReadPage, SolvedPage, TranslatedPage, Entry, Footnote, Header, compat layer, abbreviation resolver, continuation detector
@@ -243,7 +243,7 @@ decisions, design rationale, and historical context.
 ## DocLayout-YOLO as Default Layout Tool
 - Added DocLayout-YOLO as a layout detection tool alongside Surya
 - DocLayout-YOLO detects document-level structure (headers, columns, tables, footnotes) vs Surya's text-line detection
-- Default `read.layout_tool` changed from `""` (AI-only) to `"doclayout-yolo"`
+- Default `layout.tool` changed from `""` (AI-only) to `"doclayout-yolo"`
 - Config accepts three values: `"doclayout-yolo"` (default), `"surya"`, `""` (AI-only)
 - DocLayout-YOLO outputs regions with bbox + type (NO text); Surya outputs regions with bbox + text
 - Docker image: `mutercim/doclayout-yolo:latest` with pre-downloaded model from HuggingFace
@@ -251,7 +251,7 @@ decisions, design rationale, and historical context.
 - Regions sorted by reading order (RTL: top-to-bottom, right-to-left within rows)
 - Confidence threshold: 0.2 (regions below this are filtered out)
 - `layout.NewTool(name)` factory replaces inline `if/else` in CLI code
-- Fixed `make.go` (all command): layout tool was not being passed to read phase
+- Fixed `all` command: layout tool was not being passed to read phase
 - User prompt updated to include `type=` field alongside `bbox=` for layout-detected regions
 - `"abandon"` type from DocLayout-YOLO is silently skipped (artifacts/noise)
 
@@ -283,7 +283,7 @@ decisions, design rationale, and historical context.
 - Removed `book` section (title, author, source_langs, target_langs)
 - `source_langs` moved to per-input item as `languages`
 - `target_langs` moved under `translate` as `languages`
-- Added top-level `pages` section with `dpi`
+- Added top-level `cut` section with `dpi` (originally named `pages`, renamed later)
 - Output filename fixed to 'book' in write phase, no more `book.title`
 - Removed `latex_docker_image` — hardcoded like other Docker images
 - retry/rate_limit are now per-phase (read, solve, translate), not global

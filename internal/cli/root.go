@@ -16,6 +16,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Package-level mutable flags. Ideally these would be captured via closures
+// in command constructors, but many commands and the PersistentPreRunE reference
+// them directly. Refactoring requires threading values through all command
+// constructors and is tracked as a future improvement (P4-3).
 var (
 	cfgFile   string
 	logLevel  string
