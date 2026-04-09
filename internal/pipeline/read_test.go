@@ -144,13 +144,20 @@ func TestReadPipelineSkipsCompleted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := Read(context.Background(), ReadOptions{
+	result, err := Read(context.Background(), ReadOptions{
 		Workspace: ws,
 		Config:    cfg,
 		Provider:  &mockProvider{response: `{"regions":[],"reading_order":[],"warnings":[]}`},
 	})
 	if err != nil {
 		t.Fatalf("Read() error: %v", err)
+	}
+
+	if result.Skipped != 1 {
+		t.Errorf("Skipped = %d, want 1", result.Skipped)
+	}
+	if result.Completed != 0 {
+		t.Errorf("Completed = %d, want 0", result.Completed)
 	}
 
 	// Output should still contain original content (not re-processed)

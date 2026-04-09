@@ -25,8 +25,7 @@ Only `main()` calls `os.Exit`. No `os.Exit` or `log.Fatal` anywhere else in the 
 
 - Wrap errors with context: `fmt.Errorf("read page %d: %w", pageNum, err)`
 - Error messages include enough to diagnose: what failed, what input, what was expected
-- User-visible errors are actionable ("pdftoppm not found in PATH — install with: brew install
-  poppler")
+- User-visible errors are actionable ("Docker is not running — start Docker Desktop first")
 - Errors go to stderr, data output goes to stdout. Never mix.
 - Never swallow errors silently. Every `err` is checked or explicitly documented as intentional.
 - Return errors from library code — never `log.Fatal` or `panic` outside main.go.
