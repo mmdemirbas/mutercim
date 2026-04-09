@@ -270,6 +270,7 @@ func (tc *translateContext) processTranslatePage(ctx context.Context, pf pageFil
 			StartedAt: time.Now(),
 		})
 	}
+	translateStart := time.Now()
 	translated, err := tc.translator.TranslatePage(ctx, solved, contextSummaries, currentModel)
 	if tc.opts.Display != nil {
 		tc.opts.Display.SetStatus(display.StatusLine{})
@@ -285,7 +286,7 @@ func (tc *translateContext) processTranslatePage(ctx context.Context, pf pageFil
 		return
 	}
 
-	tc.recordSuccess(pf, currentModel, translated)
+	tc.recordSuccess(pf, currentModel, translated, time.Since(translateStart))
 }
 
 // recordFailure increments the failure counter and updates the display.
@@ -302,7 +303,7 @@ func (tc *translateContext) recordFailure(pf pageFile, err error) {
 }
 
 // recordSuccess updates context window, increments completion, logs, and updates display.
-func (tc *translateContext) recordSuccess(pf pageFile, currentModel string, translated *model.TranslatedRegionPage) {
+func (tc *translateContext) recordSuccess(pf pageFile, currentModel string, translated *model.TranslatedRegionPage, elapsed time.Duration) {
 	tc.recentTranslated = append(tc.recentTranslated, translated)
 	if len(tc.recentTranslated) > tc.contextWindow {
 		tc.recentTranslated = tc.recentTranslated[len(tc.recentTranslated)-tc.contextWindow:]
@@ -315,7 +316,8 @@ func (tc *translateContext) recordSuccess(pf pageFile, currentModel string, tran
 			usedModel = m
 		}
 	}
-	tc.logger.Info("page translated", "input", tc.stem, "page", pf.pageNum, "model", usedModel, "completed", tc.completed)
+	tc.logger.Info("page translated", "input", tc.stem, "page", pf.pageNum, "model", usedModel,
+		"regions", len(translated.Regions), "elapsed_ms", elapsed.Milliseconds(), "completed", tc.completed)
 
 	if tc.opts.Display != nil {
 		tc.opts.Display.Update(display.PageResult{
