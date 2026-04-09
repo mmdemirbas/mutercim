@@ -58,9 +58,6 @@ func newAllCmd() *cobra.Command {
 			}
 			logger := slog.Default()
 			disp := display.FromContext(cmd.Context())
-			if disp != nil {
-				defer disp.Finish()
-			}
 
 			// Resolve page range (from --pages CLI flag)
 			pageSpec := pages

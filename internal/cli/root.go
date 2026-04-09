@@ -97,8 +97,9 @@ between languages, preserving layout, structure, and domain-specific terminology
 			ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 			cmd.SetContext(ctx)
 
-			// Register cleanup for log file and signal handling
+			// Register cleanup for display, log file, and signal handling
 			cmd.Root().PersistentPostRunE = func(*cobra.Command, []string) error {
+				disp.Finish()
 				stop()
 				if logFileHandle != nil {
 					_ = logFileHandle.Close()
