@@ -74,14 +74,16 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 	readDir := filepath.Join(ws.ReadDir(), stem)
 	solvedDir := filepath.Join(ws.SolveDir(), stem)
 
-	pages, err := listPageFiles(readDir)
+	allPages, err := listPageFiles(readDir)
 	if err != nil {
 		return PhaseResult{}, fmt.Errorf("list read pages: %w", err)
 	}
-	if len(pages) == 0 {
+	if len(allPages) == 0 {
 		return PhaseResult{}, fmt.Errorf("no read pages in %s", readDir)
 	}
 
+	maxPage := maxPageNumber(allPages)
+	pages := allPages
 	if len(opts.Pages) > 0 {
 		pages = filterPages(pages, opts.Pages)
 	}
@@ -105,8 +107,11 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 			break
 		}
 
-		outputPath := filepath.Join(solvedDir, pageFilename(pf.pageNum, len(pages)))
-		rebuildInputs := append([]string{pf.path}, append(opts.KnowledgePaths, ws.MemoryDir())...)
+		outputPath := filepath.Join(solvedDir, pageFilename(pf.pageNum, maxPage))
+		rebuildInputs := make([]string, 0, 2+len(opts.KnowledgePaths)+1)
+		rebuildInputs = append(rebuildInputs, pf.path, ws.ConfigPath())
+		rebuildInputs = append(rebuildInputs, opts.KnowledgePaths...)
+		rebuildInputs = append(rebuildInputs, ws.MemoryDir())
 		if !opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
 			logger.Debug("skipping page (up-to-date)", "input", stem, "page", pf.pageNum)
 			skipped++
@@ -132,7 +137,7 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 
 		solved := slvr.SolvePage(current, previous, prevSummary)
 
-		if err := saveSolvedRegionPage(solvedDir, pf.pageNum, len(pages), solved); err != nil {
+		if err := saveSolvedRegionPage(solvedDir, pf.pageNum, maxPage, solved); err != nil {
 			logger.Error("failed to save solved page", "input", stem, "page", pf.pageNum, "error", err)
 			failed++
 			if opts.Display != nil {
@@ -189,13 +194,13 @@ func loadRegionPage(path string) (*model.RegionPage, error) {
 	return &page, nil
 }
 
-func saveSolvedRegionPage(dir string, pageNum, totalPages int, page *model.SolvedRegionPage) error {
+func saveSolvedRegionPage(dir string, pageNum, maxPageNum int, page *model.SolvedRegionPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	finalPath := filepath.Join(dir, pageFilename(pageNum, totalPages))
+	finalPath := filepath.Join(dir, pageFilename(pageNum, maxPageNum))
 	if err := atomicWriteFile(finalPath, data); err != nil {
 		return fmt.Errorf("write page %d: %w", pageNum, err)
 	}

@@ -1,6 +1,7 @@
 package solver
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
@@ -100,7 +101,7 @@ func TestSolvePage_ValidationWarnings_EmptyText(t *testing.T) {
 	if len(solved.ValidationWarnings) != 1 {
 		t.Fatalf("expected 1 warning, got %d: %v", len(solved.ValidationWarnings), solved.ValidationWarnings)
 	}
-	if !contains(solved.ValidationWarnings[0], "r1") {
+	if !strings.Contains(solved.ValidationWarnings[0], "r1") {
 		t.Errorf("warning should reference r1, got %q", solved.ValidationWarnings[0])
 	}
 }
@@ -122,7 +123,7 @@ func TestSolvePage_ValidationWarnings_BadReadingOrder(t *testing.T) {
 	if len(solved.ValidationWarnings) != 1 {
 		t.Fatalf("expected 1 warning, got %d: %v", len(solved.ValidationWarnings), solved.ValidationWarnings)
 	}
-	if !contains(solved.ValidationWarnings[0], "r99") {
+	if !strings.Contains(solved.ValidationWarnings[0], "r99") {
 		t.Errorf("warning should reference r99, got %q", solved.ValidationWarnings[0])
 	}
 }
@@ -193,10 +194,10 @@ func TestPageSummary(t *testing.T) {
 	if s == "" {
 		t.Fatal("expected non-empty summary")
 	}
-	if !contains(s, "باب الألف") {
+	if !strings.Contains(s, "باب الألف") {
 		t.Errorf("summary should contain header text, got %q", s)
 	}
-	if !contains(s, "2 entries") {
+	if !strings.Contains(s, "2 entries") {
 		t.Errorf("summary should contain entry count, got %q", s)
 	}
 }

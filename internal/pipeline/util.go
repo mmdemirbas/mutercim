@@ -116,16 +116,27 @@ func dirHasEntries(dir string) bool {
 }
 
 // pageFilename returns a zero-padded JSON filename for the given page number.
-// The padding width is determined by the total number of pages:
-//   - totalPages < 1000  -> 3 digits (e.g. 001.json)
-//   - totalPages < 10000 -> 4 digits (e.g. 0001.json)
+// The padding width is determined by the maximum page number (not the count of
+// pages being processed) so that filenames are consistent regardless of
+// --pages filtering.
+//
+//   - maxPageNum < 1000  -> 3 digits (e.g. 001.json)
+//   - maxPageNum < 10000 -> 4 digits (e.g. 0001.json)
 //   - else               -> 5 digits (e.g. 00001.json)
-func pageFilename(pageNum, totalPages int) string {
+func pageFilename(pageNum, maxPageNum int) string {
 	width := 3
-	if totalPages >= 10000 {
+	if maxPageNum >= 10000 {
 		width = 5
-	} else if totalPages >= 1000 {
+	} else if maxPageNum >= 1000 {
 		width = 4
 	}
 	return fmt.Sprintf("%0*d.json", width, pageNum)
+}
+
+// maxPageNumber returns the maximum page number from a sorted list of page files.
+func maxPageNumber(pages []pageFile) int {
+	if len(pages) == 0 {
+		return 0
+	}
+	return pages[len(pages)-1].pageNum
 }

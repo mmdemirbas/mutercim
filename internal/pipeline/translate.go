@@ -102,13 +102,15 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 	solvedDir := filepath.Join(ws.SolveDir(), stem)
 	translatedDir := filepath.Join(ws.TranslateDir(), targetLang, stem)
 
-	pages, err := listPageFiles(solvedDir)
+	allPages, err := listPageFiles(solvedDir)
 	if err != nil {
 		return PhaseResult{}, fmt.Errorf("list solved pages: %w", err)
 	}
-	if len(pages) == 0 {
+	if len(allPages) == 0 {
 		return PhaseResult{}, fmt.Errorf("no solved pages in %s", solvedDir)
 	}
+	maxPage := maxPageNumber(allPages)
+	pages := allPages
 	if len(opts.Pages) > 0 {
 		pages = filterPages(pages, opts.Pages)
 	}
@@ -135,6 +137,7 @@ func translateOneInput(ctx context.Context, opts TranslateOptions, translator *t
 		translator:    translator,
 		solvedPages:   solvedPages,
 		totalPages:    len(pages),
+		maxPageNum:    maxPage,
 		logger:        logger,
 	}
 	tc.activeModel = tc.buildActiveModelFunc()
@@ -161,6 +164,7 @@ type translateContext struct {
 	translator    *translation.Translator
 	solvedPages   map[int]*model.SolvedRegionPage
 	totalPages    int
+	maxPageNum    int // max page number across all pages (not just filtered), for consistent filenames
 	logger        *slog.Logger
 
 	activeModel      func() string
@@ -237,9 +241,12 @@ func (tc *translateContext) processAllPages(ctx context.Context, pages []pageFil
 func (tc *translateContext) processTranslatePage(ctx context.Context, pf pageFile) {
 	ws := tc.opts.Workspace
 
-	outputPath := filepath.Join(tc.translatedDir, pageFilename(pf.pageNum, tc.totalPages))
-	rebuildInputs := append([]string{pf.path, ws.ConfigPath()},
-		append(tc.opts.Config.ResolveKnowledgePaths(ws.Root), ws.MemoryDir())...)
+	outputPath := filepath.Join(tc.translatedDir, pageFilename(pf.pageNum, tc.maxPageNum))
+	knowledgePaths := tc.opts.Config.ResolveKnowledgePaths(ws.Root)
+	rebuildInputs := make([]string, 0, 2+len(knowledgePaths)+1)
+	rebuildInputs = append(rebuildInputs, pf.path, ws.ConfigPath())
+	rebuildInputs = append(rebuildInputs, knowledgePaths...)
+	rebuildInputs = append(rebuildInputs, ws.MemoryDir())
 	if !tc.opts.Force && !rebuild.NeedsRebuild(outputPath, rebuildInputs...) {
 		tc.logger.Debug("skipping page (up-to-date)", "input", tc.stem, "page", pf.pageNum)
 		tc.skipped++
@@ -272,7 +279,7 @@ func (tc *translateContext) processTranslatePage(ctx context.Context, pf pageFil
 		return
 	}
 
-	if err := saveTranslatedRegionPage(tc.translatedDir, pf.pageNum, tc.totalPages, translated); err != nil {
+	if err := saveTranslatedRegionPage(tc.translatedDir, pf.pageNum, tc.maxPageNum, translated); err != nil {
 		tc.recordFailure(pf, err)
 		return
 	}
@@ -331,13 +338,13 @@ func loadSolvedRegionPage(path string) (*model.SolvedRegionPage, error) {
 	return &page, nil
 }
 
-func saveTranslatedRegionPage(dir string, pageNum, totalPages int, page *model.TranslatedRegionPage) error {
+func saveTranslatedRegionPage(dir string, pageNum, maxPageNum int, page *model.TranslatedRegionPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	finalPath := filepath.Join(dir, pageFilename(pageNum, totalPages))
+	finalPath := filepath.Join(dir, pageFilename(pageNum, maxPageNum))
 	if err := atomicWriteFile(finalPath, data); err != nil {
 		return fmt.Errorf("write page %d: %w", pageNum, err)
 	}

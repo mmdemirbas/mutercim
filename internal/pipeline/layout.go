@@ -138,6 +138,14 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 		}
 	}
 
+	// Max page number from all images for consistent filename padding
+	maxPage := 0
+	for _, img := range images {
+		if img.PageNumber > maxPage {
+			maxPage = img.PageNumber
+		}
+	}
+
 	if err := os.MkdirAll(layoutDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create layout dir: %w", err)
 	}
@@ -167,7 +175,7 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 		}
 
 		// Skip if output is up-to-date
-		outputPath := filepath.Join(layoutDir, pageFilename(pageNum, len(pagesToProcess)))
+		outputPath := filepath.Join(layoutDir, pageFilename(pageNum, maxPage))
 		if !opts.Force && !rebuild.NeedsRebuild(outputPath, imgPath, ws.ConfigPath()) {
 			skipped++
 			continue

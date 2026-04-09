@@ -164,7 +164,7 @@ func BuildRegionUserPromptWithLayoutAndOCR(regions []OCRRegionData) string {
 	}
 
 	b.WriteString("Verify and refine region types based on text content. Determine reading order. Detect style attributes. Fix obvious OCR artifacts but preserve diacritical marks.\n")
-	b.WriteString("Return JSON array of regions with reading_order.")
+	b.WriteString("Return a JSON object with regions, reading_order, and warnings.")
 
 	return b.String()
 }
@@ -175,7 +175,7 @@ func BuildRegionUserPromptWithOCROnly(fullText string) string {
 	b.WriteString("Below is the OCR text extracted from an Arabic document page. The text has no structural markup.\n\n")
 	fmt.Fprintf(&b, "\"\"\"\n%s\n\"\"\"\n\n", fullText)
 	b.WriteString("Segment this text into logical regions. Assign types. Determine reading order.\n")
-	b.WriteString("Return JSON array of regions with reading_order.")
+	b.WriteString("Return a JSON object with regions, reading_order, and warnings.")
 	return b.String()
 }
 
@@ -211,7 +211,7 @@ func BuildRegionUserPromptWithLayout(regions []model.Region) string {
 	b.WriteString("3. Estimate style: font_size, bold, direction (rtl/ltr), alignment\n")
 	b.WriteString("4. If any regions should be split or merged, indicate that\n")
 	b.WriteString("5. If I missed any text regions, add them with approximate coordinates\n\n")
-	b.WriteString("Return JSON array of regions with reading_order.")
+	b.WriteString("Return a JSON object with regions, reading_order, and warnings.")
 
 	return b.String()
 }

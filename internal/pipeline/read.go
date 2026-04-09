@@ -123,6 +123,15 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		}
 	}
 
+	// Compute max page number from all available images (not the filtered subset)
+	// so filenames are consistent regardless of --pages filtering.
+	maxPage := 0
+	for _, img := range images {
+		if img.PageNumber > maxPage {
+			maxPage = img.PageNumber
+		}
+	}
+
 	if err := os.MkdirAll(readDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create read dir: %w", err)
 	}
@@ -135,6 +144,7 @@ func readOneInput(ctx context.Context, opts ReadOptions, stem string, pages []in
 		ocrDir:     filepath.Join(ws.OcrDir(), stem),
 		imageMap:   imageMap,
 		totalPages: len(pagesToProcess),
+		maxPageNum: maxPage,
 		rdr:        reader.NewReader(opts.Provider, logger),
 		logger:     logger,
 	}
@@ -161,6 +171,7 @@ type readContext struct {
 	ocrDir     string
 	imageMap   map[int]string
 	totalPages int
+	maxPageNum int // max page number across all images, for consistent filenames
 	rdr        *reader.Reader
 	logger     *slog.Logger
 
@@ -266,14 +277,14 @@ func (rc *readContext) processReadPage(ctx context.Context, pageNum int) {
 
 	regionPage := readResult.Page
 
-	if err := saveRegionPage(rc.readDir, pageNum, rc.totalPages, regionPage); err != nil {
-		rc.recordFailure(pageNum, err)
-		return
-	}
-
 	if len(regionPage.Regions) == 0 && len(regionPage.Warnings) > 0 {
 		rc.logger.Warn("page read produced no regions", "input", rc.stem, "page", pageNum, "warnings", regionPage.Warnings)
 		rc.recordFailure(pageNum, fmt.Errorf("%s", regionPage.Warnings[0]))
+		return
+	}
+
+	if err := saveRegionPage(rc.readDir, pageNum, rc.maxPageNum, regionPage); err != nil {
+		rc.recordFailure(pageNum, err)
 		return
 	}
 
@@ -295,7 +306,7 @@ type pagePrereqs struct {
 func (rc *readContext) loadPagePrereqs(pageNum int, imgPath string) pagePrereqs {
 	ws := rc.opts.Workspace
 	cfg := rc.opts.Config
-	filename := pageFilename(pageNum, rc.totalPages)
+	filename := pageFilename(pageNum, rc.maxPageNum)
 
 	var p pagePrereqs
 
@@ -449,13 +460,13 @@ func dispatchOCRRead(ctx context.Context, rdr *reader.Reader, pageNum int, curre
 	return rdr.ReadRegionPageWithOCR(ctx, pageNum, currentModel, nil, ocrPage.FullText, "", ocrToolName)
 }
 
-func saveRegionPage(dir string, pageNum, totalPages int, page *model.RegionPage) error {
+func saveRegionPage(dir string, pageNum, maxPageNum int, page *model.RegionPage) error {
 	data, err := json.MarshalIndent(page, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal page %d: %w", pageNum, err)
 	}
 
-	finalPath := filepath.Join(dir, pageFilename(pageNum, totalPages))
+	finalPath := filepath.Join(dir, pageFilename(pageNum, maxPageNum))
 	if err := atomicWriteFile(finalPath, data); err != nil {
 		return fmt.Errorf("write page %d: %w", pageNum, err)
 	}

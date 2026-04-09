@@ -123,6 +123,14 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 		}
 	}
 
+	// Max page number from all images for consistent filename padding
+	maxPage := 0
+	for _, img := range images {
+		if img.PageNumber > maxPage {
+			maxPage = img.PageNumber
+		}
+	}
+
 	if err := os.MkdirAll(ocrDir, 0750); err != nil {
 		return PhaseResult{}, fmt.Errorf("create ocr dir: %w", err)
 	}
@@ -149,14 +157,14 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 		}
 
 		// Check for layout data
-		layoutPath := filepath.Join(layoutDir, pageFilename(pageNum, len(pagesToProcess)))
+		layoutPath := filepath.Join(layoutDir, pageFilename(pageNum, maxPage))
 		var layoutPage *model.LayoutPage
 		if lp, err := loadLayoutPage(layoutPath); err == nil {
 			layoutPage = lp
 		}
 
 		// Skip if output is up-to-date
-		outputPath := filepath.Join(ocrDir, pageFilename(pageNum, len(pagesToProcess)))
+		outputPath := filepath.Join(ocrDir, pageFilename(pageNum, maxPage))
 		rebuildInputs := []string{imgPath, ws.ConfigPath()}
 		if layoutPage != nil {
 			rebuildInputs = append(rebuildInputs, layoutPath)

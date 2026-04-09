@@ -80,7 +80,7 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 	translatedDir := filepath.Join(ws.TranslateDir(), targetLang, stem)
 
 	// Skip if ALL expected outputs are up-to-date
-	title := "book"
+	title := stem
 	langWriteDir := filepath.Join(ws.WriteDir(), targetLang)
 	if !opts.Force {
 		allUpToDate := true
@@ -244,7 +244,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 	// Target language book
 	mdRenderer := &renderer.MarkdownRenderer{}
 	targetBook := mdRenderer.RenderBook(pages)
-	title := "book"
+	title := stem
 	targetPath := filepath.Join(targetDir, title+".md")
 	if err := atomicWrite(targetPath, []byte(targetBook)); err != nil {
 		return fmt.Errorf("write target markdown: %w", err)
@@ -264,7 +264,7 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 }
 
 func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, pages []*model.TranslatedRegionPage, compilePDF bool, logger *slog.Logger) error {
-	title := "book"
+	title := stem
 	langDir := filepath.Join(ws.WriteDir(), targetLang)
 	buildDir := filepath.Join(langDir, "latex-build", stem)
 	if err := os.MkdirAll(buildDir, 0750); err != nil {
@@ -311,7 +311,7 @@ func compileLatex(ctx context.Context, ws *workspace.Workspace, cfg *config.Conf
 }
 
 func compileDocx(ctx context.Context, ws *workspace.Workspace, cfg *config.Config, stem, targetLang string, logger *slog.Logger) error {
-	title := "book"
+	title := stem
 	mdPath := filepath.Join(ws.WriteDir(), targetLang, title+".md")
 	docxPath := filepath.Join(ws.WriteDir(), targetLang, title+".docx")
 

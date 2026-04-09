@@ -164,20 +164,7 @@ func validateRegions(page *model.RegionPage) []string {
 }
 
 func containsText(text, term string) bool {
-	return len(term) > 0 && len(text) > 0 && contains(text, term)
-}
-
-func contains(s, substr string) bool {
-	return len(substr) > 0 && len(s) >= len(substr) && searchString(s, substr)
-}
-
-func searchString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	return len(term) > 0 && len(text) > 0 && strings.Contains(text, term)
 }
 
 func dedupStrings(ss []string) []string {

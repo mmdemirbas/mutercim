@@ -149,7 +149,7 @@ func TestWritePipeline_DocxFailsContinuesOtherFormats(t *testing.T) {
 	}
 
 	// Verify markdown was written
-	mdPath := filepath.Join(ws.WriteDir(), "tr", "book.md")
+	mdPath := filepath.Join(ws.WriteDir(), "tr", "testbook.md")
 	if _, statErr := os.Stat(mdPath); statErr != nil {
 		t.Errorf("expected markdown output at %s: %v", mdPath, statErr)
 	}

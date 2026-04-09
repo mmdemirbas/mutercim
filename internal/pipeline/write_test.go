@@ -84,7 +84,7 @@ func TestWriteMarkdown(t *testing.T) {
 	}
 
 	// Check target language markdown was written
-	trPath := filepath.Join(ws.WriteDir(), "tr", "book.md")
+	trPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.md")
 	data, err := os.ReadFile(trPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read target markdown: %v", err)
@@ -94,7 +94,7 @@ func TestWriteMarkdown(t *testing.T) {
 	}
 
 	// Check source language markdown was written
-	arPath := filepath.Join(ws.WriteDir(), "ar", "book.md")
+	arPath := filepath.Join(ws.WriteDir(), "ar", "TestBook.md")
 	data, err = os.ReadFile(arPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read source markdown: %v", err)
@@ -117,7 +117,7 @@ func TestWriteLatex(t *testing.T) {
 	}
 
 	// Check .tex was written to lang root with title-based name
-	texPath := filepath.Join(ws.WriteDir(), "tr", "book.tex")
+	texPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.tex")
 	data, err := os.ReadFile(texPath) //nolint:gosec // G304: path is internal workspace path, not user input
 	if err != nil {
 		t.Fatalf("read latex: %v", err)
@@ -149,7 +149,7 @@ func TestWritePartialFailure_DocxWithoutPandoc(t *testing.T) {
 		t.Fatalf("Write() should not error on partial success, got: %v", err)
 	}
 
-	mdPath := filepath.Join(ws.WriteDir(), "tr", "book.md")
+	mdPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.md")
 	if _, err := os.Stat(mdPath); err != nil {
 		t.Error("md should have been written despite docx failure")
 	}
@@ -181,7 +181,7 @@ func TestWriteLatexWithoutDocker(t *testing.T) {
 		t.Fatalf("Write() should not error on partial success, got: %v", err)
 	}
 
-	texPath := filepath.Join(ws.WriteDir(), "tr", "book.tex")
+	texPath := filepath.Join(ws.WriteDir(), "tr", "TestBook.tex")
 	if _, err := os.Stat(texPath); err != nil {
 		t.Error(".tex should have been written regardless of docker availability")
 	}

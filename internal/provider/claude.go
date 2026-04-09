@@ -72,7 +72,7 @@ func (c *ClaudeProvider) SupportsVision() bool { return true }
 func (c *ClaudeProvider) ReadFromImage(ctx context.Context, image []byte, systemPrompt, userPrompt string) (string, error) {
 	body := claudeRequest{
 		Model:     c.model,
-		MaxTokens: 4096,
+		MaxTokens: 8192,
 		System:    systemPrompt,
 		Messages: []claudeMessage{{
 			Role: "user",
@@ -103,7 +103,7 @@ func (c *ClaudeProvider) ReadFromImage(ctx context.Context, image []byte, system
 func (c *ClaudeProvider) Translate(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
 	body := claudeRequest{
 		Model:     c.model,
-		MaxTokens: 4096,
+		MaxTokens: 8192,
 		System:    systemPrompt,
 		Messages: []claudeMessage{{
 			Role: "user",
