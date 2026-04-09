@@ -91,10 +91,22 @@ func (e *HTTPError) Error() string {
 // Do executes the request with rate limiting and retry logic.
 // Returns the raw response body bytes.
 // Retries on: 429 (rate limit), 500, 502, 503, 529 (overloaded).
-// Does NOT retry on: 400 (bad request), 401 (auth), 403 (forbidden), 404.
+// Does NOT retry on: 400 (bad request), 401 (auth), 403 (forbidden), 404,
+// or deterministic failures (marshal errors).
 //
 //nolint:cyclop,gocognit // retry loop with status-code branching is inherently complex
 func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
+	// Marshal body once before the retry loop. Marshal errors are deterministic
+	// and should not be retried.
+	var bodyBytes []byte
+	if req.Body != nil {
+		var err error
+		bodyBytes, err = json.Marshal(req.Body)
+		if err != nil {
+			return nil, fmt.Errorf("marshal request body: %w", err)
+		}
+	}
+
 	var lastErr error
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
 		if attempt > 0 {
@@ -126,7 +138,7 @@ func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 			return nil, fmt.Errorf("rate limiter wait: %w", err)
 		}
 
-		body, err := c.doOnce(ctx, req)
+		body, err := c.doOnce(ctx, req, bodyBytes)
 		if err == nil {
 			return body, nil
 		}
@@ -151,13 +163,9 @@ func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 }
 
 //nolint:cyclop // HTTP request execution with multi-step error handling is inherently branchy
-func (c *Client) doOnce(ctx context.Context, req Request) ([]byte, error) {
+func (c *Client) doOnce(ctx context.Context, req Request, bodyBytes []byte) ([]byte, error) {
 	var bodyReader io.Reader
-	if req.Body != nil {
-		bodyBytes, err := json.Marshal(req.Body)
-		if err != nil {
-			return nil, fmt.Errorf("marshal request body: %w", err)
-		}
+	if bodyBytes != nil {
 		bodyReader = bytes.NewReader(bodyBytes)
 	}
 

@@ -169,6 +169,7 @@ func TestClientDo_NonRetryableReturnsImmediately(t *testing.T) {
 
 func TestClientDo_NetworkErrorRetries(t *testing.T) {
 	cfg := DefaultClientConfig()
+	cfg.Timeout = 500 * time.Millisecond
 	cfg.RequestsPerMinute = 100
 	cfg.MaxRetries = 2
 	cfg.BaseBackoff = 10 * time.Millisecond
