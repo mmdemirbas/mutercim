@@ -1,5 +1,24 @@
 # PLAN
 
+## Working guidelines
+
+When implementing items from this plan:
+
+- **Commit in semantic groups.** Each commit covers one logical change or a cohesive set of
+  related fixes. No grab-bag commits. Commit message explains what changed and why.
+- **Tests are mandatory.** Every behavioral change comes with tests. New functions get unit
+  tests. Bug fixes get a regression test. Run `go test ./...` before declaring done.
+- **Update docs.** If a change affects CLI flags, config schema, pipeline behavior, or
+  workspace layout — update README.md, DECISIONS.md, GO-CONVENTIONS.md as needed.
+- **Verify before presenting.** `go build ./...`, `go vet ./...`, `go test ./...` must all
+  pass. Do not present code that fails.
+- **No scope creep.** Fix what the item says. If you find a related issue, note it separately
+  in PLAN.md. Do not silently expand scope.
+- **Quality over speed.** No silent error swallowing, no dead code, no magic strings, no
+  untested edge cases. Tests are readable as documentation.
+- **Move completed items to Done.** After committing, move the item to the Done section with
+  its commit hash. Keep PLAN.md current.
+
 Prioritized by impact: wrong output first, then reliability, then everything else.
 
 ## P0–P1
