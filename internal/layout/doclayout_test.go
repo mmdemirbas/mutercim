@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -143,7 +144,9 @@ func TestDocLayoutTool_DetectRegions_Success(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	result, err := tool.DetectRegions(context.Background(), "/tmp/pages/156.png", nil)
+	imgDir := t.TempDir()
+	imgPath := filepath.Join(imgDir, "156.png")
+	result, err := tool.DetectRegions(context.Background(), imgPath, nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -188,15 +191,16 @@ func TestDocLayoutTool_DetectRegions_Success(t *testing.T) {
 		t.Errorf("call.name = %q, want %q", call.name, "docker")
 	}
 	// Check volume mount
+	wantMount := imgDir + ":/input"
 	foundMount := false
 	for _, arg := range call.args {
-		if arg == "/tmp/pages:/input" {
+		if arg == wantMount {
 			foundMount = true
 			break
 		}
 	}
 	if !foundMount {
-		t.Errorf("expected volume mount /tmp/pages:/input, args = %v", call.args)
+		t.Errorf("expected volume mount %s, args = %v", wantMount, call.args)
 	}
 	// Check container path
 	foundPath := false
@@ -219,7 +223,7 @@ func TestDocLayoutTool_DetectRegions_DockerError(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	_, err := tool.DetectRegions(context.Background(), filepath.Join(t.TempDir(), "page.png"), nil)
 	if err == nil {
 		t.Fatal("DetectRegions: expected error, got nil")
 	}
@@ -236,7 +240,7 @@ func TestDocLayoutTool_DetectRegions_InvalidJSON(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	_, err := tool.DetectRegions(context.Background(), filepath.Join(t.TempDir(), "page.png"), nil)
 	if err == nil {
 		t.Fatal("DetectRegions: expected error, got nil")
 	}
@@ -254,7 +258,7 @@ func TestDocLayoutTool_DetectRegions_EmptyRegions(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	result, err := tool.DetectRegions(context.Background(), filepath.Join(t.TempDir(), "page.png"), nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -283,7 +287,7 @@ func TestDocLayoutTool_DetectRegions_AllRegionsPassedThrough(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	result, err := tool.DetectRegions(context.Background(), filepath.Join(t.TempDir(), "page.png"), nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -313,7 +317,7 @@ func TestDocLayoutTool_DetectRegions_AbandonPassedThrough(t *testing.T) {
 	}
 	tool := newDocLayoutToolWithCommander("", cmd)
 
-	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	result, err := tool.DetectRegions(context.Background(), filepath.Join(t.TempDir(), "page.png"), nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -483,7 +487,7 @@ func TestDocLayoutTool_DetectRegions_WithParams(t *testing.T) {
 		"confidence": 0.15,
 		"iou":        0.3,
 	}
-	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", params)
+	_, err := tool.DetectRegions(context.Background(), filepath.Join(t.TempDir(), "page.png"), params)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/mmdemirbas/mutercim/internal/model"
@@ -191,7 +192,9 @@ func TestSuryaTool_DetectRegions_Success(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	imgDir := t.TempDir()
+	imgPath := filepath.Join(imgDir, "page.png")
+	result, err := tool.DetectRegions(context.Background(), imgPath, nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}
@@ -223,15 +226,16 @@ func TestSuryaTool_DetectRegions_Success(t *testing.T) {
 		t.Errorf("call.name = %q, want %q", call.name, "docker")
 	}
 	// Check that the directory is mounted (not the single file)
+	wantMount := imgDir + ":/input:ro"
 	foundMount := false
 	for _, arg := range call.args {
-		if arg == "/tmp:/input:ro" {
+		if arg == wantMount {
 			foundMount = true
 			break
 		}
 	}
 	if !foundMount {
-		t.Errorf("expected directory volume mount /tmp:/input:ro, args = %v", call.args)
+		t.Errorf("expected directory volume mount %s, args = %v", wantMount, call.args)
 	}
 	// Check that the container path uses the base filename
 	foundPath := false
@@ -254,7 +258,7 @@ func TestSuryaTool_DetectRegions_DockerError(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	_, err := tool.DetectRegions(context.Background(), filepath.Join(t.TempDir(), "page.png"), nil)
 	if err == nil {
 		t.Fatal("DetectRegions: expected error, got nil")
 	}
@@ -271,7 +275,7 @@ func TestSuryaTool_DetectRegions_InvalidJSON(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	_, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	_, err := tool.DetectRegions(context.Background(), filepath.Join(t.TempDir(), "page.png"), nil)
 	if err == nil {
 		t.Fatal("DetectRegions: expected error, got nil")
 	}
@@ -289,7 +293,7 @@ func TestSuryaTool_DetectRegions_EmptyRegions(t *testing.T) {
 	}
 	tool := newSuryaToolWithCommander("", cmd)
 
-	result, err := tool.DetectRegions(context.Background(), "/tmp/page.png", nil)
+	result, err := tool.DetectRegions(context.Background(), filepath.Join(t.TempDir(), "page.png"), nil)
 	if err != nil {
 		t.Fatalf("DetectRegions: %v", err)
 	}

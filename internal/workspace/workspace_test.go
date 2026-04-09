@@ -124,15 +124,16 @@ func TestDiscoverNotFound(t *testing.T) {
 }
 
 func TestWorkspacePaths(t *testing.T) {
-	ws := &Workspace{Root: "/tmp/test"}
+	dir := t.TempDir()
+	ws := &Workspace{Root: dir}
 
-	if ws.ConfigPath() != "/tmp/test/mutercim.yaml" {
+	if ws.ConfigPath() != filepath.Join(dir, "mutercim.yaml") {
 		t.Errorf("ConfigPath() = %q", ws.ConfigPath())
 	}
-	if ws.MemoryDir() != "/tmp/test/memory" {
+	if ws.MemoryDir() != filepath.Join(dir, "memory") {
 		t.Errorf("MemoryDir() = %q", ws.MemoryDir())
 	}
-	if ws.LogPath() != "/tmp/test/mutercim.log" {
+	if ws.LogPath() != filepath.Join(dir, "mutercim.log") {
 		t.Errorf("LogPath() = %q", ws.LogPath())
 	}
 }
