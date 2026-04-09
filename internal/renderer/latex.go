@@ -32,8 +32,9 @@ func (r *LaTeXRenderer) RenderPage(page *model.TranslatedRegionPage) string {
 
 	fmt.Fprintf(&b, "%% Page %d\n", page.PageNumber)
 
+	regionMap := buildRegionIDMap(page.Regions)
 	for _, id := range page.ReadingOrder {
-		region := findTranslatedRegion(page.Regions, id)
+		region := regionMap[id]
 		if region == nil {
 			continue
 		}

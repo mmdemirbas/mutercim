@@ -17,8 +17,9 @@ func (r *MarkdownRenderer) Extension() string { return ".md" }
 func (r *MarkdownRenderer) RenderPage(page *model.TranslatedRegionPage) string {
 	var b strings.Builder
 
+	regionMap := buildRegionIDMap(page.Regions)
 	for _, id := range page.ReadingOrder {
-		region := findTranslatedRegion(page.Regions, id)
+		region := regionMap[id]
 		if region == nil {
 			continue
 		}
@@ -67,8 +68,9 @@ func (r *ArabicMarkdownRenderer) Extension() string { return ".md" }
 func (r *ArabicMarkdownRenderer) RenderPage(page *model.TranslatedRegionPage) string {
 	var b strings.Builder
 
+	regionMap := buildRegionIDMap(page.Regions)
 	for _, id := range page.ReadingOrder {
-		region := findTranslatedRegion(page.Regions, id)
+		region := regionMap[id]
 		if region == nil {
 			continue
 		}
@@ -105,12 +107,11 @@ func (r *ArabicMarkdownRenderer) RenderBook(pages []*model.TranslatedRegionPage)
 	return b.String()
 }
 
-// findTranslatedRegion finds a region by ID.
-func findTranslatedRegion(regions []model.TranslatedRegion, id string) *model.TranslatedRegion {
+// buildRegionIDMap creates an ID-to-region lookup map for O(1) access per reading-order entry.
+func buildRegionIDMap(regions []model.TranslatedRegion) map[string]*model.TranslatedRegion {
+	m := make(map[string]*model.TranslatedRegion, len(regions))
 	for i := range regions {
-		if regions[i].ID == id {
-			return &regions[i]
-		}
+		m[regions[i].ID] = &regions[i]
 	}
-	return nil
+	return m
 }
