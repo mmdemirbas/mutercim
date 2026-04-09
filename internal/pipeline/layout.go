@@ -252,12 +252,12 @@ func layoutOneInput(ctx context.Context, opts LayoutOptions, tool layout.Tool, s
 		// Save layout JSON atomically
 		data, err := json.MarshalIndent(layoutPage, "", "  ")
 		if err != nil {
-			logger.Error("failed to marshal layout page", "page", pageNum, "error", err)
+			logger.Error("failed to marshal layout page", "input", stem, "page", pageNum, "error", err)
 			failed++
 			continue
 		}
 		if err := atomicWriteFile(outputPath, data); err != nil {
-			logger.Error("failed to save layout page", "page", pageNum, "error", err)
+			logger.Error("failed to save layout page", "input", stem, "page", pageNum, "error", err)
 			failed++
 			continue
 		}

@@ -237,8 +237,8 @@ func (q *QariTool) RecognizeRegions(ctx context.Context, imagePath string, regio
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		slog.Error("ocr regions failed", "image", imagePath, "status", resp.StatusCode, "body", string(respBody))
-		return nil, fmt.Errorf("ocr regions failed (status %d): %s", resp.StatusCode, string(respBody))
+		slog.Error("ocr regions failed", "image", imagePath, "status", resp.StatusCode, "body", truncateStr(string(respBody), 500))
+		return nil, fmt.Errorf("ocr regions failed (status %d): %s", resp.StatusCode, truncateStr(string(respBody), 500))
 	}
 
 	var apiResp struct {
@@ -310,8 +310,8 @@ func (q *QariTool) RecognizeFullPage(ctx context.Context, imagePath string) (*Re
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		slog.Error("ocr full page failed", "image", imagePath, "status", resp.StatusCode, "body", string(respBody))
-		return nil, fmt.Errorf("ocr failed (status %d): %s", resp.StatusCode, string(respBody))
+		slog.Error("ocr full page failed", "image", imagePath, "status", resp.StatusCode, "body", truncateStr(string(respBody), 500))
+		return nil, fmt.Errorf("ocr failed (status %d): %s", resp.StatusCode, truncateStr(string(respBody), 500))
 	}
 
 	var apiResp struct {
@@ -393,6 +393,14 @@ func addFileField(writer *multipart.Writer, fieldName, filePath string) error {
 	}
 	_, err = io.Copy(part, f)
 	return err
+}
+
+// truncateStr truncates a string for logging, appending "..." if truncated.
+func truncateStr(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // freePort finds a free TCP port by binding to :0 and releasing it.

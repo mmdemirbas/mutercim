@@ -260,12 +260,12 @@ func ocrOneInput(ctx context.Context, opts OCROptions, stem string, pages []int)
 		// Save atomically
 		data, err := json.MarshalIndent(ocrPage, "", "  ")
 		if err != nil {
-			logger.Error("failed to marshal ocr page", "page", pageNum, "error", err)
+			logger.Error("failed to marshal ocr page", "input", stem, "page", pageNum, "error", err)
 			failed++
 			continue
 		}
 		if err := atomicWriteFile(outputPath, data); err != nil {
-			logger.Error("failed to save ocr page", "page", pageNum, "error", err)
+			logger.Error("failed to save ocr page", "input", stem, "page", pageNum, "error", err)
 			failed++
 			continue
 		}
