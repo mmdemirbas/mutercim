@@ -255,6 +255,7 @@ func (tc *translateContext) processTranslatePage(ctx context.Context, pf pageFil
 
 	solved, ok := tc.solvedPages[pf.pageNum]
 	if !ok {
+		tc.logger.Warn("no solved page found, skipping translation", "input", tc.stem, "page", pf.pageNum)
 		tc.failed++
 		return
 	}

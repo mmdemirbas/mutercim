@@ -202,7 +202,11 @@ func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, par
 		args = append(args, "--max-det", fmt.Sprintf("%d", v))
 	}
 	if v, ok := getString(params, "direction"); ok {
-		args = append(args, "--direction", v)
+		if v == "ltr" || v == "rtl" {
+			args = append(args, "--direction", v)
+		} else {
+			slog.Warn("ignoring invalid direction value", "direction", v, "allowed", "ltr, rtl")
+		}
 	}
 
 	args = append(args, "/input/"+base)

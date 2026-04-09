@@ -231,6 +231,7 @@ func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig,
 		apiKey, err := resolveAPIKey(spec.Provider)
 		if err != nil {
 			logger.Warn("skipping model (API key not set)", "provider", spec.Provider, "model", spec.Model, "error", err)
+			fmt.Fprintf(os.Stderr, "warning: skipping %s/%s — %v\n", spec.Provider, spec.Model, err)
 			continue
 		}
 

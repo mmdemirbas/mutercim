@@ -85,7 +85,7 @@ func (g *GeminiProvider) ReadFromImage(ctx context.Context, image []byte, system
 	resp, err := apiclient.DoJSON[geminiResponse](g.client, ctx, apiclient.Request{
 		Method:  "POST",
 		URL:     g.endpoint(),
-		Headers: map[string]string{"Content-Type": "application/json"},
+		Headers: map[string]string{"Content-Type": "application/json", "X-Goog-Api-Key": g.apiKey},
 		Body:    body,
 	})
 	if err != nil {
@@ -109,7 +109,7 @@ func (g *GeminiProvider) Translate(ctx context.Context, systemPrompt, userPrompt
 	resp, err := apiclient.DoJSON[geminiResponse](g.client, ctx, apiclient.Request{
 		Method:  "POST",
 		URL:     g.endpoint(),
-		Headers: map[string]string{"Content-Type": "application/json"},
+		Headers: map[string]string{"Content-Type": "application/json", "X-Goog-Api-Key": g.apiKey},
 		Body:    body,
 	})
 	if err != nil {
@@ -119,7 +119,7 @@ func (g *GeminiProvider) Translate(ctx context.Context, systemPrompt, userPrompt
 }
 
 func (g *GeminiProvider) endpoint() string {
-	return fmt.Sprintf("%s/v1beta/models/%s:generateContent?key=%s", g.baseURL, g.model, g.apiKey)
+	return fmt.Sprintf("%s/v1beta/models/%s:generateContent", g.baseURL, g.model)
 }
 
 func (g *GeminiProvider) extractText(resp geminiResponse) (string, error) {

@@ -71,6 +71,8 @@ between languages, preserving layout, structure, and domain-specific terminology
 				if err == nil {
 					logFileHandle = f
 					fileLogger = slog.New(newHumanHandler(f, level))
+				} else {
+					fmt.Fprintf(os.Stderr, "warning: cannot open log file %s: %v\n", ws.LogPath(), err)
 				}
 			}
 			if logLevel == "" {

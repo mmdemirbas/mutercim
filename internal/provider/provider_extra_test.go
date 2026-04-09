@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestGeminiEndpoint_SpecialCharsInAPIKey(t *testing.T) {
-	p := &GeminiProvider{ //nolint:gosec // G101: fake key for URL-encoding test, not a real credential
+func TestGeminiEndpoint_NoAPIKeyInURL(t *testing.T) {
+	p := &GeminiProvider{ //nolint:gosec // G101: fake key for test, not a real credential
 		baseURL: "https://example.com",
 		model:   "gemini-pro",
 		apiKey:  "AIza_secret&key=value#extra",
@@ -15,28 +15,23 @@ func TestGeminiEndpoint_SpecialCharsInAPIKey(t *testing.T) {
 
 	ep := p.endpoint()
 
-	// Parse the URL and verify the key parameter
-	u, err := url.Parse(ep)
+	// API key should NOT appear in the URL (it's sent via X-Goog-Api-Key header)
+	if strings.Contains(ep, "AIza_secret") {
+		t.Errorf("endpoint URL should not contain API key, got: %s", ep)
+	}
+	if strings.Contains(ep, "key=") {
+		t.Errorf("endpoint URL should not have key query param, got: %s", ep)
+	}
+
+	// URL should still be valid
+	_, err := url.Parse(ep)
 	if err != nil {
 		t.Fatalf("endpoint() produced invalid URL: %v", err)
 	}
 
-	// The key is interpolated directly into the URL, so special chars
-	// like & will break query parsing. Verify this is the current behavior.
-	key := u.Query().Get("key")
-	if key == "AIza_secret&key=value#extra" {
-		// Correctly parsed (would require URL encoding)
-		return
-	}
-
-	// Current behavior: & in key breaks the URL — key gets truncated
-	if !strings.Contains(ep, "AIza_secret") {
-		t.Errorf("expected API key in endpoint URL, got: %s", ep)
-	}
-
-	// Verify the key is truncated at & (documenting the current behavior)
-	if key != "AIza_secret" {
-		t.Logf("Note: API key with special chars is parsed as %q (truncated at &)", key)
+	want := "https://example.com/v1beta/models/gemini-pro:generateContent"
+	if ep != want {
+		t.Errorf("endpoint() = %q, want %q", ep, want)
 	}
 }
 

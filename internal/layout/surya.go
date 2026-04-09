@@ -142,7 +142,18 @@ func (s *SuryaTool) DetectRegions(ctx context.Context, imagePath string, params 
 
 	// Append tool params as CLI flags
 	if v, ok := getString(params, "languages"); ok {
-		args = append(args, "--languages", v)
+		valid := true
+		for _, c := range v {
+			if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == ',') {
+				valid = false
+				break
+			}
+		}
+		if valid {
+			args = append(args, "--languages", v)
+		} else {
+			slog.Warn("ignoring invalid languages value", "languages", v)
+		}
 	}
 
 	args = append(args, "/input/"+base)

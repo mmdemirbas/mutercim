@@ -80,11 +80,17 @@ func buildInputPageMap(cfg *config.Config) map[string][]int {
 	for _, inp := range cfg.Inputs {
 		if inp.Pages != "" {
 			stem := fileStem(inp.Path)
-			if ranges, err := model.ParsePageRanges(inp.Pages); err == nil {
-				if pages, err := model.ExpandPages(ranges); err == nil {
-					m[stem] = pages
-				}
+			ranges, err := model.ParsePageRanges(inp.Pages)
+			if err != nil {
+				slog.Warn("ignoring invalid page range in config", "input", inp.Path, "pages", inp.Pages, "error", err)
+				continue
 			}
+			pages, err := model.ExpandPages(ranges)
+			if err != nil {
+				slog.Warn("ignoring invalid page range in config", "input", inp.Path, "pages", inp.Pages, "error", err)
+				continue
+			}
+			m[stem] = pages
 		}
 	}
 	return m
@@ -416,6 +422,7 @@ func writePhaseReport(dir string, completed, failed, skipped int, logger *slog.L
 	}
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
+		logger.Warn("failed to marshal phase report", "error", err)
 		return
 	}
 	if err := atomicWriteFile(filepath.Join(dir, "report.json"), data); err != nil {

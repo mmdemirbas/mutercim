@@ -102,8 +102,10 @@ func solveOneInput(ctx context.Context, opts SolveOptions, slvr *solver.Solver, 
 	skipped := 0
 	var previous *model.RegionPage
 
-	for _, pf := range pages {
+	for i, pf := range pages {
 		if ctx.Err() != nil {
+			logger.Info("context cancelled, stopping solve phase",
+				"input", stem, "processed", completed+failed, "remaining", len(pages)-i)
 			break
 		}
 

@@ -107,7 +107,7 @@ func (c *Client) Do(ctx context.Context, req Request) ([]byte, error) {
 				}
 				c.OnRetry(attempt, c.maxRetries, sc, backoff)
 			}
-			c.logger.Info("retrying request",
+			c.logger.Warn("retrying request",
 				"attempt", attempt,
 				"backoff_seconds", backoff.Seconds(),
 				"url", RedactURL(req.URL),
