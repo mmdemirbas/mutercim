@@ -33,15 +33,7 @@ All items completed.
 
 | ID | Issue | Location | Status |
 |----|-------|----------|--------|
-| P2-21 | Layout/OCR logs missing `"input"` attribute — multi-input runs cannot identify which input failed | `pipeline/layout.go:247,252,263`, `pipeline/ocr.go:255,260,270` | |
 | P2-22 | Translate success log missing metrics — no region count, elapsed time, or character count | `pipeline/translate.go:310` | |
-| P2-24 | OCR error response body logged without truncation | `ocr/qari.go:239,312` | |
-
-### CLI UX
-
-| ID | Issue | Location | Status |
-|----|-------|----------|--------|
-| P2-25 | TTY not restored on interrupt — defers `Finish()` only in `all`; other commands leave terminal broken on Ctrl+C | `cli/make.go:62-63` | |
 
 ## P3 — Strengthen: testing and CI/CD
 
@@ -49,7 +41,6 @@ All items completed.
 
 | ID | Issue | Location | Status |
 |----|-------|----------|--------|
-| P3-2 | Zero coverage: `pipeline/ocr.go` — test `loadOCRPage` round-trip and skip behavior | `pipeline/ocr.go` | |
 | P3-3 | Zero coverage: `cmd/mutercim`, `cmd/gen-schema` — test `Execute()` error path | `cmd/` | |
 | P3-4 | `time.Sleep` in rate limiter tests — inject clock interface | `apiclient/ratelimit_test.go:41` | |
 | P3-9 | Improve coverage: ocr package — 48.4% | `ocr/` | |
@@ -71,7 +62,6 @@ All items completed.
 
 | ID | Issue | Location | Status |
 |----|-------|----------|--------|
-| P4-2 | Missing `Logger` in `pipeline.Solve` call — latent bug if call order changes | `cli/solve.go:67-75` | |
 | P4-3 | Global mutable CLI flags — capture via closures | `cli/root.go:19-26`, `cli/init.go:13-17` | |
 | P4-5 | `interface{}` in knowledge loader — use typed intermediate | `knowledge/loader.go:101,119,142,146` | |
 | P4-6 | Type-assertion on `*FailoverChain` in pipeline — extract `ModelTracker` interface | `pipeline/read.go:177`, `translate.go:177` | |
@@ -197,6 +187,9 @@ Items completed and committed.
 | P2-31 | Page range error doesn't show provided value — added to message | `ad0eebd` |
 | P2-32 | `--auto` runs prerequisites with no indication — print to stderr | `ad0eebd` |
 | P2-18 | AI response body never logged on parse failure — log preview at Warn level | `6a86b1b` |
+| P2-21 | Layout/OCR logs missing "input" attribute — added to error logs | `2b7f515` |
+| P2-24 | OCR error response body logged without truncation — truncated to 500 chars | `2b7f515` |
+| P2-25 | TTY not restored on interrupt — moved Finish() to PersistentPostRunE | `c4bca2f` |
 
 ### P3 — Testing and CI/CD
 
@@ -216,6 +209,7 @@ Items completed and committed.
 | P3-24 | `dist` task missing `-ldflags="-s -w"` — already present | `abd2c85` |
 | P3-1 | Zero coverage: `pipeline/layout.go` — added LayoutRegionsToModelRegions tests | `3e2d174` |
 | P3-7 | `TestReadPipelineSkipsCompleted` never asserts skip counter — added assertion | `3e2d174` |
+| P3-2 | Zero coverage: `pipeline/ocr.go` — added loadOCRPage/loadLayoutPage round-trip tests | `5dc380b` |
 
 ### P4 — Code quality, performance, docs
 
@@ -234,3 +228,4 @@ Items completed and committed.
 | P4-38 | CLAUDE.md deps list missing `x/image` — added | `ceda446` |
 | P4-19 | Use `sort.Slice` for region ordering — replaced insertion sort | `c16bbde` |
 | P4-39 | GO-CONVENTIONS.md stale pdftoppm example — updated for Docker | `3e2d174` |
+| P4-2 | Missing Logger in pipeline.Solve call — added explicit logger | `df879da` |
