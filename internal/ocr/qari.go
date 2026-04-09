@@ -80,28 +80,39 @@ func (q *QariTool) Start(ctx context.Context) error {
 		q.stopContainer(ctx)
 	}
 
-	// Find a free port
-	port, err := freePort()
-	if err != nil {
-		return fmt.Errorf("find free port: %w", err)
-	}
-	q.port = port
+	// Find a free port and start container. Retry up to 3 times to handle
+	// the TOCTOU race where another process grabs the port between freePort and docker bind.
+	const maxPortRetries = 3
+	var lastStartErr error
+	for attempt := range maxPortRetries {
+		port, err := freePort()
+		if err != nil {
+			return fmt.Errorf("find free port: %w", err)
+		}
+		q.port = port
 
-	// Start container
-	slog.Info("starting qari-ocr container", "port", port, "image", q.DockerImage)
-	args := []string{
-		"run", "-d", "--rm",
-		"--name", qariContainerName,
-		"-p", fmt.Sprintf("%d:8000", port),
-		q.DockerImage,
-	}
+		slog.Info("starting qari-ocr container", "port", port, "image", q.DockerImage, "attempt", attempt+1)
+		args := []string{
+			"run", "-d", "--rm",
+			"--name", qariContainerName,
+			"-p", fmt.Sprintf("%d:8000", port),
+			q.DockerImage,
+		}
 
-	out, err := exec.CommandContext(ctx, "docker", args...).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; args are constructed by internal callers
-	if err != nil {
-		slog.Error("docker run qari-ocr failed", "args", args, "output", strings.TrimSpace(string(out)), "error", err)
-		return fmt.Errorf("docker run qari-ocr: %w\noutput: %s", err, string(out))
+		out, err := exec.CommandContext(ctx, "docker", args...).CombinedOutput() //nolint:gosec // G204: docker is a fixed binary; args are constructed by internal callers
+		if err != nil {
+			lastStartErr = fmt.Errorf("docker run qari-ocr: %w\noutput: %s", err, string(out))
+			slog.Warn("docker run failed, retrying with new port", "port", port, "attempt", attempt+1, "error", err)
+			q.stopContainer(ctx) // clean up failed container
+			continue
+		}
+		slog.Debug("docker run qari-ocr started", "container_id", strings.TrimSpace(string(out)))
+		lastStartErr = nil
+		break
 	}
-	slog.Debug("docker run qari-ocr started", "container_id", strings.TrimSpace(string(out)))
+	if lastStartErr != nil {
+		return lastStartErr
+	}
 
 	// Poll health endpoint until ready
 	start := time.Now()
@@ -119,7 +130,7 @@ func (q *QariTool) Start(ctx context.Context) error {
 		case <-ticker.C:
 			if q.IsReady(ctx) {
 				elapsed := time.Since(start)
-				slog.Info("qari-ocr model loaded", "elapsed_s", int(elapsed.Seconds()), "port", port)
+				slog.Info("qari-ocr model loaded", "elapsed_s", int(elapsed.Seconds()), "port", q.port)
 				return nil
 			}
 			elapsed := time.Since(start)

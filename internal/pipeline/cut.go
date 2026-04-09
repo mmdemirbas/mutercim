@@ -100,7 +100,7 @@ func cutOneInput(ctx context.Context, opts CutOptions, inputPath, stem string, p
 		return nil
 	}
 
-	if err := os.MkdirAll(imagesDir, 0750); err != nil {
+	if err := os.MkdirAll(imagesDir, 0o750); err != nil {
 		return fmt.Errorf("create images dir: %w", err)
 	}
 

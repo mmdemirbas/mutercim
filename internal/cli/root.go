@@ -87,7 +87,7 @@ between languages, preserving layout, structure, and domain-specific terminology
 			}
 			slog.SetDefault(fileLogger)
 
-			slog.Info("─── mutercim started", "command", cmd.Name(), "args", strings.Join(os.Args[1:], " ")) //nolint:gosec // G706: logging CLI args is intentional; log file is user-private
+			slog.Info("─── mutercim started", "command", cmd.Name(), "args", sanitizeLogValue(strings.Join(os.Args[1:], " ")))
 
 			// Create display (writes progress to stderr)
 			disp := display.New(os.Stderr, nil)
@@ -413,3 +413,13 @@ var usageTemplate = `{{ bold "Usage:" }}{{if .Runnable}}
 
 {{ dim "Use \"" }}{{ dim .CommandPath }}{{ dim " [command] --help\" for more information about a command." }}{{end}}
 `
+
+// sanitizeLogValue strips newlines and control characters to prevent log injection.
+func sanitizeLogValue(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || (r < 0x20 && r != '\t') {
+			return ' '
+		}
+		return r
+	}, s)
+}

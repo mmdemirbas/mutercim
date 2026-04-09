@@ -185,28 +185,28 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 			return result, nil
 		}
 
-		// Find next eligible provider name for the callback
+		// Find next eligible provider and update state under a single lock
+		// to eliminate the TOCTOU window between checking exhaustion and using nextName.
+		f.mu.Lock()
 		nextName := ""
+		nowCheck := f.now()
 		for j := i + 1; j < len(f.entries); j++ {
 			ne := &f.entries[j]
 			if needsVision && !ne.provider.SupportsVision() {
 				continue
 			}
-			f.mu.Lock()
-			nowCheck := f.now()
-			nexhausted := nowCheck.Before(ne.exhaustedUntil)
-			f.mu.Unlock()
-			if !nexhausted {
+			if !nowCheck.Before(ne.exhaustedUntil) {
 				nextName = ne.provider.Name()
 				break
 			}
 		}
+		if isQuotaError(err) {
+			e.exhaustedUntil = f.now().Add(f.recoveryWindow)
+		}
+		onFailover := f.OnFailover
+		f.mu.Unlock()
 
 		if isQuotaError(err) {
-			// 429: mark provider as exhausted with recovery window
-			f.mu.Lock()
-			e.exhaustedUntil = f.now().Add(f.recoveryWindow)
-			f.mu.Unlock()
 
 			f.logger.Warn("provider exhausted (429), failing over",
 				"provider", p.Name(),
@@ -222,8 +222,8 @@ func (f *FailoverChain) tryProviders(ctx context.Context, needsVision bool, fn f
 			)
 		}
 
-		if f.OnFailover != nil && nextName != "" {
-			f.OnFailover(p.Name(), nextName)
+		if onFailover != nil && nextName != "" {
+			onFailover(p.Name(), nextName)
 		}
 		errs = append(errs, fmt.Errorf("%s: %w", p.Name(), err))
 		continue
