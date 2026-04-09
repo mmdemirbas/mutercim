@@ -72,38 +72,9 @@ func (r *Reader) ReadRegionPage(ctx context.Context, image []byte, pageNum int, 
 		return nil, fmt.Errorf("read page %d regions: %w", pageNum, err)
 	}
 
-	jsonStr, err := apiclient.ExtractJSON(rawResponse)
-	if err != nil {
-		r.logger.Warn("AI response JSON extraction failed",
-			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
-		return &ReadResult{
-			Page: &model.RegionPage{
-				Version:       "2.0",
-				PageNumber:    pageNum,
-				ReadModel:     modelName,
-				LayoutTool:    layoutToolName,
-				ReadTimestamp: time.Now().UTC().Format(time.RFC3339),
-				RawText:       rawResponse,
-				Warnings:      []string{fmt.Sprintf("JSON extraction failed: %v", err)},
-			},
-		}, nil
-	}
-
-	var resp regionResponse
-	if err := json.Unmarshal([]byte(jsonStr), &resp); err != nil {
-		r.logger.Warn("AI response JSON unmarshal failed",
-			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
-		return &ReadResult{
-			Page: &model.RegionPage{
-				Version:       "2.0",
-				PageNumber:    pageNum,
-				ReadModel:     modelName,
-				LayoutTool:    layoutToolName,
-				ReadTimestamp: time.Now().UTC().Format(time.RFC3339),
-				RawText:       rawResponse,
-				Warnings:      []string{fmt.Sprintf("JSON unmarshal failed: %v", err)},
-			},
-		}, nil
+	resp, fallback := r.parseRegionResponse(rawResponse, pageNum, modelName, layoutToolName, "")
+	if fallback != nil {
+		return &ReadResult{Page: fallback}, nil
 	}
 
 	regions := make([]model.Region, len(resp.Regions))
@@ -195,40 +166,9 @@ func (r *Reader) ReadRegionPageWithOCR(ctx context.Context, pageNum int, modelNa
 		return nil, fmt.Errorf("read page %d regions (text-only): %w", pageNum, err)
 	}
 
-	jsonStr, err := apiclient.ExtractJSON(rawResponse)
-	if err != nil {
-		r.logger.Warn("AI response JSON extraction failed (OCR path)",
-			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
-		return &ReadResult{
-			Page: &model.RegionPage{
-				Version:       "2.0",
-				PageNumber:    pageNum,
-				ReadModel:     modelName,
-				LayoutTool:    layoutToolName,
-				OCRSource:     ocrToolName,
-				ReadTimestamp: time.Now().UTC().Format(time.RFC3339),
-				RawText:       rawResponse,
-				Warnings:      []string{fmt.Sprintf("JSON extraction failed: %v", err)},
-			},
-		}, nil
-	}
-
-	var resp regionResponse
-	if err := json.Unmarshal([]byte(jsonStr), &resp); err != nil {
-		r.logger.Warn("AI response JSON unmarshal failed (OCR path)",
-			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
-		return &ReadResult{
-			Page: &model.RegionPage{
-				Version:       "2.0",
-				PageNumber:    pageNum,
-				ReadModel:     modelName,
-				LayoutTool:    layoutToolName,
-				OCRSource:     ocrToolName,
-				ReadTimestamp: time.Now().UTC().Format(time.RFC3339),
-				RawText:       rawResponse,
-				Warnings:      []string{fmt.Sprintf("JSON unmarshal failed: %v", err)},
-			},
-		}, nil
+	resp, fallback := r.parseRegionResponse(rawResponse, pageNum, modelName, layoutToolName, ocrToolName)
+	if fallback != nil {
+		return &ReadResult{Page: fallback}, nil
 	}
 
 	regions := make([]model.Region, len(resp.Regions))
@@ -273,6 +213,44 @@ func strategyName(layoutTool string) string {
 		return "local+ai"
 	}
 	return "ai-only"
+}
+
+// parseRegionResponse extracts and unmarshals the region JSON from a raw AI response.
+// On parse failure, returns a fallback RegionPage with the raw text and a warning.
+func (r *Reader) parseRegionResponse(rawResponse string, pageNum int, modelName, layoutToolName, ocrSource string) (*regionResponse, *model.RegionPage) {
+	jsonStr, err := apiclient.ExtractJSON(rawResponse)
+	if err != nil {
+		r.logger.Warn("AI response JSON extraction failed",
+			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
+		return nil, &model.RegionPage{
+			Version:       "2.0",
+			PageNumber:    pageNum,
+			ReadModel:     modelName,
+			LayoutTool:    layoutToolName,
+			OCRSource:     ocrSource,
+			ReadTimestamp: time.Now().UTC().Format(time.RFC3339),
+			RawText:       rawResponse,
+			Warnings:      []string{fmt.Sprintf("JSON extraction failed: %v", err)},
+		}
+	}
+
+	var resp regionResponse
+	if err := json.Unmarshal([]byte(jsonStr), &resp); err != nil {
+		r.logger.Warn("AI response JSON unmarshal failed",
+			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
+		return nil, &model.RegionPage{
+			Version:       "2.0",
+			PageNumber:    pageNum,
+			ReadModel:     modelName,
+			LayoutTool:    layoutToolName,
+			OCRSource:     ocrSource,
+			ReadTimestamp: time.Now().UTC().Format(time.RFC3339),
+			RawText:       rawResponse,
+			Warnings:      []string{fmt.Sprintf("JSON unmarshal failed: %v", err)},
+		}
+	}
+
+	return &resp, nil
 }
 
 // truncateResponse truncates a response string for logging.
