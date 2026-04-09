@@ -74,6 +74,8 @@ func (r *Reader) ReadRegionPage(ctx context.Context, image []byte, pageNum int, 
 
 	jsonStr, err := apiclient.ExtractJSON(rawResponse)
 	if err != nil {
+		r.logger.Warn("AI response JSON extraction failed",
+			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
 		return &ReadResult{
 			Page: &model.RegionPage{
 				Version:       "2.0",
@@ -89,6 +91,8 @@ func (r *Reader) ReadRegionPage(ctx context.Context, image []byte, pageNum int, 
 
 	var resp regionResponse
 	if err := json.Unmarshal([]byte(jsonStr), &resp); err != nil {
+		r.logger.Warn("AI response JSON unmarshal failed",
+			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
 		return &ReadResult{
 			Page: &model.RegionPage{
 				Version:       "2.0",
@@ -193,6 +197,8 @@ func (r *Reader) ReadRegionPageWithOCR(ctx context.Context, pageNum int, modelNa
 
 	jsonStr, err := apiclient.ExtractJSON(rawResponse)
 	if err != nil {
+		r.logger.Warn("AI response JSON extraction failed (OCR path)",
+			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
 		return &ReadResult{
 			Page: &model.RegionPage{
 				Version:       "2.0",
@@ -209,6 +215,8 @@ func (r *Reader) ReadRegionPageWithOCR(ctx context.Context, pageNum int, modelNa
 
 	var resp regionResponse
 	if err := json.Unmarshal([]byte(jsonStr), &resp); err != nil {
+		r.logger.Warn("AI response JSON unmarshal failed (OCR path)",
+			"page", pageNum, "error", err, "response_preview", truncateResponse(rawResponse, 500))
 		return &ReadResult{
 			Page: &model.RegionPage{
 				Version:       "2.0",
@@ -265,6 +273,14 @@ func strategyName(layoutTool string) string {
 		return "local+ai"
 	}
 	return "ai-only"
+}
+
+// truncateResponse truncates a response string for logging.
+func truncateResponse(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // isLayoutRegion checks if a region ID was among the layout-tool-detected regions.

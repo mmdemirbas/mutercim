@@ -67,11 +67,15 @@ func (t *Translator) TranslatePage(ctx context.Context, page *model.SolvedRegion
 
 	jsonStr, err := apiclient.ExtractJSON(rawResponse)
 	if err != nil {
+		t.logger.Warn("translation response JSON extraction failed",
+			"page", page.PageNumber, "error", err, "response_len", len(rawResponse))
 		return nil, fmt.Errorf("extract JSON from translation response for page %d: %w", page.PageNumber, err)
 	}
 
 	var resp regionTranslationResponse
 	if err := json.Unmarshal([]byte(jsonStr), &resp); err != nil {
+		t.logger.Warn("translation response JSON unmarshal failed",
+			"page", page.PageNumber, "error", err, "response_len", len(rawResponse))
 		return nil, fmt.Errorf("unmarshal translation response for page %d: %w", page.PageNumber, err)
 	}
 
