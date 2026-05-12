@@ -91,6 +91,8 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 				ext = ".md"
 			case "latex":
 				ext = ".tex"
+			case "typst":
+				ext = ".typ"
 			case "pdf":
 				ext = ".pdf"
 			case "docx":
@@ -173,6 +175,8 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 			err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, true, logger)
 		case "docx":
 			err = compileDocx(ctx, ws, cfg, stem, targetLang, logger)
+		case "typst":
+			err = compileTypst(ctx, ws, stem, targetLang, pages, logger)
 		default:
 			logger.Warn("unknown format", "format", format)
 			continue
@@ -260,6 +264,26 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 	}
 	logger.Info("wrote source markdown", "path", sourcePath)
 
+	return nil
+}
+
+// compileTypst writes a single-file Typst (.typ) source for the
+// translated pages. It does NOT auto-compile to PDF — the user runs
+// `typst compile <file>.typ` themselves (or invokes
+// renderer.CompileTypstPDF programmatically). Mirrors the
+// "latex emits .tex; compilation is a separate step" pattern.
+func compileTypst(_ context.Context, ws *workspace.Workspace, stem, targetLang string, pages []*model.TranslatedRegionPage, logger *slog.Logger) error {
+	langDir := filepath.Join(ws.WriteDir(), targetLang)
+	if err := os.MkdirAll(langDir, 0o750); err != nil {
+		return fmt.Errorf("create lang dir: %w", err)
+	}
+	typstRenderer := &renderer.TypstRenderer{Lang: targetLang}
+	content := typstRenderer.RenderBook(pages)
+	outPath := filepath.Join(langDir, stem+".typ")
+	if err := atomicWriteFile(outPath, []byte(content)); err != nil {
+		return fmt.Errorf("write typst: %w", err)
+	}
+	logger.Info("wrote typst", "path", outPath, "lang", targetLang)
 	return nil
 }
 

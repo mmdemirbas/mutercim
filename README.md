@@ -239,7 +239,7 @@ translate:
 
 # Write phase — output rendering
 write:
-  formats: [ md, pdf ]           # options: md, latex, pdf, docx
+  formats: [ md, pdf ]           # options: md, latex, typst, pdf, docx
   expand_sources: true
 
 # Knowledge: list of YAML files and/or directories (default: [./knowledge])

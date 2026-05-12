@@ -333,7 +333,10 @@ var validOCRTools = map[string]bool{"": true, "qari": true}
 var validToolBackends = map[string]bool{"": true, "docker": true, "uv": true}
 
 // validWriteFormats is the set of recognized write.formats values.
-var validWriteFormats = map[string]bool{"md": true, "latex": true, "docx": true, "pdf": true}
+// typst produces a .typ source file; user compiles with system
+// `typst compile` (or it auto-compiles to PDF when write.pdf_engine
+// is set — see Phase 6 plan). Treated as parallel to "latex".
+var validWriteFormats = map[string]bool{"md": true, "latex": true, "docx": true, "pdf": true, "typst": true}
 
 // Validate checks the config for errors.
 func (c *Config) Validate() error {

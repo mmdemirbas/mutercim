@@ -464,3 +464,35 @@ Deferred for future:
   is a future addition.
 - `PromptCorpus()` is empty; the Adab-as-corpus migration (P5-1 in
   PLAN.md) becomes a concrete next task using this surface.
+
+## Typst renderer as parallel PDF engine (Phase 6 of 2026-05-12 plan)
+
+New write-phase format "typst" emits a single `.typ` source file the
+user compiles with `typst compile`. Parallel to the existing
+LaTeX/XeLaTeX path; both engines coexist.
+
+- internal/renderer/typst.go: TypstRenderer (interface impl) +
+  CompileTypstPDF helper.
+- Preamble auto-configures for RTL when the source-language profile
+  declares dir=rtl (currently: ar). Font fallback chain mirrors
+  hadis-book's production setup: Shaikh Hamdullah Mushaf → Amiri →
+  Geeza Pro → Noto Naskh Arabic.
+- Phase 0 spike validated Anfas-shape Arabic output on Typst 0.14.2
+  (notes/2026-05-12-spikes.md). The user already ships Typst output
+  in their parallel hadis-book project for related content, so this
+  is a port-pattern rather than from-scratch implementation.
+- Integration test `TestTypstRenderer_RealCompile` exercises the full
+  generate-then-compile loop on real Arabic content; skips when typst
+  is not on PATH so CI doesn't require it.
+
+Why this is *parallel*, not *replacement*: the user's principle "do
+not remove logic before proving the new is better in all aspects"
+applies. XeLaTeX is the validated quality reference. Typst is the
+faster alternative that doesn't need TeX Live. Both stay in
+write.formats; the user picks per workspace.
+
+Deferred:
+- Automatic .typ → PDF compilation tied to the existing pdf format
+  selector. Currently the user runs `typst compile` themselves (or
+  calls renderer.CompileTypstPDF programmatically). A future pass
+  can add write.pdf_engine: xelatex|typst when worth the wiring.

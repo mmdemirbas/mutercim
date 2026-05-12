@@ -226,5 +226,9 @@ translate:
 # Output files are named "book" (fixed).
 
 write:
-  formats: [md, latex, docx, pdf]    # Output formats: md | latex (.tex only) | pdf (.tex + compile) | docx (via pandoc)
+  formats: [md, latex, docx, pdf]    # Output formats: md | latex (.tex only) | typst (.typ source) | pdf (.tex + XeLaTeX compile) | docx (via pandoc)
+  # typst emits a .typ source file users compile with `typst compile`.
+  # Phase 0 spike (notes/2026-05-12-spikes.md) validated Anfas-shape
+  # Arabic output via Typst 0.14.2. Faster + smaller toolchain than
+  # XeLaTeX. Add "typst" to the formats list when desired.
   expand_sources: true               # Expand source abbreviations in output (e.g. خ → Sahîh-i Buhârî)
