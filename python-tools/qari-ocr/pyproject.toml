@@ -1,0 +1,24 @@
+[project]
+name = "mutercim-qari-ocr"
+version = "0.1.0"
+description = "Qari-OCR v0.3 HTTP server (Arabic OCR) — uv-managed alternative to docker/qari-ocr."
+requires-python = ">=3.11,<3.14"
+# Versions chosen to match what the Docker image installs in
+# docker/qari-ocr/Dockerfile. Pinning is loose to allow security patches
+# while staying inside known-good major versions. Tighten via uv.lock.
+dependencies = [
+    "torch>=2.4,<3",
+    "torchvision>=0.19,<1",
+    "transformers>=4.45,<5",
+    "accelerate>=1.0,<2",
+    "qwen-vl-utils>=0.0.10,<1",
+    "flask>=3.0,<4",
+    "pillow>=11.0,<12",
+]
+
+[project.scripts]
+qari-server = "qari_server:main"
+
+[tool.uv]
+# Reproducibility: pin to a single Python interpreter version.
+python-preference = "managed"

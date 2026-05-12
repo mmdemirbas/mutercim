@@ -104,6 +104,16 @@
       "additionalProperties": false,
       "description": "OCR phase settings. Extracts text from page images using a specialized OCR model. Runs between layout and read phases. When enabled, the read phase can use text-only LLMs instead of vision models.",
       "properties": {
+        "backend": {
+          "default": "docker",
+          "description": "Runtime backend for the OCR tool. 'docker' (default) runs the historically-validated container path. 'uv' launches the tool from python-tools/\u003ctool\u003e/ via uv on the host (requires uv installed; first run auto-downloads the model into HF cache).",
+          "enum": [
+            "",
+            "docker",
+            "uv"
+          ],
+          "type": "string"
+        },
         "tool": {
           "default": "",
           "description": "OCR tool name. 'qari' uses Qari-OCR (Arabic-specialized, requires Docker). Empty string disables OCR (read phase uses vision LLM for text extraction).",

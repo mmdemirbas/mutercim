@@ -71,7 +71,7 @@ func newOCRCmd() *cobra.Command {
 			logger := slog.Default()
 
 			// Create OCR tool
-			tool := ocr.NewTool(cfg.OCR.Tool)
+			tool := ocr.NewToolWithBackend(cfg.OCR.Tool, cfg.OCR.Backend)
 			if tool == nil {
 				return fmt.Errorf("unknown OCR tool: %q", cfg.OCR.Tool)
 			}

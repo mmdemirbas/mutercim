@@ -212,6 +212,7 @@ layout:
 # When enabled, the read phase can use text-only LLMs instead of vision models
 ocr:
   tool: ""                       # "qari" (Qari-OCR v0.3, Arabic-specialized) or "" (disabled)
+  backend: docker                # "docker" (default) or "uv" — uv runs the tool from python-tools/<tool>/
 
 # Read phase — structural analysis (uses OCR text and/or page images)
 read:

@@ -136,7 +136,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 			logger.Info("ocr tool disabled, skipping ocr phase")
 		} else {
 			logger.Info("=== AUTO: OCR ===")
-			ocrTool := ocr.NewTool(cfg.OCR.Tool)
+			ocrTool := ocr.NewToolWithBackend(cfg.OCR.Tool, cfg.OCR.Backend)
 			if ocrTool == nil {
 				return fmt.Errorf("unknown OCR tool: %q", cfg.OCR.Tool)
 			}

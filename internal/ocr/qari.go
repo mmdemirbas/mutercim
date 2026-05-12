@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/mmdemirbas/mutercim/internal/docker"
+	"github.com/mmdemirbas/mutercim/internal/pyhelper"
 )
 
 const (
@@ -32,12 +33,23 @@ const (
 	startTimeout = 120 * time.Second
 )
 
-// QariTool implements the Tool interface for Qari-OCR via a Docker HTTP server.
+// QariTool implements the Tool interface for Qari-OCR. The same wrapper
+// can run the tool via a Docker container (default) or via a uv-managed
+// Python subprocess on the host, selected by Backend.
 type QariTool struct {
+	// Backend selects the runtime: "" or "docker" runs the historically-
+	// validated container path; "uv" launches python-tools/qari-ocr/ via
+	// uv. Set at construction time.
+	Backend string
+
 	DockerImage   string
 	DockerfileDir string
-	port          int // dynamically assigned port
+	port          int // dynamically assigned port (both backends)
 	client        *http.Client
+
+	// uvServer is set when Backend == "uv". Owns the lifecycle of the
+	// uv-launched subprocess.
+	uvServer *pyhelper.Server
 }
 
 // NewQariTool creates a QariTool with the given Docker image.
@@ -55,10 +67,44 @@ func NewQariTool(image string) *QariTool {
 // Name returns "qari".
 func (q *QariTool) Name() string { return "qari" }
 
-// Start ensures the Docker image exists and starts the Qari-OCR container.
-// If a container with the same name is already running and healthy, it is reused.
-//nolint:cyclop,gocognit // Docker container lifecycle with health checking
+// Start prepares the Qari-OCR runtime according to the configured Backend
+// and waits for /health to report ready. With "uv" backend, the helper
+// runs python-tools/qari-ocr/server.py via uv. With "docker" backend (or
+// empty/default), it launches the Docker container.
 func (q *QariTool) Start(ctx context.Context) error {
+	if q.Backend == "uv" {
+		return q.startUV(ctx)
+	}
+	return q.startDocker(ctx)
+}
+
+// startUV runs the Qari server in a uv-managed venv on the host.
+func (q *QariTool) startUV(ctx context.Context) error {
+	projectDir := pyhelper.FindProjectDir("qari-ocr")
+	if projectDir == "" {
+		return fmt.Errorf("python-tools/qari-ocr not found; run from project root or install with the binary")
+	}
+	srv := &pyhelper.Server{
+		ProjectDir:   projectDir,
+		Script:       "server.py",
+		StartTimeout: startTimeout,
+		Logger:       slog.Default(),
+		HTTPClient:   q.client,
+	}
+	if err := srv.Start(ctx); err != nil {
+		return fmt.Errorf("uv qari start: %w", err)
+	}
+	q.uvServer = srv
+	q.port = srv.Port()
+	slog.Info("qari-ocr (uv) ready", "port", q.port, "project", projectDir)
+	return nil
+}
+
+// startDocker is the historical container-based start path. Behavior is
+// unchanged from the pre-Phase-2 implementation.
+//
+//nolint:cyclop,gocognit // Docker container lifecycle with health checking
+func (q *QariTool) startDocker(ctx context.Context) error {
 	// Ensure Docker image exists
 	if q.DockerfileDir != "" {
 		slog.Info("ensuring qari-ocr docker image", "image", q.DockerImage, "dockerfile_dir", q.DockerfileDir)
@@ -149,8 +195,14 @@ func (q *QariTool) Start(ctx context.Context) error {
 	}
 }
 
-// Stop stops the Qari-OCR container. Tolerant of already-stopped containers.
+// Stop stops the Qari-OCR runtime. Tolerant of already-stopped state and
+// of either backend never having been started.
 func (q *QariTool) Stop(ctx context.Context) error {
+	if q.uvServer != nil {
+		err := q.uvServer.Stop(ctx)
+		q.uvServer = nil
+		return err
+	}
 	q.stopContainer(ctx)
 	return nil
 }

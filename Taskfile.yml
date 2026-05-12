@@ -104,6 +104,18 @@ tasks:
     cmds:
       - docker build -t mutercim/qari-ocr docker/qari-ocr/
 
+  py-bootstrap:
+    desc: Resolve uv-managed Python tool environments (qari-ocr; doclayout/surya to come)
+    cmds:
+      - command -v uv >/dev/null 2>&1 || (echo "uv not installed — see https://docs.astral.sh/uv/#installation" && exit 1)
+      - uv sync --project python-tools/qari-ocr
+
+  py-check:
+    desc: Smoke-check uv-managed Python tool environments resolve cleanly
+    cmds:
+      - command -v uv >/dev/null 2>&1 || (echo "uv not installed — see https://docs.astral.sh/uv/#installation" && exit 1)
+      - uv lock --project python-tools/qari-ocr --check
+
   run:
     desc: Run mutercim passing the arguments
     deps: [ build ]

@@ -60,6 +60,11 @@ type LayoutConfig struct {
 // OCRConfig holds OCR phase settings.
 type OCRConfig struct {
 	Tool string `yaml:"tool,omitempty" mapstructure:"tool" json:"tool,omitempty"` // "qari" or "" (disabled, skip OCR phase)
+	// Backend selects the runtime for the OCR tool: "docker" (default) runs
+	// the historically-validated container path; "uv" launches the tool
+	// from python-tools/<tool>/ via uv on the host. Per-tool migration —
+	// docker stays default until the uv path is proven on the user's input.
+	Backend string `yaml:"backend,omitempty" mapstructure:"backend" json:"backend,omitempty"`
 }
 
 // ReadConfig holds read-phase settings.
@@ -322,6 +327,11 @@ var validLayoutTools = map[string]bool{"": true, "doclayout-yolo": true, "surya"
 // validOCRTools is the set of recognized ocr.tool values.
 var validOCRTools = map[string]bool{"": true, "qari": true}
 
+// validToolBackends is the set of recognized backend values for any
+// Python tool (currently exposed only via ocr.backend; layout.backend
+// reserved for a future migration of doclayout-yolo / surya).
+var validToolBackends = map[string]bool{"": true, "docker": true, "uv": true}
+
 // validWriteFormats is the set of recognized write.formats values.
 var validWriteFormats = map[string]bool{"md": true, "latex": true, "docx": true, "pdf": true}
 
@@ -399,6 +409,9 @@ func (c *Config) validateTools() error {
 
 	if !validOCRTools[c.OCR.Tool] {
 		return fmt.Errorf("ocr.tool %q is not valid (expected: \"\" or \"qari\")", c.OCR.Tool)
+	}
+	if !validToolBackends[c.OCR.Backend] {
+		return fmt.Errorf("ocr.backend %q is not valid (expected: \"\", \"docker\", or \"uv\")", c.OCR.Backend)
 	}
 
 	if len(c.Write.Formats) == 0 {

@@ -52,9 +52,25 @@ type Tool interface {
 // Known names: "qari".
 // Returns nil for empty or unknown names (OCR disabled).
 func NewTool(name string) Tool {
+	return NewToolWithBackend(name, "")
+}
+
+// NewToolWithBackend creates an OCR tool by name with an explicit backend.
+//
+// Backends:
+//   - "" or "docker" — run the tool inside a Docker container (default, the
+//     historically validated path).
+//   - "uv" — run the tool as a uv-managed Python subprocess on the host.
+//     Requires `uv` installed and the matching python-tools/<tool>/ directory.
+//     Adds a model auto-download on first run.
+//
+// Returns nil for empty or unknown tool names (OCR disabled).
+func NewToolWithBackend(name, backend string) Tool {
 	switch name {
 	case "qari":
-		return NewQariTool("")
+		t := NewQariTool("")
+		t.Backend = backend
+		return t
 	default:
 		return nil
 	}

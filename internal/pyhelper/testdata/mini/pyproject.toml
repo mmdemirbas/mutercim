@@ -1,0 +1,8 @@
+[project]
+name = "mini-test-server"
+version = "0.0.1"
+description = "Tiny stdlib-only HTTP server used by pyhelper tests."
+requires-python = ">=3.10"
+# No dependencies — uses only Python stdlib so uv sync is fast and
+# offline-capable for CI / repeat test runs.
+dependencies = []

@@ -338,3 +338,31 @@ are filtered out of read/translate failover chains by default. Local providers
   (cloud-only chains, no explicit `allow_cloud: true`) now fail with a clear
   error pointing at the gate. Migration: add `allow_cloud: true` to the
   config, or add a local provider entry (ollama).
+
+## uv-managed Python tools as alternative backend (Phase 2 of 2026-05-12 plan)
+
+Python-based external tools (qari-ocr; doclayout-yolo and surya to come)
+can run via two backends:
+
+- `docker` (default): the historically-validated container path.
+- `uv`: a uv-managed Python subprocess on the host, using pinned wheels
+  under `python-tools/<tool>/`.
+
+Per-tool migration. Docker stays default until each tool's uv path is
+proven on the user's real input (see notes/2026-05-12-spikes.md for the
+Phase 0 validation precedent).
+
+- New package `internal/pyhelper/` owns the subprocess lifecycle: EnsureUV,
+  EnsureProject (idempotent `uv sync`), Server (Start/Stop/Port/IsReady).
+- Two separate uv venvs per tool when needed — Phase 0 spike found that
+  MinerU's `[mlx]` and `[pipeline]` extras have a transformers version
+  conflict; the per-tool venv structure of `python-tools/<tool>/` is
+  designed to absorb cases like that without one tool poisoning another.
+- New config field `ocr.backend: docker|uv`, default empty (= docker).
+  Reserved values: future `layout.backend` to follow the same pattern when
+  doclayout-yolo/surya migrate.
+- Tests in `internal/pyhelper/pyhelper_test.go` exercise the full lifecycle
+  using a stdlib-only Python server fixture under `testdata/mini/` — no
+  ML dependencies in CI.
+- `task py-bootstrap` pre-warms the qari-ocr venv; `task py-check`
+  verifies the lockfile resolves cleanly.
