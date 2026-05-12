@@ -49,7 +49,8 @@ var schemaAnnotations = map[string]schemaMeta{
 	// ocr
 	"ocr":         {Description: "OCR phase settings. Extracts text from page images using a specialized OCR model. Runs between layout and read phases. When enabled, the read phase can use text-only LLMs instead of vision models."},
 	"ocr.tool":    {Description: "OCR tool name. 'qari' uses Qari-OCR (Arabic-specialized, requires Docker). Empty string disables OCR (read phase uses vision LLM for text extraction).", Default: "", Enum: []string{"", "qari"}},
-	"ocr.backend": {Description: "Runtime backend for the OCR tool. 'docker' (default) runs the historically-validated container path. 'uv' launches the tool from python-tools/<tool>/ via uv on the host (requires uv installed; first run auto-downloads the model into HF cache).", Default: "docker", Enum: []string{"", "docker", "uv"}},
+	"ocr.backend":    {Description: "Runtime backend for the OCR tool. 'docker' (default) runs the historically-validated container path. 'uv' launches the tool from python-tools/<tool>/ via uv on the host (requires uv installed; first run auto-downloads the model into HF cache).", Default: "docker", Enum: []string{"", "docker", "uv"}},
+	"layout.backend": {Description: "Runtime backend for the layout tool. 'docker' (default) runs the validated container path. 'uv' launches the tool from python-tools/<tool>/ via uv (currently implemented for doclayout-yolo).", Default: "docker", Enum: []string{"", "docker", "uv"}},
 
 	// read
 	"read":                                {Description: "Read phase settings. The read phase sends page images to an AI vision model to extract structured JSON (entries, footnotes, metadata). If layout data exists, it uses pre-detected regions; otherwise it uses AI-only mode. When OCR is enabled, text-only LLMs can be used."},

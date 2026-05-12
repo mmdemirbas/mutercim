@@ -113,7 +113,7 @@ Functions with high gocognit scores. All are orchestration functions whose compl
 | P5-11 | Workspace-level lock               | prevent concurrent processes from corrupting workspace state                               |
 | P5-12 | Adab corpus as Arabic profile PromptCorpus() | Phase 5 plugin surface lets the Adab prompt corpus move from a global default to the `internal/lang/ar/` profile. Concrete migration target for P5-1's three-layer prompt model. |
 | ~~P5-13~~ | ~~Auto-compile typst → PDF~~ | **done** — `write.pdf_engine: xelatex|typst`. When set to `typst`, the `pdf` format compiles via the system typst binary. Integration test exercises the full path. |
-| P5-14 | Migrate doclayout-yolo + surya to uv backends | Phase 2 added the pyhelper infrastructure but only qari-ocr was migrated. Repeat the pattern for the other two so Docker can be dropped for all Python tools. |
+| P5-14 | Migrate doclayout-yolo + surya to uv backends | **partial** — doclayout-yolo migrated end-to-end via `layout.backend: uv`. Surya migration pending (one-shot pattern is the same — see internal/layout/doclayout.go runUV). Phase 2 added the pyhelper.RunOnce helper this builds on. |
 
 ## P6 — Long-term / exploratory
 

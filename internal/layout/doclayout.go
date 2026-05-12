@@ -11,6 +11,7 @@ import (
 
 	"github.com/mmdemirbas/mutercim/internal/docker"
 	"github.com/mmdemirbas/mutercim/internal/model"
+	"github.com/mmdemirbas/mutercim/internal/pyhelper"
 )
 
 // DefaultDocLayoutImage is the Docker image used for DocLayout-YOLO detection.
@@ -43,11 +44,94 @@ var knownDocLayoutParams = map[string]bool{
 	"direction":  true,
 }
 
-// DocLayoutTool uses the DocLayout-YOLO model running in Docker
-// to detect document layout regions with bounding boxes and type labels.
-// Unlike Surya (which detects text lines), DocLayout-YOLO understands
+// detectorArgs builds the script-level CLI flags from params. Same flag
+// shape for both backends — Docker just adds run/--rm/-v wrappers
+// around them.
+func detectorArgs(params map[string]any) []string {
+	var args []string
+	if v, ok := getFloat(params, "confidence"); ok {
+		args = append(args, "--conf", fmt.Sprintf("%.4f", v))
+	}
+	if v, ok := getFloat(params, "iou"); ok {
+		args = append(args, "--iou", fmt.Sprintf("%.4f", v))
+	}
+	if v, ok := getInt(params, "image_size"); ok {
+		args = append(args, "--imgsz", fmt.Sprintf("%d", v))
+	}
+	if v, ok := getInt(params, "max_det"); ok {
+		args = append(args, "--max-det", fmt.Sprintf("%d", v))
+	}
+	if v, ok := getString(params, "direction"); ok {
+		if v == "ltr" || v == "rtl" {
+			args = append(args, "--direction", v)
+		} else {
+			slog.Warn("ignoring invalid direction value", "direction", v, "allowed", "ltr, rtl")
+		}
+	}
+	return args
+}
+
+// runDetector dispatches the actual layout-detection command via the
+// configured backend. Both backends emit the same JSON shape on stdout
+// (the same entrypoint.py source script is used inside Docker and via
+// uv) so the downstream parsing path is unchanged.
+func (d *DocLayoutTool) runDetector(ctx context.Context, imagePath string, params map[string]any) ([]byte, error) {
+	if d.Backend == "uv" {
+		return d.runUV(ctx, imagePath, params)
+	}
+	return d.runDocker(ctx, imagePath, params)
+}
+
+// runDocker is the historical Docker-image path.
+func (d *DocLayoutTool) runDocker(ctx context.Context, imagePath string, params map[string]any) ([]byte, error) {
+	if d.DockerfileDir != "" {
+		if err := docker.EnsureImage(ctx, d.DockerImage, d.DockerfileDir); err != nil {
+			return nil, fmt.Errorf("ensure doclayout-yolo image: %w", err)
+		}
+	}
+	dir := filepath.Dir(imagePath)
+	base := filepath.Base(imagePath)
+	args := []string{
+		"run", "--rm",
+		"-v", filepath.ToSlash(dir) + ":/input",
+		d.DockerImage,
+	}
+	args = append(args, detectorArgs(params)...)
+	args = append(args, "/input/"+base)
+	out, err := d.commander.Run(ctx, "docker", args...)
+	if err != nil {
+		return nil, fmt.Errorf("doclayout-yolo docker run: %w\noutput: %s", err, string(out))
+	}
+	return out, nil
+}
+
+// runUV is the uv-managed Python subprocess path. Requires uv installed
+// and python-tools/doclayout-yolo/ resolvable via pyhelper.FindProjectDir.
+// The first invocation runs `uv sync` (downloads PyTorch + ultralytics
+// + opencv) — subsequent invocations reuse the cached env.
+func (d *DocLayoutTool) runUV(ctx context.Context, imagePath string, params map[string]any) ([]byte, error) {
+	projectDir := pyhelper.FindProjectDir("doclayout-yolo")
+	if projectDir == "" {
+		return nil, fmt.Errorf("python-tools/doclayout-yolo not found; run from project root or set layout.backend back to docker")
+	}
+	abs, err := filepath.Abs(imagePath)
+	if err != nil {
+		return nil, fmt.Errorf("resolve image path: %w", err)
+	}
+	args := append(detectorArgs(params), abs)
+	return pyhelper.RunOnce(ctx, projectDir, "entrypoint.py", args...)
+}
+
+// DocLayoutTool uses the DocLayout-YOLO model running in Docker (default)
+// or via a uv-managed Python subprocess (when Backend == "uv") to detect
+// document layout regions with bounding boxes and type labels. Unlike
+// Surya (which detects text lines), DocLayout-YOLO understands
 // document-level structure — columns, headers, footnotes, tables, etc.
 type DocLayoutTool struct {
+	// Backend selects the runtime: "" or "docker" runs via Docker;
+	// "uv" runs python-tools/doclayout-yolo/entrypoint.py via uv.
+	Backend string
+
 	// DockerImage is the Docker image to use. Defaults to DefaultDocLayoutImage.
 	DockerImage string
 
@@ -90,6 +174,19 @@ func (d *DocLayoutTool) Name() string {
 
 // Available checks if Docker is running and the DocLayout-YOLO image exists.
 func (d *DocLayoutTool) Available(ctx context.Context) bool {
+	if d.Backend == "uv" {
+		// uv backend: require uv on PATH and a resolvable project dir.
+		if err := pyhelper.EnsureUV(ctx); err != nil {
+			slog.Debug("uv not available", "error", err)
+			return false
+		}
+		if pyhelper.FindProjectDir("doclayout-yolo") == "" {
+			slog.Debug("python-tools/doclayout-yolo not found on disk")
+			return false
+		}
+		return true
+	}
+
 	out, err := d.commander.Run(ctx, "docker", "info", "--format", "{{.ServerVersion}}")
 	if err != nil {
 		slog.Debug("docker not available", "error", err)
@@ -166,13 +263,6 @@ var docLayoutTypeMap = map[string]string{
 //   - max_det (int): max detections, default 300
 //nolint:cyclop,gocognit,funlen // JSON detection with coordinate transformation and filtering
 func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, params map[string]any) (*DetectResult, error) {
-	// Auto-build Docker image if needed
-	if d.DockerfileDir != "" {
-		if err := docker.EnsureImage(ctx, d.DockerImage, d.DockerfileDir); err != nil {
-			return nil, fmt.Errorf("ensure doclayout-yolo image: %w", err)
-		}
-	}
-
 	// Warn on unknown params
 	for k := range params {
 		if !knownDocLayoutParams[k] {
@@ -180,40 +270,9 @@ func (d *DocLayoutTool) DetectRegions(ctx context.Context, imagePath string, par
 		}
 	}
 
-	dir := filepath.Dir(imagePath)
-	base := filepath.Base(imagePath)
-	args := []string{
-		"run", "--rm",
-		"-v", filepath.ToSlash(dir) + ":/input",
-		d.DockerImage,
-	}
-
-	// Append tool params as CLI flags
-	if v, ok := getFloat(params, "confidence"); ok {
-		args = append(args, "--conf", fmt.Sprintf("%.4f", v))
-	}
-	if v, ok := getFloat(params, "iou"); ok {
-		args = append(args, "--iou", fmt.Sprintf("%.4f", v))
-	}
-	if v, ok := getInt(params, "image_size"); ok {
-		args = append(args, "--imgsz", fmt.Sprintf("%d", v))
-	}
-	if v, ok := getInt(params, "max_det"); ok {
-		args = append(args, "--max-det", fmt.Sprintf("%d", v))
-	}
-	if v, ok := getString(params, "direction"); ok {
-		if v == "ltr" || v == "rtl" {
-			args = append(args, "--direction", v)
-		} else {
-			slog.Warn("ignoring invalid direction value", "direction", v, "allowed", "ltr, rtl")
-		}
-	}
-
-	args = append(args, "/input/"+base)
-
-	out, err := d.commander.Run(ctx, "docker", args...)
+	out, err := d.runDetector(ctx, imagePath, params)
 	if err != nil {
-		return nil, fmt.Errorf("doclayout-yolo docker run: %w\noutput: %s", err, string(out))
+		return nil, err
 	}
 
 	var result docLayoutOutput

@@ -70,6 +70,16 @@
       "additionalProperties": false,
       "description": "Layout detection phase settings. Detects document regions (headers, columns, tables, footnotes) with bounding boxes before the read phase.",
       "properties": {
+        "backend": {
+          "default": "docker",
+          "description": "Runtime backend for the layout tool. 'docker' (default) runs the validated container path. 'uv' launches the tool from python-tools/\u003ctool\u003e/ via uv (currently implemented for doclayout-yolo).",
+          "enum": [
+            "",
+            "docker",
+            "uv"
+          ],
+          "type": "string"
+        },
         "debug": {
           "default": false,
           "description": "When true, write annotated PNG images showing detected bounding boxes to layout/\u003cinput\u003e/debug/. Useful for verifying and tuning layout detection.",

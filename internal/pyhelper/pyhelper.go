@@ -140,3 +140,34 @@ func FreePort() (int, error) {
 	}
 	return addr.Port, nil
 }
+
+// RunOnce runs a one-shot uv-managed Python script and returns its
+// stdout. For tools that don't fit the persistent-server model (e.g.
+// doclayout-yolo and surya, which run as CLI scripts invoked per
+// page), this is the right shape — Start/Stop overhead would dominate.
+//
+// projectDir must contain pyproject.toml. script is resolved relative
+// to projectDir. args are passed verbatim to the python script.
+// Stderr is forwarded to the parent process for visibility; stdout is
+// captured and returned.
+func RunOnce(ctx context.Context, projectDir, script string, args ...string) ([]byte, error) {
+	if err := EnsureUV(ctx); err != nil {
+		return nil, err
+	}
+	if err := EnsureProject(ctx, projectDir); err != nil {
+		return nil, err
+	}
+	scriptPath := filepath.Join(projectDir, script)
+	if _, statErr := os.Stat(scriptPath); statErr != nil {
+		return nil, fmt.Errorf("script not found: %s: %w", scriptPath, statErr)
+	}
+	cmdArgs := append([]string{"run", "--project", projectDir, "python", scriptPath}, args...)
+	//nolint:gosec // G204: uv is a fixed binary; projectDir/script/args are internal
+	cmd := exec.CommandContext(ctx, "uv", cmdArgs...)
+	cmd.Stderr = os.Stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return out, fmt.Errorf("uv run %s: %w", script, err)
+	}
+	return out, nil
+}

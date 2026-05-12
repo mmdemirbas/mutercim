@@ -34,13 +34,29 @@ type Tool interface {
 	Name() string
 }
 
-// NewTool creates a layout tool by name.
-// Known names: "doclayout-yolo" (default), "surya".
-// Returns nil for empty or unknown names (AI-only mode).
+// NewTool creates a layout tool by name with the historical (Docker)
+// backend. Known names: "doclayout-yolo" (default), "surya". Returns
+// nil for empty or unknown names (AI-only mode).
 func NewTool(name string) Tool {
+	return NewToolWithBackend(name, "")
+}
+
+// NewToolWithBackend creates a layout tool by name with an explicit
+// backend.
+//
+// Backends:
+//   - "" or "docker" — run the tool inside a Docker container (default).
+//   - "uv" — run the tool as a uv-managed Python subprocess (currently
+//     implemented for doclayout-yolo; surya follow-up — passing "uv"
+//     for surya falls back to docker with a Warn).
+//
+// Returns nil for empty or unknown tool names (AI-only mode).
+func NewToolWithBackend(name, backend string) Tool {
 	switch name {
 	case "doclayout-yolo":
-		return NewDocLayoutTool("")
+		t := NewDocLayoutTool("")
+		t.Backend = backend
+		return t
 	case "surya":
 		return NewSuryaTool("")
 	default:

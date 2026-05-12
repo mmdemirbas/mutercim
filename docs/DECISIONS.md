@@ -496,3 +496,27 @@ Deferred:
   selector. Currently the user runs `typst compile` themselves (or
   calls renderer.CompileTypstPDF programmatically). A future pass
   can add write.pdf_engine: xelatex|typst when worth the wiring.
+
+## doclayout-yolo uv backend + RunOnce helper (P5-14 partial)
+
+Extends Phase 2's pyhelper with `RunOnce(ctx, projectDir, script, args...)`
+for one-shot Python invocations — the right shape for layout tools that
+process one page at a time (qari-ocr's persistent-server model would
+be overkill here).
+
+- `internal/pyhelper.RunOnce` — calls EnsureUV + EnsureProject, then
+  `uv run --project <dir> python <script> <args...>` and returns stdout.
+- `internal/layout/doclayout.go` — adds Backend field, splits
+  DetectRegions into runDocker (existing) and runUV (new). Same
+  entrypoint.py script powers both — copied from docker/doclayout-yolo/
+  into python-tools/doclayout-yolo/ with a matching pyproject.toml.
+- `internal/config.LayoutConfig.Backend` field with validation.
+- Available() check adapts: uv backend requires uv + python-tools dir.
+
+Surya migration pending. Pattern is identical: copy entrypoint.py,
+write pyproject.toml, add `runUV` branch in surya.go. Deferred because
+the user's default and only spike-validated path uses doclayout-yolo;
+surya is a fallback that hasn't seen recent use.
+
+Removal of docker/doclayout-yolo/ deferred per "add, prove, defer"
+principle until the user runs both backends side-by-side and chooses.

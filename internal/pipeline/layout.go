@@ -49,7 +49,7 @@ func Layout(ctx context.Context, opts LayoutOptions) (PhaseResult, error) {
 		return PhaseResult{}, nil
 	}
 
-	tool := layout.NewTool(toolName)
+	tool := layout.NewToolWithBackend(toolName, cfg.Layout.Backend)
 	if tool == nil {
 		return PhaseResult{}, fmt.Errorf("unknown layout tool: %q", toolName)
 	}

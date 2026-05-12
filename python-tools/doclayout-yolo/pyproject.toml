@@ -1,0 +1,17 @@
+[project]
+name = "mutercim-doclayout-yolo"
+version = "0.1.0"
+description = "DocLayout-YOLO layout detection — uv-managed alternative to docker/doclayout-yolo."
+requires-python = ">=3.11,<3.14"
+# Matches what docker/doclayout-yolo/Dockerfile pip-installs. opencv-python
+# wraps the libGL / xcb / X libraries the Docker image installs via apt;
+# uv users on macOS get them via the platform wheels.
+dependencies = [
+    "doclayout-yolo>=0.0.4,<1",
+    "huggingface-hub>=0.24,<1",
+    "opencv-python>=4.10,<5",
+    "numpy>=1.26,<3",
+]
+
+[tool.uv]
+python-preference = "managed"

@@ -52,9 +52,14 @@ type ModelSpec struct {
 
 // LayoutConfig holds layout detection phase settings.
 type LayoutConfig struct {
-	Tool   string         `yaml:"tool,omitempty" mapstructure:"tool" json:"tool,omitempty"`       // "doclayout-yolo" (default), "surya", or "" (disabled)
-	Debug  bool           `yaml:"debug,omitempty" mapstructure:"debug" json:"debug,omitempty"`    // when true, write debug overlay images
-	Params map[string]any `yaml:"params,omitempty" mapstructure:"params" json:"params,omitempty"` // tool-specific tuning parameters
+	Tool string `yaml:"tool,omitempty" mapstructure:"tool" json:"tool,omitempty"` // "doclayout-yolo" (default), "surya", or "" (disabled)
+	// Backend selects the runtime for the layout tool: "docker" (default)
+	// runs via the historically-validated Docker image; "uv" runs the
+	// tool from python-tools/<tool>/ via uv on the host (currently
+	// implemented for doclayout-yolo; surya follow-up).
+	Backend string         `yaml:"backend,omitempty" mapstructure:"backend" json:"backend,omitempty"`
+	Debug   bool           `yaml:"debug,omitempty" mapstructure:"debug" json:"debug,omitempty"`    // when true, write debug overlay images
+	Params  map[string]any `yaml:"params,omitempty" mapstructure:"params" json:"params,omitempty"` // tool-specific tuning parameters
 }
 
 // OCRConfig holds OCR phase settings.
@@ -425,6 +430,9 @@ func (c *Config) validateTools() error {
 	}
 	if !validToolBackends[c.OCR.Backend] {
 		return fmt.Errorf("ocr.backend %q is not valid (expected: \"\", \"docker\", or \"uv\")", c.OCR.Backend)
+	}
+	if !validToolBackends[c.Layout.Backend] {
+		return fmt.Errorf("layout.backend %q is not valid (expected: \"\", \"docker\", or \"uv\")", c.Layout.Backend)
 	}
 	if !validPdfEngines[c.Write.PdfEngine] {
 		return fmt.Errorf("write.pdf_engine %q is not valid (expected: \"\", \"xelatex\", or \"typst\")", c.Write.PdfEngine)
