@@ -21,6 +21,24 @@ When implementing items from this plan:
 
 Prioritized by impact: wrong output first, then reliability, then everything else.
 
+## 2026-05-12 spike-driven refactor
+
+A multi-phase plan landed during May 2026 reshaping defaults around the
+local-first principle. See `notes/2026-05-12-direction.md`,
+`notes/2026-05-12-plan.md`, and `notes/2026-05-12-spikes.md` for the
+research trail; per-phase rationale lives in `docs/DECISIONS.md`.
+
+| Phase | Status | What shipped |
+|-------|--------|--------------|
+| 0. Spikes  | done | Typst PASS / MinerU FAIL on Arabic / Gemma 3 27B Q4 local translation PASS |
+| 1. allow_cloud gate | done | Cloud-class providers filtered by default; opt-in required |
+| 2. pyhelper + qari uv backend | done | uv-managed Python tool lifecycle; qari-ocr has both docker and uv paths |
+| 3. local translation providers | done | llamacpp + mlx providers, class: local, OpenAI-compat |
+| 4. parse phase collapse | **DEFERRED** | MinerU fails on Arabic content per spike; reopen criteria documented |
+| 5. language plugin surface | done | internal/lang/ + Arabic profile + RTL 2-col reading-order fixup |
+| 6. typst renderer | done | Parallel to LaTeX/XeLaTeX; uses hadis-book font fallback chain |
+| 7. docs/PLAN refresh | done (this entry) | — |
+
 ## P0–P1
 
 All items completed.
@@ -91,8 +109,11 @@ Functions with high gocognit scores. All are orchestration functions whose compl
 | P5-7  | Side-by-side bilingual LaTeX output | ar+tr on same page in write phase                                                         |
 | P5-8  | System-wide config                 | `~/.config/mutercim/` for API keys and default models                                      |
 | P5-9  | `mutercim init --from-url`         | download PDF directly before scaffolding workspace                                         |
-| P5-10 | Consider `unoffice` for docx generation | evaluate as replacement or fallback                                                   |
+| P5-10 | ~~Consider `unoffice` for docx generation~~ | **dropped** — 2026-05-12 research could not verify the project exists. `pypandoc-binary` remains the documented alternative if Docker pandoc is removed. |
 | P5-11 | Workspace-level lock               | prevent concurrent processes from corrupting workspace state                               |
+| P5-12 | Adab corpus as Arabic profile PromptCorpus() | Phase 5 plugin surface lets the Adab prompt corpus move from a global default to the `internal/lang/ar/` profile. Concrete migration target for P5-1's three-layer prompt model. |
+| P5-13 | Auto-compile typst → PDF | Add `write.pdf_engine: xelatex|typst` selector so typst format can produce PDF without the user running `typst compile` manually. See `docs/DECISIONS.md` Phase 6 entry. |
+| P5-14 | Migrate doclayout-yolo + surya to uv backends | Phase 2 added the pyhelper infrastructure but only qari-ocr was migrated. Repeat the pattern for the other two so Docker can be dropped for all Python tools. |
 
 ## P6 — Long-term / exploratory
 
