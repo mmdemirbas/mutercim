@@ -359,7 +359,7 @@
     },
     "write": {
       "additionalProperties": false,
-      "description": "Write phase settings. The write phase renders translated data into final output files (markdown, LaTeX, PDF, DOCX) under write/\u003clang\u003e/.",
+      "description": "Write phase settings. The write phase renders translated data into final output files (markdown, LaTeX, Typst, PDF, DOCX) under write/\u003clang\u003e/.",
       "properties": {
         "expand_sources": {
           "default": true,
@@ -373,17 +373,28 @@
             "docx",
             "pdf"
           ],
-          "description": "Output formats to generate. 'md' produces markdown, 'latex' produces .tex only, 'pdf' produces .tex and compiles to PDF via Docker, 'docx' converts markdown to Word via pandoc.",
+          "description": "Output formats to generate. 'md' produces markdown, 'latex' produces .tex only, 'typst' produces .typ only, 'pdf' compiles to PDF via the configured pdf_engine, 'docx' converts markdown to Word via pandoc.",
           "items": {
             "enum": [
               "md",
               "latex",
+              "typst",
               "pdf",
               "docx"
             ],
             "type": "string"
           },
           "type": "array"
+        },
+        "pdf_engine": {
+          "default": "xelatex",
+          "description": "Renderer used when 'pdf' is in formats. 'xelatex' (default) compiles via the XeLaTeX Docker image. 'typst' compiles via the system `typst` binary (faster, smaller toolchain — Phase 0 spike validated Anfas-shape Arabic).",
+          "enum": [
+            "",
+            "xelatex",
+            "typst"
+          ],
+          "type": "string"
         }
       },
       "type": "object"

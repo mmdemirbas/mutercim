@@ -166,13 +166,22 @@ func writeOneInput(ctx context.Context, opts WriteOptions, stem, targetLang stri
 		case "latex":
 			err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, false, logger)
 		case "pdf":
+			engine := cfg.Write.PdfEngine
+			if engine == "" {
+				engine = "xelatex"
+			}
 			if opts.Display != nil {
 				opts.Display.SetStatus(display.StatusLine{
-					Text:      fmt.Sprintf("compiling PDF via Docker [%s]", targetLang),
+					Text:      fmt.Sprintf("compiling PDF via %s [%s]", engine, targetLang),
 					StartedAt: time.Now(),
 				})
 			}
-			err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, true, logger)
+			switch engine {
+			case "typst":
+				err = compileTypstPDF(ctx, ws, stem, targetLang, pages, logger)
+			default:
+				err = compileLatex(ctx, ws, cfg, stem, targetLang, pages, true, logger)
+			}
 		case "docx":
 			err = compileDocx(ctx, ws, cfg, stem, targetLang, logger)
 		case "typst":
@@ -268,10 +277,9 @@ func compileMarkdown(ws *workspace.Workspace, cfg *config.Config, stem, targetLa
 }
 
 // compileTypst writes a single-file Typst (.typ) source for the
-// translated pages. It does NOT auto-compile to PDF — the user runs
-// `typst compile <file>.typ` themselves (or invokes
-// renderer.CompileTypstPDF programmatically). Mirrors the
-// "latex emits .tex; compilation is a separate step" pattern.
+// translated pages. It does NOT auto-compile to PDF — that's
+// compileTypstPDF's job. Mirrors the "latex emits .tex; pdf compiles
+// .tex to PDF" pattern.
 func compileTypst(_ context.Context, ws *workspace.Workspace, stem, targetLang string, pages []*model.TranslatedRegionPage, logger *slog.Logger) error {
 	langDir := filepath.Join(ws.WriteDir(), targetLang)
 	if err := os.MkdirAll(langDir, 0o750); err != nil {
@@ -284,6 +292,25 @@ func compileTypst(_ context.Context, ws *workspace.Workspace, stem, targetLang s
 		return fmt.Errorf("write typst: %w", err)
 	}
 	logger.Info("wrote typst", "path", outPath, "lang", targetLang)
+	return nil
+}
+
+// compileTypstPDF writes .typ then compiles it to .pdf via the system
+// typst binary. Used when write.pdf_engine = "typst". The .typ file
+// is left next to the .pdf so users can re-render with custom flags.
+func compileTypstPDF(ctx context.Context, ws *workspace.Workspace, stem, targetLang string, pages []*model.TranslatedRegionPage, logger *slog.Logger) error {
+	if err := compileTypst(ctx, ws, stem, targetLang, pages, logger); err != nil {
+		return err
+	}
+	langDir := filepath.Join(ws.WriteDir(), targetLang)
+	typPath := filepath.Join(langDir, stem+".typ")
+	// renderer.CompileTypstPDF writes <name>.pdf next to <name>.typ
+	// — same dir, same stem.
+	if err := renderer.CompileTypstPDF(ctx, typPath, ""); err != nil {
+		return fmt.Errorf("compile typst PDF: %w", err)
+	}
+	pdfPath := filepath.Join(langDir, stem+".pdf")
+	logger.Info("wrote typst PDF", "path", pdfPath, "lang", targetLang)
 	return nil
 }
 

@@ -93,8 +93,9 @@ var schemaAnnotations = map[string]schemaMeta{
 	"translate.rate_limit.requests_per_minute": {Description: "Maximum requests per minute for translate-phase API calls.", Default: 0, Minimum: intPtr(0)},
 
 	// write
-	"write":                {Description: "Write phase settings. The write phase renders translated data into final output files (markdown, LaTeX, PDF, DOCX) under write/<lang>/."},
-	"write.formats":        {Description: "Output formats to generate. 'md' produces markdown, 'latex' produces .tex only, 'pdf' produces .tex and compiles to PDF via Docker, 'docx' converts markdown to Word via pandoc.", Default: []string{"md", "latex", "docx", "pdf"}, ItemEnum: []string{"md", "latex", "pdf", "docx"}},
+	"write":                {Description: "Write phase settings. The write phase renders translated data into final output files (markdown, LaTeX, Typst, PDF, DOCX) under write/<lang>/."},
+	"write.formats":        {Description: "Output formats to generate. 'md' produces markdown, 'latex' produces .tex only, 'typst' produces .typ only, 'pdf' compiles to PDF via the configured pdf_engine, 'docx' converts markdown to Word via pandoc.", Default: []string{"md", "latex", "docx", "pdf"}, ItemEnum: []string{"md", "latex", "typst", "pdf", "docx"}},
+	"write.pdf_engine":     {Description: "Renderer used when 'pdf' is in formats. 'xelatex' (default) compiles via the XeLaTeX Docker image. 'typst' compiles via the system `typst` binary (faster, smaller toolchain — Phase 0 spike validated Anfas-shape Arabic).", Default: "xelatex", Enum: []string{"", "xelatex", "typst"}},
 	"write.expand_sources": {Description: "When true, source abbreviations in footnotes are expanded to full names in the rendered output (e.g. 'خ' becomes 'Sahîh-i Buhârî').", Default: true},
 
 	// knowledge

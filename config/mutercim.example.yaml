@@ -226,9 +226,10 @@ translate:
 # Output files are named "book" (fixed).
 
 write:
-  formats: [md, latex, docx, pdf]    # Output formats: md | latex (.tex only) | typst (.typ source) | pdf (.tex + XeLaTeX compile) | docx (via pandoc)
-  # typst emits a .typ source file users compile with `typst compile`.
-  # Phase 0 spike (notes/2026-05-12-spikes.md) validated Anfas-shape
-  # Arabic output via Typst 0.14.2. Faster + smaller toolchain than
-  # XeLaTeX. Add "typst" to the formats list when desired.
+  formats: [md, latex, docx, pdf]    # Output formats: md | latex (.tex only) | typst (.typ source) | pdf (auto-compiled) | docx (via pandoc)
+  # pdf_engine picks the renderer for "pdf" format:
+  #   "xelatex" (default) — Docker image mutercim/xelatex, mature path
+  #   "typst"             — system typst binary, faster, no TeX Live
+  # Phase 0 spike validated Typst 0.14.2 for Anfas-shape Arabic.
+  pdf_engine: xelatex
   expand_sources: true               # Expand source abbreviations in output (e.g. خ → Sahîh-i Buhârî)

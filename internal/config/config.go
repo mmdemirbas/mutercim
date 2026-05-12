@@ -92,8 +92,13 @@ type TranslateConfig struct {
 
 // WriteConfig holds write-phase settings.
 type WriteConfig struct {
-	Formats       []string `yaml:"formats" mapstructure:"formats" json:"formats"`
-	ExpandSources bool     `yaml:"expand_sources" mapstructure:"expand_sources" json:"expand_sources"`
+	Formats []string `yaml:"formats" mapstructure:"formats" json:"formats"`
+	// PdfEngine selects the renderer used when "pdf" appears in Formats.
+	// "xelatex" (default, empty) compiles via the XeLaTeX Docker image.
+	// "typst" compiles via the system `typst` binary. Phase 0 spike
+	// validated Typst 0.14.2 for Anfas-shape Arabic content.
+	PdfEngine     string `yaml:"pdf_engine,omitempty" mapstructure:"pdf_engine" json:"pdf_engine,omitempty"`
+	ExpandSources bool   `yaml:"expand_sources" mapstructure:"expand_sources" json:"expand_sources"`
 }
 
 // RetryConfig holds retry settings.
@@ -332,6 +337,11 @@ var validOCRTools = map[string]bool{"": true, "qari": true}
 // reserved for a future migration of doclayout-yolo / surya).
 var validToolBackends = map[string]bool{"": true, "docker": true, "uv": true}
 
+// validPdfEngines is the set of recognized write.pdf_engine values.
+// Empty maps to xelatex (the historically-validated default). typst is
+// the parallel Phase 6 alternative.
+var validPdfEngines = map[string]bool{"": true, "xelatex": true, "typst": true}
+
 // validWriteFormats is the set of recognized write.formats values.
 // typst produces a .typ source file; user compiles with system
 // `typst compile` (or it auto-compiles to PDF when write.pdf_engine
@@ -415,6 +425,9 @@ func (c *Config) validateTools() error {
 	}
 	if !validToolBackends[c.OCR.Backend] {
 		return fmt.Errorf("ocr.backend %q is not valid (expected: \"\", \"docker\", or \"uv\")", c.OCR.Backend)
+	}
+	if !validPdfEngines[c.Write.PdfEngine] {
+		return fmt.Errorf("write.pdf_engine %q is not valid (expected: \"\", \"xelatex\", or \"typst\")", c.Write.PdfEngine)
 	}
 
 	if len(c.Write.Formats) == 0 {
