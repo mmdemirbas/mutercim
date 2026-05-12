@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mmdemirbas/mutercim/internal/knowledge"
+	"github.com/mmdemirbas/mutercim/internal/lang"
 	"github.com/mmdemirbas/mutercim/internal/model"
 )
 
@@ -54,6 +55,23 @@ func NewSolver(k *knowledge.Knowledge, sourceLang string, logger *slog.Logger) *
 // It adds glossary context, validation warnings, and a previous page summary.
 // It does NOT modify region text, bbox, or type.
 func (s *Solver) SolvePage(current *model.RegionPage, previous *model.RegionPage, previousSummary string) *model.SolvedRegionPage {
+	// Apply per-language reading-order fixup before the rest of the
+	// solve pipeline so glossary matching and validation see the
+	// corrected order. For Arabic, this flips 2-col entry rows
+	// right-to-left — the load-bearing patch from Phase 0 spike
+	// (notes/2026-05-12-spikes.md). The lang.Profile returned by
+	// lang.Get is the empty no-op profile for languages without a
+	// registered plugin, so non-Arabic pages pass through unchanged.
+	profile := lang.Get(s.sourceLang)
+	fixed := profile.ReadingOrderFixup(current.Regions, current.ReadingOrder)
+	if !sameOrder(fixed, current.ReadingOrder) {
+		s.logger.Info("reading order fixup applied",
+			"page", current.PageNumber,
+			"language", profile.Code(),
+			"regions", len(current.Regions))
+		current.ReadingOrder = fixed
+	}
+
 	solved := &model.SolvedRegionPage{
 		RegionPage: *current,
 	}
@@ -78,6 +96,22 @@ func (s *Solver) SolvePage(current *model.RegionPage, previous *model.RegionPage
 	}
 
 	return solved
+}
+
+// sameOrder reports whether two reading-order slices are identical.
+// Returning true means the language profile decided no fixup applied,
+// so we skip the mutation entirely (avoiding spurious "fixup applied"
+// log lines on pages that were already in correct order).
+func sameOrder(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // PageSummary creates a brief summary of a region page for context injection.

@@ -393,3 +393,74 @@ Phase 0 spike validated this path: gemma-3-27b-it-4bit via
 - Chunking to ≤2k input tokens (recommended by long-context evaluation
   literature) is deferred to a follow-up; it interacts with the translate
   phase's prompt builder.
+
+## Parse phase — DEFERRED post-spike (Phase 4 of 2026-05-12 plan)
+
+The 2026-05-12 plan called for adding a single-call `parse` phase using
+MinerU 2.5-Pro as an alternative to cut+layout+ocr+read. Phase 0 spike
+findings (notes/2026-05-12-spikes.md) invalidated the premise on the
+user's primary input (Arabic Islamic books):
+
+- MinerU VLM via MLX: fast (58 s/page on M1 Max) and **excellent layout
+  detection**, but Arabic OCR is corrupted (entry numbers wrong: 1045
+  instead of 1530; Chinese "炎症" inserted into Arabic text — the
+  narrow-language-coverage failure the research flagged).
+- MinerU pipeline backend: numbers correct, footnotes clean, but the
+  2-col RTL body sections are systematically garbled (confirmed on pages
+  100 and 200 of the example Anfas1.pdf — same pattern, not a one-page
+  anomaly).
+
+Neither backend replaces the current Arabic pipeline cleanly. Per the
+user's principle "we shouldn't remove any logic before proving the new
+ones are better in all aspects," shipping a parse-phase scaffold for an
+invalidated premise would be dead code.
+
+Reopen criteria:
+- A different open-weight VLM (dots.mocr, PaddleOCR-VL-1.5, GLM-OCR, or
+  a 2026-H2 successor) demonstrates clean Arabic + RTL 2-col output on
+  the example corpus.
+- OR the user's workload expands to single-column or non-Arabic content
+  where MinerU's documented strengths actually apply.
+
+Phase 5 (language-agnostic plugin surface) makes Phase 4 trivial to
+reintroduce later as a per-language profile choice — `internal/lang/en/`
+could plug in MinerU, while `internal/lang/ar/` continues with the
+current multi-phase path.
+
+## Language plugin surface — internal/lang/ (Phase 5 of 2026-05-12 plan)
+
+Per-language behaviour (RTL hints, OCR override, prompt corpus,
+reading-order fixup) is now pluggable per ISO 639-1 source-language code
+in the input declaration. The surface:
+
+- `internal/lang/lang.go` — Profile interface + EmptyProfile + Get/Register
+- `internal/lang/ar/` — Arabic profile
+
+The Arabic profile carries the **load-bearing 2-col RTL reading-order
+fixup** flagged in the Phase 0 spike. Both the current pipeline
+(DocLayout-YOLO + AI vision) and every open VLM tested (MinerU VLM,
+MinerU pipeline) emit body-entry rows left-to-right; Arabic readers
+expect right-to-left. The fixup is bbox-geometry only (does not depend
+on text accuracy), so it works regardless of which upstream Read/Parse
+produced the regions. Applied in the Solver before glossary matching
+and validation.
+
+Registration is explicit (no init() — project rule). `cmd/mutercim/main.go`
+calls `ar.Register()` before cobra dispatch. Adding a new language is
+one import + one Register() call.
+
+Coverage:
+- `TestReadingOrderFixup_TwoColumnFlipsRightToLeft` — the regression
+  guard against the spike-discovered bug, using bbox coords that
+  mirror page 200 of example/Anfas1.pdf.
+- `TestReadingOrderFixup_SingleColumnUnchanged` — the negative case:
+  footnote prose must NOT be reordered.
+- `TestReadingOrderFixup_PreservesNonArabicRegionsInPlace` — Headers
+  and page numbers anchor; only Arabic-script regions flip.
+
+Deferred for future:
+- `OcrOverride()` returns "qari" but is not yet consumed by the OCR
+  dispatcher — Phase 2 introduced ocr.backend; per-language override
+  is a future addition.
+- `PromptCorpus()` is empty; the Adab-as-corpus migration (P5-1 in
+  PLAN.md) becomes a concrete next task using this surface.
