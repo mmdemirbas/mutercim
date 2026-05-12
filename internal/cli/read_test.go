@@ -16,6 +16,8 @@ func TestApiKeyEnvVar(t *testing.T) {
 		{"xai", "XAI_API_KEY"},
 		{"ollama", ""},
 		{"surya", ""},
+		{"llamacpp", ""},
+		{"mlx", ""},
 		{"custom", "CUSTOM_API_KEY"},
 	}
 	for _, tt := range tests {

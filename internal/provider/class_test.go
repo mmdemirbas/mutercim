@@ -18,11 +18,13 @@ func TestClassFor(t *testing.T) {
 		{"xai-cloud", "xai", ClassCloud},
 		// Local providers — user-controlled inference.
 		{"ollama-local", "ollama", ClassLocal},
+		{"llamacpp-local", "llamacpp", ClassLocal},
+		{"mlx-local", "mlx", ClassLocal},
 		// Unknown — must NOT be silently classified. Caller decides policy
 		// (default-deny treats unknown as cloud-equivalent).
 		{"unknown-empty", "", ClassUnknown},
 		{"unknown-custom", "custom-provider", ClassUnknown},
-		{"unknown-future-llamacpp", "llamacpp", ClassUnknown},
+		{"unknown-future-vllm", "vllm", ClassUnknown},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

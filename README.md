@@ -384,6 +384,8 @@ read:
 | openrouter | OpenAI-compat    | Auto*  | 200         | `OPENROUTER_API_KEY`                              |
 | xai        | OpenAI-compat    | Auto*  | 60          | `XAI_API_KEY`                                     |
 | ollama     | Ollama native    | Yes    | 1000        | `OLLAMA_HOST` (default: `http://localhost:11434`) |
+| llamacpp   | OpenAI-compat    | Auto*  | 1000        | none (point `base_url` at running `llama-server`; default `http://127.0.0.1:8080`) |
+| mlx        | OpenAI-compat    | Auto*  | 1000        | none (point `base_url` at running `mlx_lm.server`; default `http://127.0.0.1:8080`) |
 
 \* Vision auto-detected from model name (patterns: `vision`, `vl`, `scout`, `gemma-3`, `pixtral`).
 Override with `vision: true/false` in the model spec.

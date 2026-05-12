@@ -169,8 +169,13 @@ read:
     - { provider: groq, model: llama-3.2-90b-vision-preview }
     # 4. xAI: $25 free credits, good vision
     - { provider: xai, model: grok-2-vision-latest }
-    # 5. Local — always allowed, runs even with allow_cloud=false
+    # 5. Local via Ollama — always allowed, runs even with allow_cloud=false
     - { provider: ollama, model: qwen2.5vl:7b }
+    # Alternative local backends (uncomment + start the server yourself):
+    #   llama.cpp:  llama-server -m <gguf> --port 8080 --jinja
+    #   MLX (Mac): mlx_lm.server --model mlx-community/Qwen3-VL-8B-MLX --port 8080
+    # - { provider: llamacpp, model: qwen3-vl-8b-instruct, base_url: "http://127.0.0.1:8080" }
+    # - { provider: mlx,      model: mlx-community/Qwen3-VL-8B-MLX,    base_url: "http://127.0.0.1:8080" }
   concurrency: 1                     # Parallel read workers (min: 1) — currently only 1 supported
   retry:
     max_attempts: 3                  # Max retries per API call before marking page as failed (min: 0)
@@ -201,8 +206,15 @@ translate:
     - { provider: xai, model: grok-2-latest }
     # 6. OpenRouter: community-funded free models
     - { provider: openrouter, model: meta-llama/llama-3.3-70b-instruct:free }
-    # 7. Local — always allowed, runs even with allow_cloud=false
+    # 7. Local via Ollama — always allowed, runs even with allow_cloud=false
     - { provider: ollama, model: qwen3:14b }
+    # Alternative local backends for translation (uncomment + start server):
+    #   llama.cpp:  llama-server -m gemma-3-27b-it-q4_k_m.gguf --port 8080 --jinja
+    #   MLX (Mac): mlx_lm.server --model mlx-community/gemma-3-27b-it-4bit --port 8080
+    # Phase 0 spike confirmed publication-quality ar→tr on M1 Max via MLX
+    # at ~5-6 tok/s with mlx-community/gemma-3-27b-it-4bit.
+    # - { provider: llamacpp, model: gemma-3-27b-it,                base_url: "http://127.0.0.1:8080" }
+    # - { provider: mlx,      model: mlx-community/gemma-3-27b-it-4bit, base_url: "http://127.0.0.1:8080" }
   context_window: 2                  # Previous pages included for continuity (min: 0, higher = more tokens)
   retry:
     max_attempts: 3                  # Max retries per API call before marking page as failed (min: 0)

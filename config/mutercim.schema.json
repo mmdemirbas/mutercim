@@ -164,7 +164,9 @@
                   "mistral",
                   "openrouter",
                   "xai",
-                  "ollama"
+                  "ollama",
+                  "llamacpp",
+                  "mlx"
                 ],
                 "type": "string"
               },
@@ -301,7 +303,9 @@
                   "mistral",
                   "openrouter",
                   "xai",
-                  "ollama"
+                  "ollama",
+                  "llamacpp",
+                  "mlx"
                 ],
                 "type": "string"
               },

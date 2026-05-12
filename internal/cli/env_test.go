@@ -188,9 +188,16 @@ func TestLoadEnvFileMissing(t *testing.T) {
 }
 
 func TestClientTimeout(t *testing.T) {
-	ollama := clientTimeout("ollama")
-	if ollama.Minutes() < 5 {
-		t.Errorf("ollama timeout should be >= 5min, got %v", ollama)
+	// Local providers all share the long-timeout policy. The list MUST be
+	// kept in sync with the local-class registry (provider.providerClasses)
+	// — a mismatch produces silent 2-minute timeouts during local-model
+	// inference, which surfaces as quota-error-shaped failover.
+	localProviders := []string{"ollama", "llamacpp", "mlx"}
+	for _, name := range localProviders {
+		got := clientTimeout(name)
+		if got.Minutes() < 5 {
+			t.Errorf("%s timeout should be >= 5min (local inference is slow), got %v", name, got)
+		}
 	}
 
 	gemini := clientTimeout("gemini")

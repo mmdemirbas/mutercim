@@ -366,3 +366,30 @@ Phase 0 validation precedent).
   ML dependencies in CI.
 - `task py-bootstrap` pre-warms the qari-ocr venv; `task py-check`
   verifies the lockfile resolves cleanly.
+
+## Local translation providers — llamacpp + mlx (Phase 3 of 2026-05-12 plan)
+
+Two new OpenAI-compatible provider names — `llamacpp` and `mlx` — added to
+the provider registry as `ClassLocal`. They piggyback on the existing
+OpenAI-compat provider implementation; the only behavioral additions are:
+
+- API key resolution returns empty for both (no auth required).
+- HTTP timeout extended to 10 minutes (matching ollama) for slow local
+  inference.
+- Authorization header is omitted when api key is empty so requests are
+  clean against `llama-server` / `mlx_lm.server` which don't auth by
+  default.
+- Default base URLs point at `http://127.0.0.1:8080` (the conventional
+  ports for both servers). Override per-model via `base_url`.
+
+Phase 0 spike validated this path: gemma-3-27b-it-4bit via
+`mlx_lm.server` on M1 Max produced publication-quality ar→tr at
+~5-6 tok/s. Documented in `notes/2026-05-12-spikes.md`.
+
+- Servers are started by the user — mutercim does not own their
+  lifecycle. The pyhelper Server type (Phase 2) is not used here because
+  llama-server / mlx_lm.server are native binaries on the user's PATH,
+  not uv-managed Python tools.
+- Chunking to ≤2k input tokens (recommended by long-context evaluation
+  literature) is deferred to a follow-up; it interacts with the translate
+  phase's prompt builder.

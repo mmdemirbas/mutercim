@@ -47,7 +47,9 @@ var providerClasses = map[string]Class{
 	"openrouter": ClassCloud,
 	"xai":        ClassCloud,
 	// Local — user-controlled inference.
-	"ollama": ClassLocal,
+	"ollama":   ClassLocal,
+	"llamacpp": ClassLocal, // llama.cpp's llama-server (OpenAI-compatible)
+	"mlx":      ClassLocal, // mlx_lm.server on Apple Silicon (OpenAI-compatible)
 }
 
 // ClassFor returns the class for the given provider name. Unknown names

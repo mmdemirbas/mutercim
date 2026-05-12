@@ -49,12 +49,23 @@ type openaiChoiceMessage struct {
 
 // OpenAICompatPresets maps provider names to their default base URLs.
 // All these providers use the OpenAI-compatible chat completions API format.
+//
+// Cloud entries require an API key (resolved from the matching *_API_KEY
+// env var). Local entries (llamacpp, mlx) point at conventional ports
+// users must start themselves — llama-server or mlx_lm.server. Override
+// via the model spec's base_url field when running on a different port.
 var OpenAICompatPresets = map[string]string{
+	// Cloud — third-party hosted, OpenAI-compatible.
 	"openai":     "https://api.openai.com",
 	"groq":       "https://api.groq.com/openai",
 	"mistral":    "https://api.mistral.ai",
 	"openrouter": "https://openrouter.ai/api",
 	"xai":        "https://api.x.ai",
+	// Local — user-controlled OpenAI-compatible servers.
+	// llama-server (llama.cpp) and mlx_lm.server both default to :8080.
+	// Set base_url explicitly to run both at once on different ports.
+	"llamacpp": "http://127.0.0.1:8080",
+	"mlx":      "http://127.0.0.1:8080",
 }
 
 // OpenAIProvider implements Provider for OpenAI-compatible APIs.
@@ -84,6 +95,18 @@ func NewOpenAICompatProvider(client *apiclient.Client, name, apiKey, model, base
 // Name returns the provider identifier.
 func (o *OpenAIProvider) Name() string { return o.name }
 
+// authHeaders builds the request headers, sending the Authorization header
+// only when an API key is configured. Local OpenAI-compat servers
+// (llama-server, mlx_lm.server) don't authenticate by default and
+// shouldn't receive a "Bearer " (empty) value.
+func (o *OpenAIProvider) authHeaders() map[string]string {
+	h := map[string]string{"Content-Type": "application/json"}
+	if o.apiKey != "" {
+		h["Authorization"] = "Bearer " + o.apiKey
+	}
+	return h
+}
+
 // SupportsVision returns whether this provider can handle image inputs.
 func (o *OpenAIProvider) SupportsVision() bool { return o.supportsVision }
 
@@ -104,13 +127,10 @@ func (o *OpenAIProvider) ReadFromImage(ctx context.Context, image []byte, system
 	}
 
 	resp, err := apiclient.DoJSON[openaiResponse](o.client, ctx, apiclient.Request{
-		Method: "POST",
-		URL:    o.baseURL + "/v1/chat/completions",
-		Headers: map[string]string{
-			"Content-Type":  "application/json",
-			"Authorization": "Bearer " + o.apiKey,
-		},
-		Body: body,
+		Method:  "POST",
+		URL:     o.baseURL + "/v1/chat/completions",
+		Headers: o.authHeaders(),
+		Body:    body,
 	})
 	if err != nil {
 		return "", fmt.Errorf("%s read: %w", o.name, err)
@@ -130,13 +150,10 @@ func (o *OpenAIProvider) Translate(ctx context.Context, systemPrompt, userPrompt
 	}
 
 	resp, err := apiclient.DoJSON[openaiResponse](o.client, ctx, apiclient.Request{
-		Method: "POST",
-		URL:    o.baseURL + "/v1/chat/completions",
-		Headers: map[string]string{
-			"Content-Type":  "application/json",
-			"Authorization": "Bearer " + o.apiKey,
-		},
-		Body: body,
+		Method:  "POST",
+		URL:     o.baseURL + "/v1/chat/completions",
+		Headers: o.authHeaders(),
+		Body:    body,
 	})
 	if err != nil {
 		return "", fmt.Errorf("%s translate: %w", o.name, err)

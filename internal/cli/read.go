@@ -144,7 +144,9 @@ func apiKeyEnvVar(providerName string) string {
 		return "OPENROUTER_API_KEY"
 	case "xai":
 		return "XAI_API_KEY"
-	case "ollama", "surya":
+	case "ollama", "surya", "llamacpp", "mlx":
+		// Local providers don't authenticate. llama-server and
+		// mlx_lm.server accept any Bearer token (or none).
 		return ""
 	default:
 		return strings.ToUpper(providerName) + "_API_KEY"
@@ -153,10 +155,14 @@ func apiKeyEnvVar(providerName string) string {
 
 // clientTimeout returns an appropriate HTTP timeout for the given provider.
 func clientTimeout(providerName string) time.Duration {
-	if providerName == "ollama" {
+	switch providerName {
+	case "ollama", "llamacpp", "mlx":
+		// Local inference is bandwidth-unbounded but CPU/GPU-bound; long
+		// generations on a small machine take minutes for a few k tokens.
 		return 10 * time.Minute
+	default:
+		return 120 * time.Second
 	}
-	return 120 * time.Second
 }
 
 // defaultRPM returns the default rate limit for a provider.
@@ -176,7 +182,7 @@ func defaultRPM(providerName string) int {
 		return 200
 	case "xai":
 		return 60
-	case "ollama":
+	case "ollama", "llamacpp", "mlx":
 		return 1000 // local, effectively unlimited
 	default:
 		return 14
