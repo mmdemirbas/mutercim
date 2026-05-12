@@ -317,3 +317,24 @@ First implementation: Qari-OCR v0.3 (NAMAA-Space/Qari-OCR-v0.3-VL-2B-Instruct).
 When OCR is enabled, the read phase switches to text-only LLM (no vision needed).
 When OCR is disabled, the read phase falls back to vision-LLM-does-everything.
 Four degradation paths (layout±ocr combinations) all produce the same read output schema.
+## Local-first default — allow_cloud gate (Phase 1 of 2026-05-12 plan)
+
+Cloud-class providers (gemini, claude, openai, groq, mistral, openrouter, xai)
+are filtered out of read/translate failover chains by default. Local providers
+(ollama, and future llama.cpp / mlx-lm in Phase 3) always run.
+
+- New top-level config field `allow_cloud: bool`, default `false`.
+- Per-provider class registry at `internal/provider/provider.go`:
+  `ClassFor(name) → ClassCloud | ClassLocal | ClassUnknown`.
+- Filter applied in `internal/cli/read.go:createProviderChain` *before* API-key
+  lookup, so the local-first error wins over missing-key errors.
+- Unknown-class providers (anything not in the registry) treated as cloud-
+  equivalent under default-deny — fail-closed on additions that forgot to
+  declare their class.
+- Status header surfaces the current state visibly (`Cloud: blocked …` vs
+  `Cloud: allowed …`). Per-model labels mark cloud entries that will be
+  skipped: `gemini/gemini-2.0-flash (cloud — blocked)`.
+- Breaking change vs. previous behavior: configs that previously worked
+  (cloud-only chains, no explicit `allow_cloud: true`) now fail with a clear
+  error pointing at the gate. Migration: add `allow_cloud: true` to the
+  config, or add a local provider entry (ollama).

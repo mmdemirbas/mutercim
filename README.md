@@ -181,6 +181,11 @@ Full annotated `mutercim.yaml`:
 # Log verbosity (default: info). Can be overridden with -l flag.
 log_level: info                  # debug, info, warn, error
 
+# Local-first gate. When false (default), cloud providers (gemini, claude,
+# openai, groq, mistral, openrouter, xai) are filtered out of read/translate
+# failover chains. Local providers (ollama) always run. Set to true to opt in.
+allow_cloud: false
+
 # Input files — PDF or directories of images
 # Each declares its own source languages and optional page range
 inputs:
@@ -349,14 +354,21 @@ models recover after 60 seconds.
 
 Non-vision models are automatically skipped during the read phase (which requires image input).
 
+Cloud-class providers (gemini, claude, openai, groq, mistral, openrouter, xai) are filtered
+out of failover chains by default — set `allow_cloud: true` in `mutercim.yaml` to opt in.
+Local providers (ollama) always run. Status output and the live dashboard mark blocked
+entries explicitly.
+
 Example failover chain:
 
 ```yaml
+allow_cloud: true                # opt in to cloud providers
 read:
   models:
     - { provider: gemini, model: gemini-2.5-flash-lite }   # try first (free)
     - { provider: gemini, model: gemini-2.5-flash }         # fallback
     - { provider: groq, model: llama-3.2-90b-vision-preview }
+    - { provider: ollama, model: qwen2.5vl:7b }             # always-allowed local last resort
 ```
 
 ### Provider architecture

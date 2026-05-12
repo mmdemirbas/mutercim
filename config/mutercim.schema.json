@@ -4,6 +4,11 @@
   "additionalProperties": false,
   "description": "Configuration file for mutercim — Islamic scholarly book translation tool.",
   "properties": {
+    "allow_cloud": {
+      "default": false,
+      "description": "When false (default), cloud-class providers (gemini, claude, openai, groq, mistral, openrouter, xai) are filtered out of read/translate failover chains. Local providers (ollama) always run. Set to true to opt in to cloud calls — required for any third-party API to be used.",
+      "type": "boolean"
+    },
     "cut": {
       "additionalProperties": false,
       "description": "Page-generation settings (PDF to images).",

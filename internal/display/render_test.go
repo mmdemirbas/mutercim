@@ -401,8 +401,8 @@ func TestRenderHeader_LineCount(t *testing.T) {
 		InputPages: 10,
 	}, StatusColors{Enabled: false})
 
-	// 1 content line + 1 blank separator = 2
-	if lines != 2 {
-		t.Errorf("expected 2 lines (1 content + 1 blank), got %d\noutput:\n%s", lines, buf.String())
+	// 1 content line (Input) + 1 cloud-state line + 1 blank separator = 3
+	if lines != 3 {
+		t.Errorf("expected 3 lines (1 content + 1 cloud + 1 blank), got %d\noutput:\n%s", lines, buf.String())
 	}
 }

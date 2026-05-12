@@ -91,6 +91,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 		InputPages: totalImages,
 		PageRange:  "",
 		LogLevel:   cfg.LogLevel,
+		AllowCloud: cfg.AllowCloud,
 		OutputDir:  ws.OutputDir,
 		Inputs:     resolveInputPaths(ws, cfg),
 		Knowledge:  cfg.ResolveKnowledgePaths(ws.Root),

@@ -25,8 +25,9 @@ func intPtr(v int) *int { return &v }
 // Structure (field names, types, nesting) comes from reflection on the Go types.
 var schemaAnnotations = map[string]schemaMeta{
 	// output
-	"output":    {Description: "Base directory for all generated output (cut/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.", Default: "."},
-	"log_level": {Description: "Log verbosity level. Can be overridden with --log-level (-l) CLI flag.", Default: "info", Enum: []string{"debug", "info", "warn", "error"}},
+	"output":      {Description: "Base directory for all generated output (cut/, read/, solve/, translate/, write/, log/, memory/). Relative to workspace root. Use this to keep generated files separate from the workspace.", Default: "."},
+	"log_level":   {Description: "Log verbosity level. Can be overridden with --log-level (-l) CLI flag.", Default: "info", Enum: []string{"debug", "info", "warn", "error"}},
+	"allow_cloud": {Description: "When false (default), cloud-class providers (gemini, claude, openai, groq, mistral, openrouter, xai) are filtered out of read/translate failover chains. Local providers (ollama) always run. Set to true to opt in to cloud calls — required for any third-party API to be used.", Default: false},
 
 	// inputs
 	"inputs":             {Description: "Input files or directories. PDFs are converted to page images via pdftoppm; image directories are used as-is. Multiple inputs are processed independently through read/solve/translate, then merged in write.", Default: []map[string]string{{"path": "./input"}}},

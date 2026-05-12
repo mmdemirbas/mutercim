@@ -15,6 +15,7 @@ import (
 	"github.com/mmdemirbas/mutercim/internal/model"
 	"github.com/mmdemirbas/mutercim/internal/ocr"
 	"github.com/mmdemirbas/mutercim/internal/pipeline"
+	"github.com/mmdemirbas/mutercim/internal/provider"
 	"github.com/mmdemirbas/mutercim/internal/workspace"
 	"github.com/spf13/cobra"
 )
@@ -71,6 +72,7 @@ func newAllCmd() *cobra.Command {
 					Inputs:       resolveInputPaths(ws, cfg),
 					Knowledge:    cfg.ResolveKnowledgePaths(ws.Root),
 					PhaseConfigs: buildPhaseConfigs(cfg),
+					AllowCloud:   cfg.AllowCloud,
 				})
 			}
 			var pagesToProcess []int
@@ -144,7 +146,7 @@ func newAllCmd() *cobra.Command {
 
 			// Phase 4: Read
 			logger.Info("=== Phase 4: READ ===")
-			readChain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, logger)
+			readChain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, cfg.AllowCloud, logger)
 			if err != nil {
 				return fmt.Errorf("create read providers: %w", err)
 			}
@@ -196,7 +198,7 @@ func newAllCmd() *cobra.Command {
 
 			// Phase 6: Translate
 			logger.Info("=== Phase 6: TRANSLATE ===")
-			translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Translate.Retry, logger)
+			translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Translate.Retry, cfg.AllowCloud, logger)
 			if err != nil {
 				return fmt.Errorf("create translate providers: %w", err)
 			}
@@ -285,25 +287,17 @@ func buildPhaseConfigs(cfg *config.Config) []display.PhaseConfig {
 	}
 
 	// Read
-	var readModels []string
-	for _, m := range cfg.Read.Models {
-		readModels = append(readModels, m.Provider+"/"+m.Model)
-	}
 	configs = append(configs, display.PhaseConfig{
 		Phase:    display.PhaseRead,
-		SubItems: readModels,
+		SubItems: modelLabels(cfg.Read.Models, cfg.AllowCloud),
 	})
 
 	// Translate
-	var transModels []string
-	for _, m := range cfg.Translate.Models {
-		transModels = append(transModels, m.Provider+"/"+m.Model)
-	}
 	transInfo := "\u2192 " + strings.Join(cfg.Translate.Languages, ", ")
 	configs = append(configs, display.PhaseConfig{
 		Phase:    display.PhaseTranslate,
 		Info:     transInfo,
-		SubItems: transModels,
+		SubItems: modelLabels(cfg.Translate.Models, cfg.AllowCloud),
 	})
 
 	// Write
@@ -321,4 +315,24 @@ func printPhaseSummary(w io.Writer, colors display.StatusColors, name string, re
 		detail += colors.Red(fmt.Sprintf(" (%d failed)", result.Failed))
 	}
 	_, _ = fmt.Fprintf(w, "  %-12s %s\n", colors.Cyan(name+":"), detail)
+}
+
+// modelLabels formats a model list for display, annotating cloud-class
+// entries that will be filtered when allowCloud is false.
+//
+// Format: "provider/model" for entries that will run, with
+// " (cloud — blocked)" appended for cloud entries skipped by the
+// allow_cloud gate. This makes the local-first posture visible at a
+// glance in `mutercim status` and the live dashboard.
+func modelLabels(models []config.ModelSpec, allowCloud bool) []string {
+	labels := make([]string, 0, len(models))
+	for _, m := range models {
+		label := m.Provider + "/" + m.Model
+		class := provider.ClassFor(m.Provider)
+		if !allowCloud && class != provider.ClassLocal {
+			label += " (cloud — blocked)"
+		}
+		labels = append(labels, label)
+	}
+	return labels
 }

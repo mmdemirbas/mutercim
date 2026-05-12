@@ -150,7 +150,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 	}
 
 	if startPhase <= phaseRead && phaseRead < targetPhase {
-		readChain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, logger)
+		readChain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, cfg.AllowCloud, logger)
 		if err != nil {
 			return fmt.Errorf("auto create read providers: %w", err)
 		}
@@ -196,7 +196,7 @@ func runPrerequisites(ctx context.Context, targetPhase phase, ws *workspace.Work
 			return fmt.Errorf("auto load knowledge: %w", err)
 		}
 
-		translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Translate.Retry, logger)
+		translateChain, err := createProviderChain(cfg.Translate.Models, cfg.Translate.Retry, cfg.AllowCloud, logger)
 		if err != nil {
 			return fmt.Errorf("auto create translate providers: %w", err)
 		}

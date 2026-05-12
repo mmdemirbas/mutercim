@@ -63,7 +63,7 @@ func newReadCmd() *cobra.Command {
 
 			logger := slog.Default()
 
-			chain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, logger)
+			chain, err := createProviderChain(cfg.Read.Models, cfg.Read.Retry, cfg.AllowCloud, logger)
 			if err != nil {
 				return err
 			}
@@ -215,7 +215,12 @@ func detectVision(providerName, modelName string) bool {
 
 // createProviderChain builds a failover chain from a list of model specs.
 // Each model gets its own apiclient.Client with its own rate limiter.
-func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig, logger *slog.Logger) (*provider.FailoverChain, error) {
+//
+// When allowCloud is false, providers of class cloud are filtered out
+// before any API key lookup or client creation. Unknown-class providers
+// are also filtered (treat-as-cloud under default-deny). Local providers
+// always run.
+func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig, allowCloud bool, logger *slog.Logger) (*provider.FailoverChain, error) {
 	var providers []provider.Provider
 	var clients []*apiclient.Client
 
@@ -226,8 +231,17 @@ func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig,
 	}
 
 	var labels []string
+	cloudFiltered := 0
 
 	for _, spec := range models {
+		class := provider.ClassFor(spec.Provider)
+		if !allowCloud && class != provider.ClassLocal {
+			logger.Warn("skipping cloud model (allow_cloud=false)", "provider", spec.Provider, "model", spec.Model, "class", string(class))
+			fmt.Fprintf(os.Stderr, "warning: skipping %s/%s — cloud provider blocked by allow_cloud=false\n", spec.Provider, spec.Model)
+			cloudFiltered++
+			continue
+		}
+
 		apiKey, err := resolveAPIKey(spec.Provider)
 		if err != nil {
 			logger.Warn("skipping model (API key not set)", "provider", spec.Provider, "model", spec.Model, "error", err)
@@ -259,6 +273,9 @@ func createProviderChain(models []config.ModelSpec, retryCfg config.RetryConfig,
 
 	if len(providers) == 0 {
 		cleanup()
+		if cloudFiltered > 0 && !allowCloud {
+			return nil, fmt.Errorf("no usable providers: all %d configured models are cloud-class and allow_cloud=false; set allow_cloud: true in mutercim.yaml to opt in, or add a local provider (e.g. ollama)", cloudFiltered)
+		}
 		return nil, fmt.Errorf("no usable providers: set API keys for at least one configured model (e.g. GEMINI_API_KEY)")
 	}
 

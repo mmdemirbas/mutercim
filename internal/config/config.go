@@ -18,17 +18,22 @@ type InputSpec struct {
 
 // Config represents the full workspace configuration.
 type Config struct {
-	Inputs    []InputSpec     `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
-	Output    string          `yaml:"output" mapstructure:"output" json:"output"`
-	LogLevel  string          `yaml:"log_level,omitempty" mapstructure:"log_level" json:"log_level,omitempty"`
-	Cut       CutConfig       `yaml:"cut" mapstructure:"cut" json:"cut"`
-	Layout    LayoutConfig    `yaml:"layout" mapstructure:"layout" json:"layout"`
-	OCR       OCRConfig       `yaml:"ocr" mapstructure:"ocr" json:"ocr"`
-	Read      ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
-	Solve     SolveConfig     `yaml:"solve" mapstructure:"solve" json:"solve"`
-	Translate TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
-	Write     WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
-	Knowledge []string        `yaml:"knowledge" mapstructure:"knowledge" json:"knowledge"`
+	Inputs   []InputSpec `yaml:"inputs" mapstructure:"inputs" json:"inputs"`
+	Output   string      `yaml:"output" mapstructure:"output" json:"output"`
+	LogLevel string      `yaml:"log_level,omitempty" mapstructure:"log_level" json:"log_level,omitempty"`
+	// AllowCloud gates whether cloud-class providers (gemini, claude, openai,
+	// groq, mistral, openrouter, xai) may participate in read/translate
+	// failover chains. Default false enforces local-first: cloud providers
+	// must be explicitly opted in. Local providers (ollama) are always allowed.
+	AllowCloud bool            `yaml:"allow_cloud,omitempty" mapstructure:"allow_cloud" json:"allow_cloud,omitempty"`
+	Cut        CutConfig       `yaml:"cut" mapstructure:"cut" json:"cut"`
+	Layout     LayoutConfig    `yaml:"layout" mapstructure:"layout" json:"layout"`
+	OCR        OCRConfig       `yaml:"ocr" mapstructure:"ocr" json:"ocr"`
+	Read       ReadConfig      `yaml:"read" mapstructure:"read" json:"read"`
+	Solve      SolveConfig     `yaml:"solve" mapstructure:"solve" json:"solve"`
+	Translate  TranslateConfig `yaml:"translate" mapstructure:"translate" json:"translate"`
+	Write      WriteConfig     `yaml:"write" mapstructure:"write" json:"write"`
+	Knowledge  []string        `yaml:"knowledge" mapstructure:"knowledge" json:"knowledge"`
 }
 
 // CutConfig holds page-generation settings (PDF to images).
@@ -102,6 +107,7 @@ type RateLimitConfig struct {
 func SetDefaults(v *viper.Viper) {
 	v.SetDefault("output", ".")
 	v.SetDefault("log_level", "info")
+	v.SetDefault("allow_cloud", false)
 	v.SetDefault("cut.dpi", 300)
 
 	v.SetDefault("layout.tool", "doclayout-yolo")

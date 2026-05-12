@@ -11,6 +11,7 @@ type StatusData struct {
 	InputPages int // total pages from images dir
 	PageRange  string
 	LogLevel   string
+	AllowCloud bool // whether cloud-class providers may be used (default false)
 	OutputDir  string
 	Inputs     []string
 	Knowledge  []string
@@ -33,6 +34,7 @@ func RenderStatus(w io.Writer, data StatusData, colors StatusColors) {
 		OutputDir:  data.OutputDir,
 		Inputs:     data.Inputs,
 		Knowledge:  data.Knowledge,
+		AllowCloud: data.AllowCloud,
 	}, colors)
 
 	// Phase rows with per-phase config details

@@ -28,6 +28,7 @@ type HeaderData struct {
 	Inputs       []string      // input paths (absolute)
 	Knowledge    []string      // knowledge paths (absolute)
 	PhaseConfigs []PhaseConfig // per-phase config summaries
+	AllowCloud   bool          // whether cloud-class providers may be used (default false)
 }
 
 // warnWrite logs a warning if a write to an io.Writer fails.
@@ -74,7 +75,16 @@ func RenderHeader(w io.Writer, h HeaderData, colors StatusColors) int {
 		warnWrite(fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Know")), strings.Join(h.Knowledge, ", ")))
 		lines++
 	}
+	// Only surface the cloud-allowed state when the header is non-empty.
+	// Keeps HeaderData{} → "" contract intact; in real runs the local-first
+	// posture is always visible.
 	if lines > 0 {
+		cloudState := colors.dim("blocked (allow_cloud=false)")
+		if h.AllowCloud {
+			cloudState = colors.Red("allowed (allow_cloud=true)")
+		}
+		warnWrite(fmt.Fprintf(w, "%s: %s\n", colors.Cyan(fmt.Sprintf("%8s", "Cloud")), cloudState))
+		lines++
 		warnWrite(fmt.Fprintln(w))
 		lines++
 	}

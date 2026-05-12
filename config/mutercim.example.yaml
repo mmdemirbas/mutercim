@@ -10,6 +10,15 @@
 log_level: info                  # Log verbosity: debug, info, warn, error. Overridden by -l flag.
 output: ./                       # Base directory for all generated output. Relative to workspace root.
 
+# ─── Local-first gate ────────────────────────────────────────────────────────
+#
+# When false (default), cloud-class providers (gemini, claude, openai, groq,
+# mistral, openrouter, xai) are filtered out of read/translate failover chains.
+# Local providers (ollama) always run. Set to true to opt in to cloud calls —
+# required for any third-party API to be used. The status header prints the
+# current state and per-model labels mark cloud entries that will be skipped.
+allow_cloud: false
+
 # ─── Inputs ──────────────────────────────────────────────────────────────────
 #
 # Input files or directories to process.
@@ -147,7 +156,11 @@ ocr:
 #   OpenRouter: openrouter.ai — free models available immediately
 
 read:
-  models:                            # Ordered failover chain — first is primary
+  # Ordered failover chain — first eligible model is primary.
+  # Under the local-first default (allow_cloud: false) entries 1-4 are
+  # filtered out and only the local model runs. Set allow_cloud: true above
+  # to enable the cloud entries; the order then becomes the failover order.
+  models:
     # 1. Gemini Flash-Lite: best free vision quota (1,000 RPD, 15 RPM)
     - { provider: gemini, model: gemini-2.5-flash-lite }
     # 2. Gemini Flash: higher quality, lower quota (250 RPD, 10 RPM)
@@ -156,7 +169,7 @@ read:
     - { provider: groq, model: llama-3.2-90b-vision-preview }
     # 4. xAI: $25 free credits, good vision
     - { provider: xai, model: grok-2-vision-latest }
-    # 5. Local fallback: always available, slow
+    # 5. Local — always allowed, runs even with allow_cloud=false
     - { provider: ollama, model: qwen2.5vl:7b }
   concurrency: 1                     # Parallel read workers (min: 1) — currently only 1 supported
   retry:
@@ -171,7 +184,11 @@ read:
 
 translate:
   languages: [tr]                    # Target language codes — each gets its own translate/ and write/ subdirectory
-  models:                            # Ordered failover chain — vision not required
+  # Ordered failover chain — vision not required for translation.
+  # Under the local-first default (allow_cloud: false) entries 1-6 are
+  # filtered out and only the local model runs. Set allow_cloud: true above
+  # to enable the cloud entries; the order then becomes the failover order.
+  models:
     # 1. Groq: fastest inference, good Arabic (1,000 RPD, 30 RPM)
     - { provider: groq, model: llama-3.3-70b-versatile }
     # 2. Gemini Flash-Lite: good quality (1,000 RPD, 15 RPM)
@@ -184,7 +201,7 @@ translate:
     - { provider: xai, model: grok-2-latest }
     # 6. OpenRouter: community-funded free models
     - { provider: openrouter, model: meta-llama/llama-3.3-70b-instruct:free }
-    # 7. Local fallback
+    # 7. Local — always allowed, runs even with allow_cloud=false
     - { provider: ollama, model: qwen3:14b }
   context_window: 2                  # Previous pages included for continuity (min: 0, higher = more tokens)
   retry:
