@@ -40,3 +40,9 @@ desktop.ini
 !/example/knowledge
 !/example/mutercim.yaml
 quality-findings.md
+
+# Spike artifacts
+# notes/ holds research and plan markdown (committed) plus spike/
+# which contains downloaded models, uv venvs, generated PDFs, and
+# test outputs — measured in GBs, never appropriate for git.
+notes/spike/
